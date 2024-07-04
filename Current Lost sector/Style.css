@@ -1,0 +1,163 @@
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayBlack.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayBlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayBold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayBoldItalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayLight.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayLightItalic.ttf') format('truetype');
+    font-weight: 300;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayMedium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayMediumItalic.ttf') format('truetype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayRoman.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayRomanItalic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayThin.ttf') format('truetype');
+    font-weight: 200;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayThinItalic.ttf') format('truetype');
+    font-weight: 200;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayXThin.ttf') format('truetype');
+    font-weight: 100;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayXThinItalic.ttf') format('truetype');
+    font-weight: 100;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayXXThin.ttf') format('truetype');
+    font-weight: 50;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display';
+    src: url('NeueHaasDisplayXXThinItalic.ttf') format('truetype');
+    font-weight: 50;
+    font-style: italic;
+}
+
+body {
+  background-color: #181818;
+  color: #fff;
+  font-family: 'Neue Haas Display', sans-serif;
+}
+
+h1, h5 {
+  font-weight: 700;
+}
+
+.card {
+  background-color: #282828;
+  border: none;
+}
+
+.card-header {
+  background-color: #383838;
+  border-bottom: 1px solid #484848;
+  padding: 10px;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.card-body {
+  padding: 15px;
+}
+
+.icon {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.text-muted {
+  font-size: 14px;
+  color: #b0b0b0 !important;
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+.table td, .table th {
+  padding: 8px 12px;
+  border: 1px solid #484848;
+}
+
+.table th {
+  background-color: #383838;
+  font-weight: bold;
+}
