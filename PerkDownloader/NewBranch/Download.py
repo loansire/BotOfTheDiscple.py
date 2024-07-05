@@ -2,6 +2,7 @@ import requests
 import json
 import time
 import logging
+import Config
 
 # Fonction pour télécharger le manifeste complet
 def download_manifest(url_to_download, output_file, max_retries=3, backoff_factor=1, must_simplify = False):
@@ -21,8 +22,11 @@ def download_manifest(url_to_download, output_file, max_retries=3, backoff_facto
 
             # Vérifier si la requête a réussi (code 200)
             if response.status_code == 200:
-                # Extraire le contenu JSON du manifeste
-                manifest_data = response.json()["Response"]
+                # Extraire le contenu JSON du 
+                if output_file == Config.MAIN_MANIFEST_OUTPUT_FILE:
+                    manifest_data = response.json()["Response"]
+                else:
+                    manifest_data = response.json()
 
                 # Parcourir le manifeste pour simplifier le contenu
                 if must_simplify:
