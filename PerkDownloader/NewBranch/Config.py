@@ -9,8 +9,12 @@ MAIN_MF_URL = "https://www.bungie.net/Platform/Destiny2/Manifest/"
 MAIN_MF_OUTPUT_FILE = "MainManifest.json"
 
 #Destiny Activity Namings
-MF_DESTINY_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
-MF_DESTINY_ACTIVITY_FILENAME = "ActivityDefinition.json"
-MF_DESTINY_ACTIVITY_FILTERED_FILENAME = "ActivityDefinitionFiltered.json"
+MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
+MF_ACTIVITY_FILENAME = "ActivityDefinition.json"
+MF_ACTIVITY_FILTERED_FILENAME = "ActivityDefinitionFiltered.json"
 
+#Destination Manifest
+MF_DESTINATION_DEFINITION = "DestinyDestinationDefinition"
+MF_DESTINATION_FILENAME = "DestinationDefinition.json"
+MF_DESTINATION_FILTERED_FILENAME = "DestinationDefinitionFiltered.json"
 

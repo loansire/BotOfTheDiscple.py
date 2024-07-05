@@ -3,7 +3,7 @@ import Config
 
 
 def GetManifestPathInMainManifest(manifest_name):
-	with open(Config.MAIN_MANIFEST_OUTPUT_FILE, 'r', encoding='utf-8') as file:
+	with open(Config.MAIN_MF_OUTPUT_FILE, 'r', encoding='utf-8') as file:
 		data = json.load(file)
 
 	# Extraire le chemin correspondant à DestinyActivityDefinition

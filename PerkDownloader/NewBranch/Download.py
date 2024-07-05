@@ -23,7 +23,7 @@ def download_manifest(url_to_download, output_file, max_retries=3, backoff_facto
             # Vérifier si la requête a réussi (code 200)
             if response.status_code == 200:
                 # Extraire le contenu JSON du 
-                if output_file == Config.MAIN_MANIFEST_OUTPUT_FILE:
+                if output_file == Config.MAIN_MF_OUTPUT_FILE:
                     manifest_data = response.json()["Response"]
                 else:
                     manifest_data = response.json()
