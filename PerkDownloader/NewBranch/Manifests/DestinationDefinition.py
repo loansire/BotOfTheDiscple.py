@@ -1,27 +1,30 @@
 import Config
 import json
 
-def main(sector_name):
+def main(destination_hash):
 	print("Treatment of Destination Definition")
 	
-	with open(Config.MF_ACTIVITY_FILENAME, "r", encoding='utf-8') as file:
+	with open(Config.MF_DESTINATION_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
-	filtered_activities = filter_activities_by_mode_type(json_data, sector_name, 87)
+	filtered_activities = filter_destination_by_hash(json_data, destination_hash)
 
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, 'w', encoding='utf-8') as file:
+	with open(Config.MF_DESTINATION_FILTERED_FILENAME, 'w', encoding='utf-8') as file:
 		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
 
 
-def filter_activities_by_mode_type(data, sector_name, mode_type = 87):
-	filtered_activities = {}
-	description = ""
-	for activity_hash, activity_details in data.items():
-		if sector_name in activity_details.get('displayProperties').get("name"):
-			if "Expert" in activity_details.get('displayProperties').get("description") and description == "":
-				description = activity_details.get('displayProperties').get("description")
-				filtered_activities[activity_hash] = activity_details
-			elif  activity_details.get('displayProperties').get("description") == description:
-				filtered_activities[activity_hash] = activity_details
-	return filtered_activities
+def filter_destination_by_hash(data, destination_hash_searched):
+	filtered_destination = {}
+	for destination_hash, destination_details in data.items():
+		if int(destination_hash) == destination_hash_searched:
+			filtered_destination[destination_hash] = destination_details
+	return filtered_destination
+
+def get_destination_name_and_description():
+	with open(Config.MF_DESTINATION_FILTERED_FILENAME, "r", encoding='utf-8') as file:
+		json_data = json.load(file)
+
+	display_properties = json_data[list(json_data.keys())[0]].get("displayProperties")
+
+	return display_properties.get("name"), display_properties.get("description")
 

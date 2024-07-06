@@ -5,7 +5,7 @@ import logging
 import Config
 
 # Fonction pour télécharger le manifeste complet
-def download_manifest(url_to_download, output_file, max_retries=3, backoff_factor=1, must_simplify = False):
+def download_manifest(url_to_download, output_file, max_retries=3, backoff_factor=1):
     """
     Fonction pour dl le manifeste complet de Destiny 2.
 
@@ -18,36 +18,42 @@ def download_manifest(url_to_download, output_file, max_retries=3, backoff_facto
     for attempt in range(max_retries):
         try:
             # Faire la requête GET pour télécharger le manifeste complet
-            response = requests.get(url_to_download)
+            with requests.get(url_to_download, stream=True) as response:
+                # Vérifier si la requête a réussi (code 200)
+                if response.status_code == 200:
+                    # Extraire le contenu JSON du 
+                    if output_file == Config.MAIN_MF_OUTPUT_FILE:
+                        #Special treatment for Main Manifest
+                        manifest_data = response.json()["Response"]
+                        simplify_manifest(manifest_data)
+                        # Enregistrer le manifeste simplifié dans un fichier JSON
+                        with open(output_file, "w") as f:
+                            json.dump(manifest_data, f, indent=4)
+                            print("Manifest correctly downloaded")
+                            return
 
-            # Vérifier si la requête a réussi (code 200)
-            if response.status_code == 200:
-                # Extraire le contenu JSON du 
-                if output_file == Config.MAIN_MF_OUTPUT_FILE:
-                    manifest_data = response.json()["Response"]
+
+                    else:
+                        response.raise_for_status()
+                        # Enregistrer le manifeste simplifié dans un fichier JSON
+                        with open(output_file, "wb") as file:
+                            for chunk in response.iter_content(chunk_size=1024*1024):
+                            # Si le morceau est non vide, l'écrire dans le fichier
+                                if chunk:
+                                    file.write(chunk)
+
+                        print("Manifest correctly downloaded")
+                        return
+
                 else:
-                    manifest_data = response.json()
+                    print(f"Request for the download of the manifest Failed. Error code : {response.status_code}")
+                    logging.error(f"Request for the download of the manifest Failed. Error code : {response.status_code}")
 
-                # Parcourir le manifeste pour simplifier le contenu
-                if must_simplify:
-                   simplify_manifest(manifest_data)
-
-                # Enregistrer le manifeste simplifié dans un fichier JSON
-                with open(output_file, "w") as f:
-                    json.dump(manifest_data, f, indent=4)
-
-                print("Manifest correctly downloaded")
-                return
-
-            else:
-                print(f"Request for the download of the manifest Failed. Error code : {response.status_code}")
-                logging.error(f"Request for the download of the manifest Failed. Error code : {response.status_code}")
-
-                if response.status_code >= 500:
-                    print(f"Attempt {attempt + 1} on {max_retries} failed. retry...")
-                    time.sleep(backoff_factor * (attempt + 1))
-                else:
-                    break
+                    if response.status_code >= 500:
+                        print(f"Attempt {attempt + 1} on {max_retries} failed. retry...")
+                        time.sleep(backoff_factor * (attempt + 1))
+                    else:
+                        break
 
         except requests.RequestException as e:
             error_msg = f"Error during request : {str(e)}"

@@ -18,3 +18,17 @@ MF_DESTINATION_DEFINITION = "DestinyDestinationDefinition"
 MF_DESTINATION_FILENAME = "DestinationDefinition.json"
 MF_DESTINATION_FILTERED_FILENAME = "DestinationDefinitionFiltered.json"
 
+#Place Manifest
+MF_PLACE_DEFINITION = "DestinyPlaceDefinition"
+MF_PLACE_FILENAME = "PlaceDefinition.json"
+MF_PLACE_FILTERED_FILENAME = "PlaceDefinitionFiltered.json"
+
+#Inventory Item Manifest
+MF_II_DEFINITION = "DestinyInventoryItemDefinition"
+MF_II_FILENAME = "IIDefinition.json"
+MF_II_FILTERED_FILENAME = "IIDefinitionFiltered.json"
+
+#Inventory Item Manifest
+MF_MODIFIER_DEFINITION = "DestinyActivityModifierDefinition"
+MF_MODIFIER_FILENAME = "ModifierDefinition.json"
+MF_MODIFIER_FILTERED_FILENAME = "ModifierDefinitionFiltered.json"

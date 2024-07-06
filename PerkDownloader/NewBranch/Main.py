@@ -8,6 +8,9 @@ import Download
 import JsonReader
 from Manifests import ActivityDefinition
 from Manifests import DestinationDefinition
+from Manifests import PlaceDefinition
+from Manifests import InventoryItemDefinition
+from Manifests import ModifierDefinition
 
 
 def main(lost_sector_name, download_all = False):
@@ -15,50 +18,109 @@ def main(lost_sector_name, download_all = False):
     #Expert
     E_name = ""
     E_description = ""
+    E_rewards = []
+    E_modifier = []
     #Maitrise
     M_name = ""
     M_description = ""
+    M_rewards = []
+    M_modifier = []
     #Common
-    C_destination_hash = ""
+    C_destination_hash = 0
+    C_destination_name = ""
+    C_destination_description = ""
+    C_place_hash = 0
+    C_place_name = ""
+    C_pgcr_image_link = ""
 
     # Configuration de la journalisation
     logging.basicConfig(filename='manifest_download.log', level=logging.ERROR,
                     format='%(asctime)s:%(levelname)s:%(message)s')
     
-    #Récupérer le manifest principal
+    #################################### Main MF ######################################
+    print("Main MF")
     if(os.path.exists( Config.MAIN_MF_OUTPUT_FILE) and not download_all):
         print("Main Manifest already downloaded")
     else:
-        Download.download_manifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, 3, 1, True);
+        Download.download_manifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, 3, 1);
         print("Main Manifest downloaded")
 
-    #Récuperer le manifest Activity Definition
+    #################################### Activity Definition ######################################
+    print("Activition Definition")
     DownloadManifest(Config.MF_ACTIVITY_DEFINITION, Config.MF_ACTIVITY_FILENAME, download_all)
     #Make Acitivty definition Treatment
     ActivityDefinition.main(lost_sector_name)
 
-    #Get Destination Definition Manifest
-    DownloadManifest(Config.MF_DESTINATION_DEFINITION, Config.MF_DESTINATION_FILENAME, download_all)
-
-
-
     E_name, E_description = ActivityDefinition.get_activity_name_description(True)
     M_name, M_description = ActivityDefinition.get_activity_name_description(False)
-    C_destination_hash = ActivityDefinition.get_activity_destination_hash()
+    C_destination_hash, C_place_hash = ActivityDefinition.get_activity_destination_and_place_hash()
+    C_pgcr_image_link = ActivityDefinition.get_activity_pgcr_image()
+    
+    #Rewards
+    E_rewards = ActivityDefinition.get_reward_item(True)
+    M_rewards = ActivityDefinition.get_reward_item(False)
 
+    #Modifiers
+    E_modifier = ActivityDefinition.get_modifiers(True)
+    M_modifier = ActivityDefinition.get_modifiers(False)
+
+    #################################### Destination Definition ######################################
+    print("Destination Definition")
+    DownloadManifest(Config.MF_DESTINATION_DEFINITION, Config.MF_DESTINATION_FILENAME, download_all)
+    DestinationDefinition.main(C_destination_hash)
+    C_destination_name, C_destination_description = DestinationDefinition.get_destination_name_and_description()
+
+    ################################### Place Definition #############################################
+    print("Place Definition")
+    DownloadManifest(Config.MF_PLACE_DEFINITION, Config.MF_PLACE_FILENAME, download_all)
+    PlaceDefinition.main(C_place_hash)
+    C_place_name = PlaceDefinition.get_destination_name()
+
+    ################################## Item Definition #############################################
+    print("Item Definition")
+    DownloadManifest(Config.MF_II_DEFINITION, Config.MF_II_FILENAME, download_all)
+    InventoryItemDefinition.main(E_rewards, M_rewards)
+    for i in range(0, len(E_rewards)):
+        E_rewards[i] = (E_rewards[i],) + InventoryItemDefinition.get_ii_name_and_icon(E_rewards[i])
+    for i in range(0, len(M_rewards)):
+        M_rewards[i] = (M_rewards[i],) + InventoryItemDefinition.get_ii_name_and_icon(M_rewards[i])
+
+    ################################## Modifier Definition #############################################
+    print("Modifier Definition")
+    DownloadManifest(Config.MF_MODIFIER_DEFINITION, Config.MF_MODIFIER_FILENAME, download_all)
+    ModifierDefinition.main(E_modifier, M_modifier)
+    for i in range(0, len(E_modifier)):
+        E_modifier[i] = (E_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(E_modifier[i])
+    for i in range(0, len(M_modifier)):
+        M_modifier[i] = (M_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(M_modifier[i])
+
+    #################################### Print ######################################
     print("New expert sector : " + E_name + " with description : " + E_description)
     print("New maitrise sector : " + M_name + " with description : " + M_description)
-    print("Destination hash is :" + str(C_destination_hash))
+    print("Destination hash is : " + str(C_destination_hash) + " with name : " + C_destination_name + " and description : " + C_destination_description)
+    print("Place hash is : " + str(C_place_hash) + " with name : " + C_place_name)
+    print("Pgcr Image link is : " + C_pgcr_image_link)
+
+    for i in range(0, len(E_rewards)):
+        print("New Expert reward with hash : " + str(E_rewards[i][0]) + ", and name : " + E_rewards[i][1] + ", and icon : " + E_rewards[i][2])
+    for i in range(0, len(M_rewards)):
+        print("New Maitrise reward with hash : " + str(M_rewards[i][0]) + ", and name : " + M_rewards[i][1] + ", and icon : " + M_rewards[i][2])
+
+    for i in range(0, len(E_modifier)):
+        print("New Expert modifier with hash : " + str(E_modifier[i][0]) + ", and name : " + E_modifier[i][1] + " , and description : " + E_modifier[i][2] + ", and icon : " + E_modifier[i][3])
+    for i in range(0, len(M_modifier)):
+        print("New Maitrise modifier with hash : " + str(M_modifier[i][0]) + ", and name : " + M_modifier[i][1] + " , and description : " + M_modifier[i][2] + ", and icon : " + M_modifier[i][3])
+
 
 
 
 def DownloadManifest(path_to_download, path_to_save, download_all = False):
     if(os.path.exists(path_to_save) and not download_all):
-        print("Destination Definition MF already downloaded")
+        print(" MF already downloaded")
     else:
         ActivityDefinitionPath = JsonReader.GetManifestPathInMainManifest(path_to_download)
         Download.download_manifest(Config.BASE_URL + ActivityDefinitionPath, path_to_save)
-        print("Destination definition manifest downloaded : " + ActivityDefinitionPath)
+        print("MF downloaded : " + ActivityDefinitionPath)
 
     
 
