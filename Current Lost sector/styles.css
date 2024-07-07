@@ -5,6 +5,13 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: 'Neue Haas Display Light';
+    src: url('../fonts/NeueHaasDisplayXThin.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 html, body {
     height: 100%;
     margin: 0;
@@ -34,7 +41,7 @@ html, body {
     background: linear-gradient(180deg, rgba(0,0,0,0.09707633053221287) 0%, rgba(11,14,15,1) 50%, rgba(11,14,15,1) 100%);
 }
 
-.content {
+.Top-Title {
     position: relative;
     z-index: 1;
     display: flex;
@@ -47,20 +54,17 @@ html, body {
     padding: 100px;
 }
 
-.content p,
-.content h1 {
-    margin: 0; /* Enlever les marges par défaut */
-    padding: 10px 0; /* Ajouter une marge interne verticale pour l'espacement */
-}
-
-.content h1 {
-    border-top: 1px solid white; /* Ajouter une bordure en haut du premier h1 */
-    padding-top: 10px; /* Ajouter un peu de padding au-dessus du texte pour espacement */
-}
-
-h1 {
+.Top-Title h1 {
+    margin: 0;
+    padding:10px 0;
+    border-top: 1px solid white;
     font-family: 'Neue Haas Display Black', sans-serif;
     font-size: 4rem;
     font-weight: bold;
-    color: #ffffff;
+}
+
+.Activity-Description {
+    font-family: 'Neue Haas Display Light', sans-serif;
+    font-size: 1.1rem;
+    padding: 0px 0;
 }
