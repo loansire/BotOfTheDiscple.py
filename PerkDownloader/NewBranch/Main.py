@@ -6,11 +6,13 @@ import os
 import Config
 import Download
 import JsonReader
+import HtmlFiller
 from Manifests import ActivityDefinition
 from Manifests import DestinationDefinition
 from Manifests import PlaceDefinition
 from Manifests import InventoryItemDefinition
 from Manifests import ModifierDefinition
+
 
 
 def main(lost_sector_name, download_all = False):
@@ -26,6 +28,8 @@ def main(lost_sector_name, download_all = False):
     M_rewards = []
     M_modifier = []
     #Common
+    C_activity_name = lost_sector_name
+    C_activity_description = ""
     C_destination_hash = 0
     C_destination_name = ""
     C_destination_description = ""
@@ -54,7 +58,7 @@ def main(lost_sector_name, download_all = False):
     E_name, E_description = ActivityDefinition.get_activity_name_description(True)
     M_name, M_description = ActivityDefinition.get_activity_name_description(False)
     C_destination_hash, C_place_hash = ActivityDefinition.get_activity_destination_and_place_hash()
-    C_pgcr_image_link = ActivityDefinition.get_activity_pgcr_image()
+    C_pgcr_image_link = Config.BASE_URL + ActivityDefinition.get_activity_pgcr_image()
     
     #Rewards
     E_rewards = ActivityDefinition.get_reward_item(True)
@@ -95,6 +99,7 @@ def main(lost_sector_name, download_all = False):
         M_modifier[i] = (M_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(M_modifier[i])
 
     #################################### Print ######################################
+    """             
     print("New expert sector : " + E_name + " with description : " + E_description)
     print("New maitrise sector : " + M_name + " with description : " + M_description)
     print("Destination hash is : " + str(C_destination_hash) + " with name : " + C_destination_name + " and description : " + C_destination_description)
@@ -110,9 +115,11 @@ def main(lost_sector_name, download_all = False):
         print("New Expert modifier with hash : " + str(E_modifier[i][0]) + ", and name : " + E_modifier[i][1] + " , and description : " + E_modifier[i][2] + ", and icon : " + E_modifier[i][3])
     for i in range(0, len(M_modifier)):
         print("New Maitrise modifier with hash : " + str(M_modifier[i][0]) + ", and name : " + M_modifier[i][1] + " , and description : " + M_modifier[i][2] + ", and icon : " + M_modifier[i][3])
+    """
 
-
-
+    ################################### HtmlFiller ####################################
+    HtmlFiller.CopyTemplate()
+    HtmlFiller.MainInfos(C_activity_name, E_description, C_pgcr_image_link)
 
 def DownloadManifest(path_to_download, path_to_save, download_all = False):
     if(os.path.exists(path_to_save) and not download_all):
