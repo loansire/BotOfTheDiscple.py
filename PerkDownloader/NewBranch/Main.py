@@ -103,10 +103,8 @@ def main(lost_sector_name, download_all = False):
     print("Destination hash is : " + str(C_destination_hash) + " with name : " + C_destination_name + " and description : " + C_destination_description)
     print("Place hash is : " + str(C_place_hash) + " with name : " + C_place_name)
     print("Pgcr Image link is : " + C_pgcr_image_link)
-    """
     for i in range(0, len(C_rewards)):
         print("New reward with hash : " + str(C_rewards[i][0]) + ", and name : " + C_rewards[i][1] + ", and icon : " + C_rewards[i][2])
-    """
     for i in range(0, len(E_modifier)):
         print("New Expert modifier with hash : " + str(E_modifier[i][0]) + ", and name : " + E_modifier[i][1] + " , and description : " + E_modifier[i][2] + ", and icon : " + E_modifier[i][3])
     for i in range(0, len(M_modifier)):
