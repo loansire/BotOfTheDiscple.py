@@ -36,22 +36,23 @@ def MainInfos(activity_name, activity_description, background_image, activity_pl
     #Reward names
 
     span_elements = html_file.find_all('span')
+
     for span in span_elements:
         if span and ("Nom_Reward_1" in span.get_text()):
             reward_splitted = TreatRewardText(rewards[0][1])
-            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">(' + reward_splitted[1] + ")</span>", 'html.parser')
+            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')
             span.clear()
             span.append(parsed_html)
 
         if span and ("Nom_Reward_2" in span.get_text()):
             reward_splitted = TreatRewardText(rewards[1][1])
-            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">(' + reward_splitted[1] + ")</span>", 'html.parser')
+            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')     
             span.clear()
             span.append(parsed_html)
 
         if span and ("Nom_Reward_3" in span.get_text()):
             reward_splitted = TreatRewardText(rewards[2][1])
-            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">(' + reward_splitted[1] + ")</span>", 'html.parser')
+            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')      
             span.clear()
             span.append(parsed_html)
 
@@ -77,10 +78,10 @@ def MainInfos(activity_name, activity_description, background_image, activity_pl
 
 
 def TreatRewardText(reward_text):
-    reward_text = reward_text.replace("En solo - ", " ")
+    reward_text = reward_text.replace("En solo - ", "")
 
-
-    parties = reward_text.split(" (")
-    parties[1] = parties[1].replace(")", "")
-
-    return parties
+    name_rarity_split = reward_text.split(" (")
+    name = name_rarity_split[0].replace(" ", "<br/>")
+    rarity = "(" + name_rarity_split[1]
+    
+    return [name, rarity]
