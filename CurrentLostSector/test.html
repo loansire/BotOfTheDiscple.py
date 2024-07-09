@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block with Images and Text</title>
+    <style>
+        .reward-section {
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 20px;
+            width: fit-content;
+        }
+
+        .reward-title {
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .reward-list {
+            display: flex;
+            align-items: center;
+        }
+
+        .reward-list img {
+            margin-right: 10px;
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+        }
+
+        .reward-list span {
+            white-space: wrap;
+            margin-right: 10px;
+            color: white;
+        }
+
+        .reward-list .small-text {
+            font-size: 0.75em;
+        }
+    </style>
+</head>
+<body>
+    <div class="reward-section">
+        <div class="reward-title">RÉCOMPENSES (EN SOLO)</div>
+        <div class="reward-list">
+            <img style="background-color:rgba(200,163,90,255);" src="https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png" alt="Image 2">
+            <span>Engramme<br/>exotique<br/><span class="small-text">(rare)</span></span>
+            <img src="https://www.bungie.net/common/destiny2_content/icons/a0ac992c9980ec97c3e40a0b6cdd409c.jpg" alt="Image 3">
+            <span>Arme<br/>légendaire<br/><span class="small-text">(peu commune)</span></span>
+            <img src="https://www.bungie.net/common/destiny2_content/icons/0a4eb695ed55b4e720ddc401460cc0f9.jpg" alt="Image 1">
+            <span>Matrices<br/>d'amélioration<br/><span class="small-text">(peu commun)</span></span>
+        </div>
+    </div>
+</body>
+</html>

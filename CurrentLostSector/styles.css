@@ -74,6 +74,20 @@ html, body {
     background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(11,14,15,0.7) 50%, rgba(11,14,15,1) 60%, rgba(11,14,15,1) 100%);
 }
 
+.top-title {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    color: white;
+    padding: 50px;
+    display: inline-block;
+    animation: fadeInRight 1s ease-in-out forwards;
+}
+
 .background-image-container {
     position: absolute;
     top: 0;
@@ -89,21 +103,13 @@ html, body {
     object-fit: cover;
 }
 
-.top-title {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start; /* Aligner les éléments à gauche */
-    justify-content: flex-start; /* Aligner les éléments en haut */
-    text-align: left;
-    color: white;
-    padding: 50px;
-    opacity: 0;
-    animation: fadeInRight 1s ease-in-out forwards;
+.activity-type {
+    font-family: 'Neue Haas Display Light', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 6px;
 }
 
-.top-title h1 {
+.activity-name {
     margin: 0;
     padding:10px 0;
     border-top: 1px solid white;
@@ -120,13 +126,42 @@ html, body {
     letter-spacing: 4px;
 }
 
-.activity-type {
-    font-family: 'Neue Haas Display Light', sans-serif;
+.reward-section {
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 20px;
+    padding: 20px;
+    width: fit-content;
+}
+
+.reward-title {
+    color: white;
     font-size: 1.2rem;
-    letter-spacing: 6px;
+    margin-bottom: 10px;
+}
+
+.reward-list {
+    display: flex;
+    align-items: center;
+}
+
+.reward-list img {
+    margin-right: 10px;
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+
+.reward-list span {
+    white-space: wrap;
+    margin-right: 10px;
+    color: white;
+}
+
+.reward-list .small-text {
+    font-size: 0.75em;
 }
 
 .lostSector-info {
-    padding:10px 0;
-    border-top: 1px solid white;
+    padding:50px 0;
 }
+
