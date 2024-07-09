@@ -51,16 +51,13 @@ def get_activity_pgcr_image():
 
 	return json_data[list(json_data.keys())[0]].get("pgcrImage")
 
-def get_reward_item(search_expert):
+def get_reward_item():
 	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
 	rewards = []
 
-	if search_expert:
-		id = 0
-	else:
-		id = 1
+	id = 0 #Same rewards for expert and mastery
 	rewards_items = json_data[list(json_data.keys())[id]].get("rewards")[0].get("rewardItems")
 
 	for i in range(0, len(rewards_items)):

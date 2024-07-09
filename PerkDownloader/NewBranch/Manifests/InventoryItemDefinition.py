@@ -1,13 +1,13 @@
 import Config
 import json
 
-def main(ii_hashes_expert, ii_hashes_maitrise):
+def main(ii_hashes):
 	print("Treatment of Destination Definition")
 	
 	with open(Config.MF_II_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
-	filtered_activities = filter_ii_by_hash(json_data, ii_hashes_expert + ii_hashes_maitrise)
+	filtered_activities = filter_ii_by_hash(json_data, ii_hashes)
 
 	with open(Config.MF_II_FILTERED_FILENAME, 'w', encoding='utf-8') as file:
 		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
@@ -26,5 +26,5 @@ def get_ii_name_and_icon(hash):
 
 	display_properties = json_data.get(str(hash)).get("displayProperties")
 
-	return display_properties.get("name"), display_properties.get("icon")
+	return display_properties.get("name"), Config.BASE_URL + display_properties.get("icon")
 

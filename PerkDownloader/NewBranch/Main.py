@@ -36,6 +36,7 @@ def main(lost_sector_name, download_all = False):
     C_place_hash = 0
     C_place_name = ""
     C_pgcr_image_link = ""
+    C_rewards = []
 
     # Configuration de la journalisation
     logging.basicConfig(filename='manifest_download.log', level=logging.ERROR,
@@ -61,8 +62,7 @@ def main(lost_sector_name, download_all = False):
     C_pgcr_image_link = Config.BASE_URL + ActivityDefinition.get_activity_pgcr_image()
     
     #Rewards
-    E_rewards = ActivityDefinition.get_reward_item(True)
-    M_rewards = ActivityDefinition.get_reward_item(False)
+    C_rewards = ActivityDefinition.get_reward_item()
 
     #Modifiers
     E_modifier = ActivityDefinition.get_modifiers(True)
@@ -83,11 +83,9 @@ def main(lost_sector_name, download_all = False):
     ################################## Item Definition #############################################
     print("Item Definition")
     DownloadManifest(Config.MF_II_DEFINITION, Config.MF_II_FILENAME, download_all)
-    InventoryItemDefinition.main(E_rewards, M_rewards)
-    for i in range(0, len(E_rewards)):
-        E_rewards[i] = (E_rewards[i],) + InventoryItemDefinition.get_ii_name_and_icon(E_rewards[i])
-    for i in range(0, len(M_rewards)):
-        M_rewards[i] = (M_rewards[i],) + InventoryItemDefinition.get_ii_name_and_icon(M_rewards[i])
+    InventoryItemDefinition.main(C_rewards)
+    for i in range(0, len(C_rewards)):
+        C_rewards[i] = (C_rewards[i],) + InventoryItemDefinition.get_ii_name_and_icon(C_rewards[i])
 
     ################################## Modifier Definition #############################################
     print("Modifier Definition")
@@ -105,12 +103,10 @@ def main(lost_sector_name, download_all = False):
     print("Destination hash is : " + str(C_destination_hash) + " with name : " + C_destination_name + " and description : " + C_destination_description)
     print("Place hash is : " + str(C_place_hash) + " with name : " + C_place_name)
     print("Pgcr Image link is : " + C_pgcr_image_link)
-
-    for i in range(0, len(E_rewards)):
-        print("New Expert reward with hash : " + str(E_rewards[i][0]) + ", and name : " + E_rewards[i][1] + ", and icon : " + E_rewards[i][2])
-    for i in range(0, len(M_rewards)):
-        print("New Maitrise reward with hash : " + str(M_rewards[i][0]) + ", and name : " + M_rewards[i][1] + ", and icon : " + M_rewards[i][2])
-
+    """
+    for i in range(0, len(C_rewards)):
+        print("New reward with hash : " + str(C_rewards[i][0]) + ", and name : " + C_rewards[i][1] + ", and icon : " + C_rewards[i][2])
+    """
     for i in range(0, len(E_modifier)):
         print("New Expert modifier with hash : " + str(E_modifier[i][0]) + ", and name : " + E_modifier[i][1] + " , and description : " + E_modifier[i][2] + ", and icon : " + E_modifier[i][3])
     for i in range(0, len(M_modifier)):
@@ -119,7 +115,7 @@ def main(lost_sector_name, download_all = False):
 
     ################################### HtmlFiller ####################################
     HtmlFiller.CopyTemplate()
-    HtmlFiller.MainInfos(C_activity_name, E_description, C_pgcr_image_link)
+    HtmlFiller.MainInfos(C_activity_name, E_description, C_pgcr_image_link, C_place_name, C_destination_name, C_rewards)
 
 def DownloadManifest(path_to_download, path_to_save, download_all = False):
     if(os.path.exists(path_to_save) and not download_all):
