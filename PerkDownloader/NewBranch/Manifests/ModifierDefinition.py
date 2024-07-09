@@ -27,7 +27,7 @@ def get_modifier_name_description_and_icon(hash):
 	display_properties = json_data.get(str(hash)).get("displayProperties")
 
 	if("icon" in display_properties):
-		return display_properties.get("name"), display_properties.get("description"), display_properties.get("icon")
+		return display_properties.get("name"), display_properties.get("description"), Config.BASE_URL + display_properties.get("icon")
 	else:
 		return display_properties.get("name"), display_properties.get("description"), ""
 

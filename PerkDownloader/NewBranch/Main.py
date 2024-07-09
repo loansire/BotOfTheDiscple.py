@@ -12,6 +12,7 @@ from Manifests import DestinationDefinition
 from Manifests import PlaceDefinition
 from Manifests import InventoryItemDefinition
 from Manifests import ModifierDefinition
+import Result
 
 
 
@@ -20,12 +21,10 @@ def main(lost_sector_name, download_all = False):
     #Expert
     E_name = ""
     E_description = ""
-    E_rewards = []
     E_modifier = []
     #Maitrise
     M_name = ""
     M_description = ""
-    M_rewards = []
     M_modifier = []
     #Common
     C_activity_name = lost_sector_name
@@ -105,6 +104,7 @@ def main(lost_sector_name, download_all = False):
     print("Pgcr Image link is : " + C_pgcr_image_link)
     for i in range(0, len(C_rewards)):
         print("New reward with hash : " + str(C_rewards[i][0]) + ", and name : " + C_rewards[i][1] + ", and icon : " + C_rewards[i][2])
+    
     for i in range(0, len(E_modifier)):
         print("New Expert modifier with hash : " + str(E_modifier[i][0]) + ", and name : " + E_modifier[i][1] + " , and description : " + E_modifier[i][2] + ", and icon : " + E_modifier[i][3])
     for i in range(0, len(M_modifier)):
@@ -114,6 +114,9 @@ def main(lost_sector_name, download_all = False):
     ################################### HtmlFiller ####################################
     HtmlFiller.CopyTemplate()
     HtmlFiller.MainInfos(C_activity_name, E_description, C_pgcr_image_link, C_place_name, C_destination_name, C_rewards)
+
+    Result.WriteResult("Expert", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, E_modifier)
+    Result.WriteResult("Maitrise", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, M_modifier)
 
 def DownloadManifest(path_to_download, path_to_save, download_all = False):
     if(os.path.exists(path_to_save) and not download_all):
