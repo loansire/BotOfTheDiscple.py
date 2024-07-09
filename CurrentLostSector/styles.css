@@ -58,7 +58,7 @@ html, body {
 
 .background-image {
     position: absolute;
-    top: -30%;
+    top: -20%;
     left: 0;
     width: 100%;
     height: 100%;
@@ -126,17 +126,35 @@ html, body {
     letter-spacing: 4px;
 }
 
+@keyframes slideInLeftFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .reward-section {
-    background-color: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    top: 55px;
+    right: 50px;
+    background-color: rgba(0, 0, 0, 0.3);
     border-radius: 20px;
-    padding: 20px;
+    padding: 15px;
     width: fit-content;
+    opacity: 0;
+    animation: slideInLeftFadeIn 1s ease-in-out forwards 1.5s;
 }
 
 .reward-title {
     color: white;
+    font-family: 'Neue Haas Display Black', sans-serif;
+    font-weight: bold;
     font-size: 1.2rem;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .reward-list {
@@ -146,19 +164,22 @@ html, body {
 
 .reward-list img {
     margin-right: 10px;
-    width: 50px;
-    height: 50px;
+    width: 62px;
+    height: 62px;
     object-fit: cover;
 }
 
 .reward-list span {
     white-space: wrap;
     margin-right: 10px;
+    font-family: 'Neue Haas Display Black', sans-serif;
+    font-weight: bold;
     color: white;
 }
 
 .reward-list .small-text {
     font-size: 0.75em;
+    color: rgb(181, 181, 181);
 }
 
 .lostSector-info {
