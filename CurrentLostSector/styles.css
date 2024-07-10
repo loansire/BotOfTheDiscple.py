@@ -1,13 +1,20 @@
 @font-face {
     font-family: 'Neue Haas Display Black';
-    src: url('../fonts/NeueHaasDisplayBlack.ttf') format('truetype');
+    src: url('fonts/NeueHaasDisplayBlack.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'Neue Haas Display Light';
-    src: url('../fonts/NeueHaasDisplayXThin.ttf') format('truetype');
+    src: url('fonts/NeueHaasDisplayXThin.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Neue Haas Display Medium';
+    src: url('fonts/NeueHaasDisplayMediu.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
@@ -186,3 +193,30 @@ html, body {
     padding:50px 0;
 }
 
+.power-level {
+    background-color: rgb(29, 29, 30);
+    color: rgb(150, 151, 151);
+    display: inline-flex;
+    padding: 10px 15px;
+    align-items: center;
+}
+.power-level .level-text {
+    color: rgb(150, 151, 151);
+    margin-right: 50px;
+    font-family: 'Neue Haas Display Medium', sans-serif;
+}
+.power-level .level-value {
+    display: flex;
+    font-family: 'Neue Haas Display Medium', sans-serif;
+    letter-spacing: 1.5px;
+    align-items: center;
+    color: rgba(227, 202, 75, 1);
+}
+.power-level .level-value .icon {
+    width: 30px;
+    height: 30px;
+    margin-top: -5px;
+    margin-bottom: -5px;
+    filter: brightness(0) saturate(100%) invert(98%) sepia(88%) saturate(1121%) hue-rotate(332deg) brightness(91%) contrast(95%);
+    clip-path: polygon(30% 30%, 72% 30%, 72% 72%, 30% 72%);
+}
