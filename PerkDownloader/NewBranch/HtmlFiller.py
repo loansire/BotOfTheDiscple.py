@@ -16,9 +16,9 @@ def MainInfos(activity_name, activity_description, background_image, activity_pl
 
     ######################################## Main infos #########################################################
     #Get html variables
-    html_activity_name = html_file.find("h1", class_="activity-name animated fadeInRight delay-2")
-    html_activity_place_and_destination = html_file.find("p", class_="activity-description animated fadeInRight delay-3")
-    html_activity_background_image = html_file.find("img", class_="background-image")
+    html_activity_name = html_file.find(id="activity_type")
+    html_activity_place_and_destination = html_file.find(id="activity_name")
+    html_activity_background_image = html_file.find(id="activity_description")
 
 
     #Fill the html
@@ -37,38 +37,35 @@ def MainInfos(activity_name, activity_description, background_image, activity_pl
 
     span_elements = html_file.find_all('span')
 
-    for span in span_elements:
-        if span and ("Nom_Reward_1" in span.get_text()):
-            reward_splitted = TreatRewardText(rewards[0][1])
-            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')
-            span.clear()
-            span.append(parsed_html)
+    #Reward 1
+    html_reward_1 = html_file.find(id="reward_name_1")
+    reward_splitted = TreatRewardText(rewards[0][1])
+    parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')
+    html_reward_1.clear()
+    html_reward_1.append(parsed_html)
 
-        if span and ("Nom_Reward_2" in span.get_text()):
-            reward_splitted = TreatRewardText(rewards[1][1])
-            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')     
-            span.clear()
-            span.append(parsed_html)
+    html_reward_icon_1 = html_file.find(id="reward_icon_1")
+    html_reward_icon_1['src'] = rewards[0][2]
 
-        if span and ("Nom_Reward_3" in span.get_text()):
-            reward_splitted = TreatRewardText(rewards[2][1])
-            parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')      
-            span.clear()
-            span.append(parsed_html)
+    #Reward 2
+    html_reward_1 = html_file.find(id="reward_name_2")
+    reward_splitted = TreatRewardText(rewards[1][1])
+    parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')
+    html_reward_1.clear()
+    html_reward_1.append(parsed_html)
 
-    img_elements = html_file.find_all('img')
-    for img in img_elements:
-        if "Img_reward_1" in img['src']:
-            img['src'] = rewards[0][2]
+    html_reward_icon_1 = html_file.find(id="reward_icon_2")
+    html_reward_icon_1['src'] = rewards[1][2]
 
-        if "Img_reward_2" in img['src']:
-            img['src'] = rewards[1][2]
+    #Reward 3
+    html_reward_1 = html_file.find(id="reward_name_3")
+    reward_splitted = TreatRewardText(rewards[2][1])
+    parsed_html = BeautifulSoup(reward_splitted[0] + '<br/><span class="small-text">' + reward_splitted[1] + "</span>", 'html.parser')
+    html_reward_1.clear()
+    html_reward_1.append(parsed_html)
 
-        if "Img_reward_3" in img['src']:
-            img['src'] = rewards[2][2]
-
-
-
+    html_reward_icon_1 = html_file.find(id="reward_icon_3")
+    html_reward_icon_1['src'] = rewards[2][2]
 
 
     with open('../CurrentLostSector/Output.html', 'w', encoding='utf-8') as file:
