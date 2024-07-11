@@ -220,3 +220,125 @@ html, body {
     filter: brightness(0) saturate(100%) invert(98%) sepia(88%) saturate(1121%) hue-rotate(332deg) brightness(91%) contrast(95%);
     clip-path: polygon(30% 30%, 72% 30%, 72% 72%, 30% 72%);
 }
+
+.lostSector-info {
+    padding: 0;
+    font-family: Arial, sans-serif;
+    color: #ffffff;
+    width: 50%;
+    background-color: #333333;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.shield-champion-section {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 10px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ffffff;
+}
+.shield-champion-top-title {
+    width: 100%;
+    margin-top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ffffff;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+.shield-champion-top-title h2 {
+    margin: 0;
+}
+.shield-champion-column {
+    flex: 1;
+}
+.column-title {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+.info-shield-champ-container {
+    flex-direction: column;
+}
+.info-shield-champ {
+    display: inline-flex;
+    align-items: center;
+    margin: 5px;
+}
+.info-shield-champ img {
+    width: 24px;
+    height: 24px;
+    margin-right: 5px;
+}
+.count {
+    font-size: 1.5rem;
+    margin-right: 10px;
+    font-weight: bold;
+}
+.solar {
+    color: #f0631e;
+}
+.void {
+    color: #b185df;
+}
+.arc {
+    color: #7aecf3;
+}
+.power-level {
+    display: flex;
+    align-items: center;
+}
+.level-text {
+    margin-right: 10px;
+}
+.level-value {
+    display: flex;
+    align-items: center;
+}
+.level-value .icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 5px;
+}
+
+.modifier-section {
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    margin: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+.modifier {
+    display: flex;
+    align-items: center;
+}
+.modifier-icon {
+    margin-right: 10px;
+    align-self: flex-start;
+}
+.modifier-icon img {
+    width: 35px;
+    height: 35px;
+}
+.modifier-text {
+    font-size: 16px;
+    flex-grow: 1;
+    align-self: flex-start;
+}
+.modifier-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.modifier-detail {
+    color: #969797;
+}
+.champion-icon-txt {
+    height: 15px;
+    width: 15px;
+    margin-bottom: -2px;
+}
