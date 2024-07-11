@@ -69,28 +69,27 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: -1;
     object-fit: cover;
 }
 
 .overlay {
     position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
+    z-index: -1;
     background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(11,14,15,0.7) 50%, rgba(11,14,15,1) 60%, rgba(11,14,15,1) 100%);
 }
 
 .top-title {
     position: relative;
-    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
     text-align: left;
     color: white;
-    padding: 50px;
+    padding: 50px 50px 20px 50px;
     display: inline-block;
     animation: fadeInRight 1s ease-in-out forwards;
 }
@@ -189,10 +188,6 @@ html, body {
     color: rgb(181, 181, 181);
 }
 
-.lostSector-info {
-    padding:50px 0;
-}
-
 .power-level {
     background-color: rgb(29, 29, 30);
     color: rgb(150, 151, 151);
@@ -221,17 +216,24 @@ html, body {
     clip-path: polygon(30% 30%, 72% 30%, 72% 72%, 30% 72%);
 }
 
+.lostSector-info-container {
+    padding-left: 50px;
+    padding-right: 50px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
 .lostSector-info {
-    padding: 0;
     font-family: Arial, sans-serif;
     color: #ffffff;
-    width: 50%;
-    background-color: #333333;
-    border-radius: 8px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    margin-bottom: 20px;
 }
+
 .shield-champion-section {
     display: flex;
     flex-wrap: wrap;
@@ -303,7 +305,6 @@ html, body {
     height: 24px;
     margin-right: 5px;
 }
-
 .modifier-section {
     color: #ffffff;
     font-family: Arial, sans-serif;
@@ -340,5 +341,4 @@ html, body {
 .champion-icon-txt {
     height: 15px;
     width: 15px;
-    margin-bottom: -2px;
 }
