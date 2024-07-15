@@ -32,3 +32,10 @@ MF_II_FILTERED_FILENAME = "IIDefinitionFiltered.json"
 MF_MODIFIER_DEFINITION = "DestinyActivityModifierDefinition"
 MF_MODIFIER_FILENAME = "ModifierDefinition.json"
 MF_MODIFIER_FILTERED_FILENAME = "ModifierDefinitionFiltered.json"
+
+#Damage and Breaker type manifest
+MF_DAMAGE_TYPE = "DestinyDamageTypeDefinition"
+MF_DAMAGE_TYPE_FILENAME = "DamageType.json"
+MF_BREAKER_TYPE = "DestinyBreakerTypeDefinition"
+MF_BREAKER_TYPE_FILENAME = "BreakerType.json"
+

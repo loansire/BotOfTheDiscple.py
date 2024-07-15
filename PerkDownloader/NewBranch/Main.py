@@ -12,6 +12,7 @@ from Manifests import DestinationDefinition
 from Manifests import PlaceDefinition
 from Manifests import InventoryItemDefinition
 from Manifests import ModifierDefinition
+from Manifests import BreakerDamageType
 import Result
 
 
@@ -22,10 +23,12 @@ def main(lost_sector_name, download_all = False):
     E_name = ""
     E_description = ""
     E_modifier = []
+    E_power = 2020
     #Maitrise
     M_name = ""
     M_description = ""
     M_modifier = []
+    M_power = 2030
     #Common
     C_activity_name = lost_sector_name
     C_activity_description = ""
@@ -36,6 +39,7 @@ def main(lost_sector_name, download_all = False):
     C_place_name = ""
     C_pgcr_image_link = ""
     C_rewards = []
+    C_damange_breaker_type = {}
 
     # Configuration de la journalisation
     logging.basicConfig(filename='manifest_download.log', level=logging.ERROR,
@@ -94,6 +98,13 @@ def main(lost_sector_name, download_all = False):
         E_modifier[i] = (E_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(E_modifier[i])
     for i in range(0, len(M_modifier)):
         M_modifier[i] = (M_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(M_modifier[i])
+        
+    ################################## Damage and Breaker types #######################################
+    print("Damage and Breaker type")
+    DownloadManifest(Config.MF_DAMAGE_TYPE, Config.MF_DAMAGE_TYPE_FILENAME, download_all)
+    DownloadManifest(Config.MF_BREAKER_TYPE, Config.MF_BREAKER_TYPE_FILENAME, download_all)
+    BreakerDamageType.main()
+    C_damange_breaker_type = BreakerDamageType.GetDamageAndBreakerType()
 
     #################################### Print ######################################
     """             
@@ -113,8 +124,11 @@ def main(lost_sector_name, download_all = False):
 
     ################################### HtmlFiller ####################################
     HtmlFiller.CopyTemplate()
-    HtmlFiller.MainInfos(C_activity_name, E_description, C_pgcr_image_link, C_place_name, C_destination_name, C_rewards)
+    HtmlFiller.MainInfos(C_activity_name, C_pgcr_image_link, C_place_name, C_destination_name, C_rewards)
+    HtmlFiller.ExpertInfos(E_power, E_description, C_damange_breaker_type)
+    HtmlFiller.MaitriseInfos(M_power, M_description, C_damange_breaker_type)
 
+    #################################### Result Viewer ###################################
     Result.WriteResult("Expert", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, E_modifier)
     Result.WriteResult("Maitrise", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, M_modifier)
 

@@ -10,15 +10,15 @@
 </head>
 <body>
 <div class="background">
-<img alt="Background Image" class="background-image" id="sector_background" src="https://www.bungie.net/img/destiny_content/pgcr/europa-lost-sector-shear.jpg"/>
+<img alt="Background Image" class="background-image" id="sector_background" src="https://www.bungie.net/img/destiny_content/pgcr/cosmodrome-lost-sector-graveyard.jpg"/>
 <div class="overlay"></div>
 <div class="top-title">
 <div class="background-image-container">
 <img alt="Sector-Icon" class="toptitle-background-image" id="Sector-Icon" src="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png"/>
 </div>
-<p class="activity-type animated fadeInRight delay-1" id="activity_type">Jardin de l'Exode 2A</p>
-<h1 class="activity-name animated fadeInRight delay-2" id="activity_name">Terre - Le Cosmodrome</h1>
-<p class="activity-description animated fadeInRight delay-3" id="activity_description" src="https://www.bungie.net/img/destiny_content/pgcr/cosmodrome-lost-sector-graveyard.jpg">Place - Destination</p>
+<p class="activity-type animated fadeInRight delay-1" id="activity_type">SECTEUR OUBLIE</p>
+<h1 class="activity-name animated fadeInRight delay-2" id="activity_name">Jardin de l'Exode 2A</h1>
+<p class="activity-description animated fadeInRight delay-3" id="activity_description">Terre - Le Cosmodrome</p>
 </div>
 <div class="reward-section">
 <div class="reward-title">RÉCOMPENSES (EN SOLO)</div>
@@ -29,6 +29,245 @@
 <span id="reward_name_1">Matrices<br/>d'amélioration<br/><span class="small-text">(peu commun)</span></span>
 <img alt="Image 3" id="reward_icon_3" src="https://www.bungie.net/common/destiny2_content/icons/8b02ac3fc520b8933a2654f5804fafbc.jpg"/>
 <span id="reward_name_3">Arme<br/>légendaire<br/><span class="small-text">(peu commune)</span></span>
+</div>
+</div>
+<div class="lostSector-info-container">
+<div class="lostSector-info">
+<div class="shield-champion-section">
+<div class="shield-champion-top-title">
+<h2>Expert</h2>
+<div class="power-level">
+<div class="level-text">PUISSANCE</div>
+<div class="level-value">
+<img alt="Power Icon" class="icon" src="https://www.bungie.net/common/destiny2_content/icons/d5bea0d356792af8ca0a582fae89b87f.png"/>
+<span id="power_lever_expert">2020</span>
+</div>
+</div>
+</div>
+<div class="shield-champion-column">
+<div class="column-title">Boucliers</div>
+<div class="info-shield-champ-container" id="info_shield_container_expert"><div class="info-shield-champ">
+<img src="https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_ceb2f6197dccf3958bb31cc783eb97a0.png"/>
+<span class="count Abyssaux">5</span>Abyssaux
+</div></div>
+</div>
+<div class="shield-champion-column">
+<div class="column-title">Champions</div>
+<div class="info-shield-champ-container" id="info_champ_container_expert"><div class="info-shield-champ">
+<img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_07b9ba0194e85e46b258b04783e93d5d.png"/>
+<span class="count" id="text">5</span>Brise-bouclier
+</div> <div class="info-shield-champ">
+<img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_da558352b624d799cf50de14d7cb9565.png"/>
+<span class="count" id="text">5</span>Perturbation
+</div> </div>
+</div>
+</div>
+<div class="modifier-section" id="modifier_section_expert">
+<!--<div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/fd69e40400a3be51626434863ed24c2f.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Modificateurs (Expert)</div>
+                            <div class="modifier-detail">Équipement verrouillé, Boucliers supplémentaires</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/b71303cbadd04249d48ad90783708226.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Champions adverses</div>
+                            <div class="modifier-detail">Vous allez affronter des <img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_da558352b624d799cf50de14d7cb9565.png" class="champion-icon-txt" alt="Perturbation Icon"> Champions surchargés et des <img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_825a438c85404efd6472ff9e97fc7251.png" class="champion-icon-txt" alt="Chancellement Icon"> Champions implacables.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/facdcba310cb7ea0f8281247f72944e6.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Menace cryo-électrique</div>
+                            <div class="modifier-detail">Les dégâts cryo-électriques subis augmentent de 25%.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/c5aa73483fe0576117750727936bc2bd.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Épitaphe</div>
+                            <div class="modifier-detail">Les combattants corrompus vaincus génèrent des geysers d'infection à leur mort.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/ac47d9a05d94d3f28f3dd38261e71ae0.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Armes surchargées</div>
+                            <div class="modifier-detail">Les armes cinétiques infligent des dégâts augmentés quand l'élément de votre Super correspond à celui d'une surcharge active.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/ae6c34a458f08f361037335a6b6330de.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Surcharge cryo-électrique</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts cryo-électriques infligés.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/ffabdc1e7819c540d49c7ffdda174ab0.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Surcharge solaire</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts solaires infligés.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/84cff6c892b66ad342f794bc12a53bd0.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Surcharge abyssale</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts abyssaux infligés.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/2b24779c60f73bd56f0629cc797428e3.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Mitrailleuse surchargée</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts des mitrailleuses.</div>
+                        </div>
+                    </div>-->
+</div>
+</div>
+<div class="lostSector-info">
+<div class="shield-champion-section">
+<div class="shield-champion-top-title">
+<h2>Maitrise</h2>
+<div class="power-level">
+<div class="level-text">PUISSANCE</div>
+<div class="level-value">
+<img alt="Power Icon" class="icon" src="https://www.bungie.net/common/destiny2_content/icons/d5bea0d356792af8ca0a582fae89b87f.png"/>
+<span id="power_lever_master">2030</span>
+</div>
+</div>
+</div>
+<div class="shield-champion-column">
+<div class="column-title">Boucliers</div>
+<div class="info-shield-champ-container" id="info_shield_container_master"><html><body><div class="info-shield-champ">
+<img src="https://www.bungie.net/common/destiny2_content/icons/DestinyDamageTypeDefinition_ceb2f6197dccf3958bb31cc783eb97a0.png"/>
+<span class="count Abyssaux">5</span>Abyssaux
+</div></body></html></div>
+</div>
+<div class="shield-champion-column">
+<div class="column-title">Champions</div>
+<div class="info-shield-champ-container" id="info_champ_container_master"><html><body><div class="info-shield-champ">
+<img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_07b9ba0194e85e46b258b04783e93d5d.png"/>
+<span class="count" id="text">5</span>Brise-bouclier
+</div> </body></html><html><body><div class="info-shield-champ">
+<img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_da558352b624d799cf50de14d7cb9565.png"/>
+<span class="count" id="text">5</span>Perturbation
+</div> </body></html></div>
+</div>
+</div>
+<div class="modifier-section" id="modifier_section_master">
+<!--<div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/0d70d8becedacd79922e1a43c0052f4a.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Modificateurs (Maitrise)</div>
+                            <div class="modifier-detail">Champions supplémentaires, Équipement verrouillé, Boucliers supplémentaires</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/b71303cbadd04249d48ad90783708226.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Champions adverses</div>
+                            <div class="modifier-detail">Vous allez affronter des <img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_da558352b624d799cf50de14d7cb9565.png" class="champion-icon-txt" alt="Perturbation Icon"> Champions surchargés et des <img src="https://www.bungie.net/common/destiny2_content/icons/DestinyBreakerTypeDefinition_825a438c85404efd6472ff9e97fc7251.png" class="champion-icon-txt" alt="Chancellement Icon"> Champions implacables.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/facdcba310cb7ea0f8281247f72944e6.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Menace cryo-électrique</div>
+                            <div class="modifier-detail">Les dégâts cryo-électriques subis augmentent de 25%.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/c5aa73483fe0576117750727936bc2bd.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Épitaphe</div>
+                            <div class="modifier-detail">Les combattants corrompus vaincus génèrent des geysers d'infection à leur mort.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/c15f55a423934f6a96c95873d72306a2.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Inutile</div>
+                            <div class="modifier-detail">Le radar est désactivé.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/ac47d9a05d94d3f28f3dd38261e71ae0.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Armes surchargées</div>
+                            <div class="modifier-detail">Les armes cinétiques infligent des dégâts augmentés quand l'élément de votre Super correspond à celui d'une surcharge active.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/ae6c34a458f08f361037335a6b6330de.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Surcharge cryo-électrique</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts cryo-électriques infligés.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/ffabdc1e7819c540d49c7ffdda174ab0.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Surcharge solaire</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts solaires infligés.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/84cff6c892b66ad342f794bc12a53bd0.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Surcharge abyssale</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts abyssaux infligés.</div>
+                        </div>
+                    </div>
+                    <div class="modifier">
+                        <div class="modifier-icon">
+                            <img src="https://www.bungie.net/common/destiny2_content/icons/2b24779c60f73bd56f0629cc797428e3.png" alt="icon">
+                        </div>
+                        <div class="modifier-text">
+                            <div class="modifier-title">Mitrailleuse surchargée</div>
+                            <div class="modifier-detail">25% de bonus aux dégâts des mitrailleuses.</div>
+                        </div>
+                    </div>-->
+</div>
 </div>
 </div>
 </div>
