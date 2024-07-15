@@ -3,8 +3,6 @@ import re
 
 def WriteResult(filename, activity_name, activity_description, activity_place, activity_destination, pgcr_image, rewards, modifiers):
 
-    
-
     rewards_json = []
 
     for reward in rewards:

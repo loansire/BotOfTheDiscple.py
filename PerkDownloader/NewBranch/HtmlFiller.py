@@ -77,7 +77,7 @@ def MainInfos(activity_name, background_image, activity_place, activity_destinat
          file.write(str(html_file))
     
 
-def ExpertInfos(power_level, activity_description, damage_breaker_type):
+def ExpertInfos(power_level, activity_description, damage_breaker_type, modifiers):
     with open(HtmlDefines.OUTPUT_PATH, 'r', encoding='utf-8') as file:
         html_file = BeautifulSoup(file, 'lxml')
 
@@ -111,16 +111,32 @@ def ExpertInfos(power_level, activity_description, damage_breaker_type):
         with open(HtmlDefines.T_SHIELDS_PATH, 'r', encoding='utf-8') as file:
             txt_shield_template = file.read()
         for champion_type in boucliers:
-            txt_shield_template_copy = txt_shield_template
-            txt_shield_template_copy = txt_shield_template_copy.replace("ShieldIcon", damage_breaker_type[champion_type])
-            txt_shield_template_copy = txt_shield_template_copy.replace("ShieldCount", "5")
-            txt_shield_template_copy = txt_shield_template_copy.replace("ShieldType", champion_type)
-            shield_container.append(BeautifulSoup(txt_shield_template_copy, 'lxml'))
+            txt_shield_copy = txt_shield_template
+            txt_shield_copy = txt_shield_copy.replace("ShieldIcon", damage_breaker_type[champion_type])
+            txt_shield_copy = txt_shield_copy.replace("ShieldCount", "5")
+            txt_shield_copy = txt_shield_copy.replace("ShieldType", champion_type)
+            shield_container.append(BeautifulSoup(txt_shield_copy, 'lxml'))
+
+    #Modifiers
+    modifier_container = html_file.find(id="modifier_section_expert")
+    if modifier_container:
+        modifier_container.clear()
+        with open(HtmlDefines.T_MODIFIER_PATH, 'r', encoding='utf-8') as file:
+            txt_modifier_template = file.read()
+        for modifier in modifiers:
+            if modifier[1] == "":
+                continue
+            txt_modifier_copy = txt_modifier_template
+            txt_modifier_copy = txt_modifier_copy.replace("ModifierIcon", modifier[3])
+            txt_modifier_copy = txt_modifier_copy.replace("ModifierName", modifier[1])
+            txt_modifier_copy = txt_modifier_copy.replace("ModifierDescription", modifier[2])
+            modifier_container.append(BeautifulSoup(txt_modifier_copy, 'lxml'))
+            
 
     with open(HtmlDefines.OUTPUT_PATH, 'w', encoding='utf-8') as file:
          file.write(str(html_file))
 
-def MaitriseInfos(power_level, activity_description, damage_breaker_type):
+def MaitriseInfos(power_level, activity_description, damage_breaker_type, modifiers):
     with open(HtmlDefines.OUTPUT_PATH, 'r', encoding='utf-8') as file:
         html_file = BeautifulSoup(file, 'lxml')
 
@@ -139,11 +155,11 @@ def MaitriseInfos(power_level, activity_description, damage_breaker_type):
             txt_champ_template = file.read()
 
         for champion_type in champions:
-            txt_champ_template_copy = txt_champ_template
-            txt_champ_template_copy = txt_champ_template_copy.replace("ChampIcon", damage_breaker_type[champion_type])
-            txt_champ_template_copy = txt_champ_template_copy.replace("ChampCount", "5")
-            txt_champ_template_copy = txt_champ_template_copy.replace("ChampType", champion_type)
-            champ_container.append(BeautifulSoup(txt_champ_template_copy, 'lxml'))
+            txt_champ_copy = txt_champ_template
+            txt_champ_copy = txt_champ_copy.replace("ChampIcon", damage_breaker_type[champion_type])
+            txt_champ_copy = txt_champ_copy.replace("ChampCount", "5")
+            txt_champ_copy = txt_champ_copy.replace("ChampType", champion_type)
+            champ_container.append(BeautifulSoup(txt_champ_copy, 'lxml'))
 
     #Shields
     boucliers = ParseDescriptionBoucliers(activity_description)
@@ -159,6 +175,21 @@ def MaitriseInfos(power_level, activity_description, damage_breaker_type):
             txt_shield_template_copy = txt_shield_template_copy.replace("ShieldCount", "5")
             txt_shield_template_copy = txt_shield_template_copy.replace("ShieldType", champion_type)
             shield_container.append(BeautifulSoup(txt_shield_template_copy, 'lxml'))
+
+    #Modifiers
+    modifier_container = html_file.find(id="modifier_section_master")
+    if modifier_container:
+        modifier_container.clear()
+        with open(HtmlDefines.T_MODIFIER_PATH, 'r', encoding='utf-8') as file:
+            txt_modifier_template = file.read()
+        for modifier in modifiers:
+            if modifier[1] == "":
+                continue
+            txt_modifier_copy = txt_modifier_template
+            txt_modifier_copy = txt_modifier_copy.replace("ModifierIcon", modifier[3])
+            txt_modifier_copy = txt_modifier_copy.replace("ModifierName", modifier[1])
+            txt_modifier_copy = txt_modifier_copy.replace("ModifierDescription", modifier[2])
+            modifier_container.append(BeautifulSoup(txt_modifier_copy, 'lxml'))
 
     with open(HtmlDefines.OUTPUT_PATH, 'w', encoding='utf-8') as file:
          file.write(str(html_file))

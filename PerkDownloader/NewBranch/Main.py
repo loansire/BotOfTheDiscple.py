@@ -125,8 +125,8 @@ def main(lost_sector_name, download_all = False):
     ################################### HtmlFiller ####################################
     HtmlFiller.CopyTemplate()
     HtmlFiller.MainInfos(C_activity_name, C_pgcr_image_link, C_place_name, C_destination_name, C_rewards)
-    HtmlFiller.ExpertInfos(E_power, E_description, C_damange_breaker_type)
-    HtmlFiller.MaitriseInfos(M_power, M_description, C_damange_breaker_type)
+    HtmlFiller.ExpertInfos(E_power, E_description, C_damange_breaker_type, E_modifier)
+    HtmlFiller.MaitriseInfos(M_power, M_description, C_damange_breaker_type, M_modifier)
 
     #################################### Result Viewer ###################################
     Result.WriteResult("Expert", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, E_modifier)

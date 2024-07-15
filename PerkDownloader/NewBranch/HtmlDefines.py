@@ -12,3 +12,4 @@ M_ID_POWER = "power_lever_master"
 #Templates
 T_SHIELDS_PATH = "../CurrentLostSector/FunctionsTemplates/Shields.txt"
 T_CHAMP_PATH = "../CurrentLostSector/FunctionsTemplates/Champs.txt"
+T_MODIFIER_PATH = "../CurrentLostSector/FunctionsTemplates/Modifiers.txt"
