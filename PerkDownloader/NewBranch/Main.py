@@ -7,12 +7,14 @@ import Config
 import Download
 import JsonReader
 import HtmlFiller
+import ModifierModif
 from Manifests import ActivityDefinition
 from Manifests import DestinationDefinition
 from Manifests import PlaceDefinition
 from Manifests import InventoryItemDefinition
 from Manifests import ModifierDefinition
 from Manifests import BreakerDamageType
+from ModifierModif import Surcharge
 import Result
 
 
@@ -98,6 +100,9 @@ def main(lost_sector_name, download_all = False):
         E_modifier[i] = (E_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(E_modifier[i])
     for i in range(0, len(M_modifier)):
         M_modifier[i] = (M_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(M_modifier[i])
+
+    E_modifier = ModifierModif.ClearModifiers(E_modifier, [Surcharge.Cryo, Surcharge.Solaire])
+    M_modifier = ModifierModif.ClearModifiers(M_modifier, [Surcharge.Cryo, Surcharge.Solaire])
         
     ################################## Damage and Breaker types #######################################
     print("Damage and Breaker type")

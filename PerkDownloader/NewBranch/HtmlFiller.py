@@ -124,8 +124,6 @@ def ExpertInfos(power_level, activity_description, damage_breaker_type, modifier
         with open(HtmlDefines.T_MODIFIER_PATH, 'r', encoding='utf-8') as file:
             txt_modifier_template = file.read()
         for modifier in modifiers:
-            if modifier[1] == "":
-                continue
             txt_modifier_copy = txt_modifier_template
             txt_modifier_copy = txt_modifier_copy.replace("ModifierIcon", modifier[3])
             txt_modifier_copy = txt_modifier_copy.replace("ModifierName", modifier[1])
@@ -183,8 +181,6 @@ def MaitriseInfos(power_level, activity_description, damage_breaker_type, modifi
         with open(HtmlDefines.T_MODIFIER_PATH, 'r', encoding='utf-8') as file:
             txt_modifier_template = file.read()
         for modifier in modifiers:
-            if modifier[1] == "":
-                continue
             txt_modifier_copy = txt_modifier_template
             txt_modifier_copy = txt_modifier_copy.replace("ModifierIcon", modifier[3])
             txt_modifier_copy = txt_modifier_copy.replace("ModifierName", modifier[1])
@@ -197,7 +193,6 @@ def MaitriseInfos(power_level, activity_description, damage_breaker_type, modifi
 def ParseDescriptionChampions(description):
     champions = []
     champions_line, _ = ExtraireText(description, "Champions", "Menace")
-    print(champions_line)
     for i in range(10): #Artificil end
         type, champions_line = ExtraireText(champions_line, "[", "]")
         if type == None:
@@ -211,7 +206,6 @@ def ParseDescriptionChampions(description):
 
 def ParseDescriptionBoucliers(description):
     boucliers = []
-    print(description)
     bouclier_line, _ = ExtraireText(description, "Boucliers", "Modificateurs")
     for i in range(10): #Artificil end
         type, bouclier_line = ExtraireText(bouclier_line, "[", "]")
