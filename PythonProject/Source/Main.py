@@ -55,7 +55,6 @@ def main(download_all = False):
     C_activity_name = "Extraction"
 
     C_activity_name, C_surcharge1, C_surcharge2 = CsvReader.ReadGGDocActivity()
-    CsvReader.ReadGoogleDocInfos(C_activity_name)
     E_power = CsvReader.GetExpertPower()
     M_power = CsvReader.GetMaitrisePower()
     E_Shields = CsvReader.GetInfosTypes(True, True)

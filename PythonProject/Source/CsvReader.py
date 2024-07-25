@@ -11,31 +11,24 @@ page_id_current = 1205713815
 LostSector_csv_line = {}
 
 def ReadGGDocActivity():
+	global LostSector_csv_line
 	activity_name = "Jardin de l'Exode 2A"
 	surcharge1 = "Abyssal"
 	surcharge2 = "Solaires"
 	try:
-		df = pd.read_csv("https://docs.google.com/spreadsheets/d/" + sheet_id + "/export?gid=" + str(page_id_current) + "&format=csv")
-		activity_name = df.loc[0, "Nom"]
-		surcharge1 = df.loc[0, "Surcharge1"]
-		surcharge2 = df.loc[0, "Surcharge2"]
+		LostSector_csv_line = pd.read_csv("https://docs.google.com/spreadsheets/d/" + sheet_id + "/export?gid=" + str(page_id_current) + "&format=csv")
+		activity_name = LostSector_csv_line.loc[0, "Nom"]
+		surcharge1 = LostSector_csv_line.loc[0, "Surcharge1"]
+		surcharge2 = LostSector_csv_line.loc[0, "Surcharge2"]
+
+
+
 
 	except:
 		print("Can't access ggdoc infos. Using Defaults values")
 
 
 	return activity_name, surcharge1, surcharge2
-
-
-
-def ReadGoogleDocInfos(activity_name):
-	global LostSector_csv_line
-	try:
-		df = pd.read_csv("https://docs.google.com/spreadsheets/d/" + sheet_id + "/export?gid=" + str(page_id_db) + "&format=csv")
-	except:
-		print("Google doc isn't reachable. Using Local csv")
-		df = pd.read_csv(Config.CSV_LOST_SECTOR_DATABASE)
-	LostSector_csv_line = df.loc[df['Nom'] == activity_name]
 
 def GetExpertPower():
 	return int(LostSector_csv_line.iloc[0]['Power Expert'])
