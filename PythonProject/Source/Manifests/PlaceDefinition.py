@@ -2,8 +2,6 @@ import Config
 import json
 
 def main(place_hash):
-	print("Treatment of Destination Definition")
-	
 	with open(Config.MF_PLACE_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 

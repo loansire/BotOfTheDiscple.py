@@ -2,8 +2,6 @@ import Config
 import json
 
 def main(ii_hashes):
-	print("Treatment of Destination Definition")
-	
 	with open(Config.MF_II_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 

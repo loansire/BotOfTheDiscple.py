@@ -52,8 +52,8 @@ def ReplaceVariables(modifier_description):
 
 
 def TranslateSurcharge(surcharge_str):
-    if surcharge_str in Dictionnary.DAMAGE_TRANSLATION.keys():
-        surcharge_str = Dictionnary.DAMAGE_TRANSLATION[surcharge_str]
+    if surcharge_str in Dictionnary.SURCHARGE_TRANSLATION.keys():
+        surcharge_str = Dictionnary.SURCHARGE_TRANSLATION[surcharge_str]
     surcharge_enum = Surcharge.Solaire
     match surcharge_str:
         case "Stase":

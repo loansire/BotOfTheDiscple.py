@@ -1,5 +1,7 @@
 from ast import parse
 from cgitb import html
+from multiprocessing.util import is_exiting
+from typing import final
 from bs4 import BeautifulSoup
 import os
 import HtmlDefines
@@ -77,48 +79,68 @@ def MainInfos(activity_name, background_image, activity_place, activity_destinat
          file.write(str(html_file))
     
 
-def ExpertInfos(power_level, activity_description, damage_breaker_type, modifiers, infos_champ_shield, surcharges):
+def SpecificInfos(power_level, shield_count, champ_count, icons_infos, modifiers, is_expert = True):
     with open(HtmlDefines.OUTPUT_PATH, 'r', encoding='utf-8') as file:
         html_file = BeautifulSoup(file, 'lxml')
 
     #Power level
-    html_power_level = html_file.find(id=HtmlDefines.E_ID_POWER)
+    if is_expert:
+        html_power_level = html_file.find(id=HtmlDefines.E_ID_POWER)
+    else:
+        html_power_level = html_file.find(id=HtmlDefines.M_ID_POWER)
     if html_power_level:
         html_power_level.string = str(power_level)
 
-    #Champions
-    champions = ParseDescriptionChampions(activity_description)
+    if is_expert:
+        container_name = "info_champ_container_expert"
+    else:
+        container_name = "info_champ_container_master"
 
-    champ_container = html_file.find(id="info_champ_container_expert")
+    champ_container = html_file.find(id=container_name)
     if champ_container:
         champ_container.clear()
         with open(HtmlDefines.T_CHAMP_PATH, 'r', encoding='utf-8') as file:
             txt_champ_template = file.read()
 
-        for champion_type in champions:
+        for champion_type in champ_count.keys():
+            if champion_type in Dictionnary.FINAL_TRANSLATIONS.keys():
+                final_translation = Dictionnary.FINAL_TRANSLATIONS[champion_type]
+            else:
+                final_translation = champion_type
             txt_champ_template_copy = txt_champ_template
-            txt_champ_template_copy = txt_champ_template_copy.replace("ChampIcon", damage_breaker_type[champion_type])
-            txt_champ_template_copy = txt_champ_template_copy.replace("ChampCount", str(infos_champ_shield[0]))
-            txt_champ_template_copy = txt_champ_template_copy.replace("ChampType", champion_type)
+            txt_champ_template_copy = txt_champ_template_copy.replace("ChampIcon", icons_infos[champion_type])
+            txt_champ_template_copy = txt_champ_template_copy.replace("ChampCount", str(champ_count[champion_type]))
+            txt_champ_template_copy = txt_champ_template_copy.replace("ChampType", final_translation)
             champ_container.append(BeautifulSoup(txt_champ_template_copy, 'lxml'))
 
-    #Shields
-    boucliers = ParseDescriptionBoucliers(activity_description)
+    
+    if is_expert:
+        container_name = "info_shield_container_expert"
+    else:
+        container_name = "info_shield_container_master"
 
-    shield_container = html_file.find(id="info_shield_container_expert")
+    shield_container = html_file.find(id=container_name)
     if shield_container:
         shield_container.clear()
         with open(HtmlDefines.T_SHIELDS_PATH, 'r', encoding='utf-8') as file:
             txt_shield_template = file.read()
-        for champion_type in boucliers:
+        for shield_type in shield_count.keys():
+            if shield_type in Dictionnary.FINAL_TRANSLATIONS.keys():
+                final_translation = Dictionnary.FINAL_TRANSLATIONS[shield_type]
+            else:
+                final_translation = shield_type
             txt_shield_copy = txt_shield_template
-            txt_shield_copy = txt_shield_copy.replace("ShieldIcon", damage_breaker_type[champion_type])
-            txt_shield_copy = txt_shield_copy.replace("ShieldCount", str(infos_champ_shield[1]))
-            txt_shield_copy = txt_shield_copy.replace("ShieldType", champion_type)
+            txt_shield_copy = txt_shield_copy.replace("ShieldIcon", icons_infos[shield_type])
+            txt_shield_copy = txt_shield_copy.replace("ShieldCount", str(shield_count[shield_type]))
+            txt_shield_copy = txt_shield_copy.replace("ShieldType", final_translation)
             shield_container.append(BeautifulSoup(txt_shield_copy, 'lxml'))
 
     #Modifiers
-    modifier_container = html_file.find(id="modifier_section_expert")
+    if is_expert:
+        container_name = "modifier_section_expert"
+    else:
+        container_name = "modifier_section_master"
+    modifier_container = html_file.find(id=container_name)
     if modifier_container:
         modifier_container.clear()
         with open(HtmlDefines.T_MODIFIER_PATH, 'r', encoding='utf-8') as file:
@@ -133,99 +155,6 @@ def ExpertInfos(power_level, activity_description, damage_breaker_type, modifier
 
     with open(HtmlDefines.OUTPUT_PATH, 'w', encoding='utf-8') as file:
          file.write(str(html_file))
-
-def MaitriseInfos(power_level, activity_description, damage_breaker_type, modifiers, infos_champ_shield, surcharges):
-    with open(HtmlDefines.OUTPUT_PATH, 'r', encoding='utf-8') as file:
-        html_file = BeautifulSoup(file, 'lxml')
-
-    #Power level
-    html_power_level = html_file.find(id=HtmlDefines.M_ID_POWER)
-    if html_power_level:
-        html_power_level.string = str(power_level)
-
-    #Champions
-    champions = ParseDescriptionChampions(activity_description)
-
-    champ_container = html_file.find(id="info_champ_container_master")
-    if champ_container:
-        champ_container.clear()
-        with open(HtmlDefines.T_CHAMP_PATH, 'r', encoding='utf-8') as file:
-            txt_champ_template = file.read()
-
-        for champion_type in champions:
-            txt_champ_copy = txt_champ_template
-            txt_champ_copy = txt_champ_copy.replace("ChampIcon", damage_breaker_type[champion_type])
-            txt_champ_copy = txt_champ_copy.replace("ChampCount", str(infos_champ_shield[0]))
-            txt_champ_copy = txt_champ_copy.replace("ChampType", champion_type)
-            champ_container.append(BeautifulSoup(txt_champ_copy, 'lxml'))
-
-    #Shields
-    boucliers = ParseDescriptionBoucliers(activity_description)
-
-    shield_container = html_file.find(id="info_shield_container_master")
-    if shield_container:
-        shield_container.clear()
-        with open(HtmlDefines.T_SHIELDS_PATH, 'r', encoding='utf-8') as file:
-            txt_shield_template = file.read()
-        for champion_type in boucliers:
-            txt_shield_template_copy = txt_shield_template
-            txt_shield_template_copy = txt_shield_template_copy.replace("ShieldIcon", damage_breaker_type[champion_type])
-            txt_shield_template_copy = txt_shield_template_copy.replace("ShieldCount", str(infos_champ_shield[1]))
-            txt_shield_template_copy = txt_shield_template_copy.replace("ShieldType", champion_type)
-            shield_container.append(BeautifulSoup(txt_shield_template_copy, 'lxml'))
-
-    #Modifiers
-    modifier_container = html_file.find(id="modifier_section_master")
-    if modifier_container:
-        modifier_container.clear()
-        with open(HtmlDefines.T_MODIFIER_PATH, 'r', encoding='utf-8') as file:
-            txt_modifier_template = file.read()
-        for modifier in modifiers:
-            txt_modifier_copy = txt_modifier_template
-            txt_modifier_copy = txt_modifier_copy.replace("ModifierIcon", modifier[3])
-            txt_modifier_copy = txt_modifier_copy.replace("ModifierName", modifier[1])
-            txt_modifier_copy = txt_modifier_copy.replace("ModifierDescription", modifier[2])
-            modifier_container.append(BeautifulSoup(txt_modifier_copy, 'lxml'))
-
-    with open(HtmlDefines.OUTPUT_PATH, 'w', encoding='utf-8') as file:
-         file.write(str(html_file))
-
-def ParseDescriptionChampions(description):
-    champions = []
-    champions_line, _ = ExtraireText(description, "Champions", "Menace")
-    for i in range(10): #Artificil end
-        type, champions_line = ExtraireText(champions_line, "[", "]")
-        if type == None:
-            break
-        if type in Dictionnary.BREAKER_TYPES:
-            champions.append(type)
-        elif type in Dictionnary.BREAKER_TRANSLATION:
-            champions.append(Dictionnary.BREAKER_TRANSLATION[type])
-
-    return champions
-
-def ParseDescriptionBoucliers(description):
-    boucliers = []
-    bouclier_line, _ = ExtraireText(description, "Boucliers", "Modificateurs")
-    for i in range(10): #Artificil end
-        type, bouclier_line = ExtraireText(bouclier_line, "[", "]")
-        if type == None:
-            break
-        if type in Dictionnary.DAMAGE_TYPES:
-            boucliers.append(type)
-        elif type in Dictionnary.DAMAGE_TRANSLATION:
-            boucliers.append(Dictionnary.DAMAGE_TRANSLATION[type])
-
-    return boucliers
-
-
-def ExtraireText(chaine, debut, fin):
-    debut_index = chaine.find(debut) + len(debut)
-    fin_index = chaine.find(fin, debut_index)
-    if debut_index == -1 or fin_index == -1:
-        return None
-    return chaine[debut_index:fin_index], chaine[fin_index:]
-    
 
 def TreatRewardText(reward_text):
     reward_text = reward_text.replace("En solo - ", "")

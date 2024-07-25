@@ -2,16 +2,25 @@
 import json
 
 def main(sector_name):
-	print("Treatment of ActivityDefinition")
-	
 	with open(Config.MF_ACTIVITY_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
-	filtered_activities = filter_activities_by_name(json_data, sector_name)
+	filtered_activities = filter_lost_sector(json_data)
+	with open(Config.MF_ACTIVITY_FILTERED_GENERAL_FILENAME, 'w', encoding='utf-8') as file:
+		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
+
+	filtered_activities = filter_activities_by_name(filtered_activities, sector_name)
 
 	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, 'w', encoding='utf-8') as file:
 		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
 
+def filter_lost_sector(data):
+	filtered_activities = {}
+	description = ""
+	for activity_hash, activity_details in data.items():
+		if activity_details.get("directActivityModeType") == 87:
+			filtered_activities[activity_hash] = activity_details
+	return filtered_activities
 
 def filter_activities_by_name(data, sector_name):
 	filtered_activities = {}

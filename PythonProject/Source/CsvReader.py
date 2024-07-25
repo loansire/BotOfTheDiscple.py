@@ -1,33 +1,99 @@
+﻿from tkinter.tix import COLUMN
 import Config
 import csv
+import pandas as pd
+import Dictionnary
 
-CSV_DATE = 0
-CSV_NAME = 1
-CSV_POWER_EXPERT = 2
-CSV_POWER_MAITRISE = 3
-CSV_NV_CHAMP_EXPERT = 4
-CSV_NV_SHIELD_EXPERT = 5
-CSV_NV_CHAMP_MAITRISE = 6
-CSV_NV_SHIELD_MAITRISE = 7
-CSV_SURCHARGE1 = 8
-CSV_SURCHARGE2 = 9
+sheet_id = '1yzlUK5dlqhSg0ZGQ79o-4n9j2mRZiFgECi1CBI1Ht1I'
+page_id_db = 0
+page_id_current = 1205713815
+
+LostSector_csv_line = {}
+
+def ReadGGDocActivity():
+	activity_name = "Jardin de l'Exode 2A"
+	surcharge1 = "Abyssal"
+	surcharge2 = "Solaires"
+	try:
+		df = pd.read_csv("https://docs.google.com/spreadsheets/d/" + sheet_id + "/export?gid=" + str(page_id_current) + "&format=csv")
+		activity_name = df.loc[0, "Nom"]
+		surcharge1 = df.loc[0, "Surcharge1"]
+		surcharge2 = df.loc[0, "Surcharge2"]
+
+	except:
+		print("Can't access ggdoc infos. Using Defaults values")
+
+
+	return activity_name, surcharge1, surcharge2
 
 
 
-def ReadCsv():
+def ReadGoogleDocInfos(activity_name):
+	global LostSector_csv_line
+	try:
+		df = pd.read_csv("https://docs.google.com/spreadsheets/d/" + sheet_id + "/export?gid=" + str(page_id_db) + "&format=csv")
+	except:
+		print("Google doc isn't reachable. Using Local csv")
+		df = pd.read_csv(Config.CSV_LOST_SECTOR_DATABASE)
+	LostSector_csv_line = df.loc[df['Nom'] == activity_name]
 
-	with open(Config.CSV_FILENAME, "r") as file:
-		reader = csv.reader(file)
+def GetExpertPower():
+	return int(LostSector_csv_line.iloc[0]['Power Expert'])
 
-		for row in reader:
-			if(row[CSV_DATE] == "Test"):
-				return (row[CSV_NAME], 
-						row[CSV_POWER_EXPERT], 
-						row[CSV_POWER_MAITRISE],
-						row[CSV_NV_CHAMP_EXPERT],
-						row[CSV_NV_SHIELD_EXPERT],
-						row[CSV_NV_CHAMP_MAITRISE],
-						row[CSV_NV_SHIELD_MAITRISE],
-						row[CSV_SURCHARGE1],
-						row[CSV_SURCHARGE2])
+
+def GetMaitrisePower():
+	return int(LostSector_csv_line.iloc[0]['Power Maitrise'])
+
+def GetInfosTypes(is_expert = True, is_shield = True):
+	if is_expert:
+		str_diff = "Expert "
+	else:
+		str_diff = "Maitrise "
+
+	types = {}
+	
+	if is_shield:
+		print("Finding types for Shields for " + str_diff)
+		container = Dictionnary.DAMAGE_TYPES
+	else:
+		print("Finding types for Champs for " + str_diff)
+		container = Dictionnary.BREAKER_TYPES
+
+	for type in container:
+		column_name = str_diff + type
+		try:
+			type_count = LostSector_csv_line[column_name].values[0]
+		except KeyError as e:
+			print("Column : " + column_name + " is not in the table")
+			continue
+
+		if pd.isna(type_count) or type_count == 0:
+			continue
+		
+		types[type] = int(type_count)
+
+	return types
+
+def GetChampsTypes(is_expert = True):
+	if is_expert:
+		str_diff = "Expert "
+	else:
+		str_diff = "Maitrise "
+
+	types = {}
+	
+	for type in Dictionnary.BREAKER_TYPES:
+		column_name = str_diff + type
+		try:
+			type_count = LostSector_csv_line[column_name].values[0]
+		except KeyError as e:
+			print("Column : " + column_name + " is not in the table")
+			continue
+
+		if pd.isna(type_count) or type_count == 0:
+			continue
+		
+		types[type] = int(type_count)
+
+	return types
 

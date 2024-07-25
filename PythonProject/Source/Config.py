@@ -12,6 +12,7 @@ MAIN_MF_OUTPUT_FILE = "Manifests/MainManifest.json"
 MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
 MF_ACTIVITY_FILENAME = "Manifests/ActivityDefinition.json"
 MF_ACTIVITY_FILTERED_FILENAME = "Manifests/ActivityDefinitionFiltered.json"
+MF_ACTIVITY_FILTERED_GENERAL_FILENAME = "Manifests/ActivityDefinitionFilteredGeneral.json"
 
 #Destination Manifest
 MF_DESTINATION_DEFINITION = "DestinyDestinationDefinition"
@@ -41,3 +42,4 @@ MF_BREAKER_TYPE_FILENAME = "Manifests/BreakerType.json"
 
 #Csv Filename
 CSV_FILENAME = "Destiny_Lost_Sector.csv"
+CSV_LOST_SECTOR_DATABASE = "LostSectorDatabase.csv"
