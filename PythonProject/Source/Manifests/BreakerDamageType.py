@@ -1,5 +1,7 @@
-import Config
 import json
+
+from Utils import Config
+
 
 def main():
 	#To make stuff readable in json

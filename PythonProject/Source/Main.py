@@ -1,25 +1,22 @@
 ﻿#import extern
-import csv
-import logging
 import os
 
 #import intern
-import Config
-import Download
-import CsvReader
-import JsonReader
-import HtmlFiller
-import ModifierModif
+from Utils import Config
+from Utils import Download
+from Utils import CsvReader
+from Utils import Result
+from Utils import ModifierModif
+
+from Manifests import JsonReader
 from Manifests import ActivityDefinition
 from Manifests import DestinationDefinition
 from Manifests import PlaceDefinition
 from Manifests import InventoryItemDefinition
 from Manifests import ModifierDefinition
 from Manifests import BreakerDamageType
-from ModifierModif import Surcharge
-import Result
 
-
+from Html import HtmlFiller
 
 def main(download_all = False):
     #Variables to fill for the Html page
@@ -45,12 +42,9 @@ def main(download_all = False):
     C_damange_breaker_type = {}
     C_surcharge1 = "Solaires"
     C_surcharge2 = "Abyssal"
-
-    # Configuration de la journalisation
-    logging.basicConfig(filename='manifest_download.log', level=logging.ERROR,
-                    format='%(asctime)s:%(levelname)s:%(message)s')
-
-
+    
+    print("Beginning of the programm")
+    Config.InitialiseDirs()
     ################################## CSV PARSING ###################################
     C_activity_name = "Extraction"
 
@@ -64,7 +58,13 @@ def main(download_all = False):
 
     #################################### Main MF ######################################
     print("Main MF")
-    DownloadManifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, download_all)
+    print(os.getcwd())
+    if(os.path.exists( Config.MAIN_MF_OUTPUT_FILE) and not download_all):
+        DownloadManifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, download_all)
+        print("Main Manifest already downloaded")
+    else:
+        Download.download_manifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, 3, 1);
+        print("Main Manifest downloaded")
 
     #################################### Activity Definition ######################################
     print("Activition Definition")
@@ -113,7 +113,7 @@ def main(download_all = False):
     C_surcharges_enum = [ModifierModif.TranslateSurcharge(C_surcharge1), ModifierModif.TranslateSurcharge(C_surcharge2)]
     E_modifier = ModifierModif.ClearModifiers(E_modifier, C_surcharges_enum)
     M_modifier = ModifierModif.ClearModifiers(M_modifier, C_surcharges_enum)
-        
+
     ################################## Damage and Breaker types #######################################
     print("Damage Manifest")
     DownloadManifest(Config.MF_DAMAGE_TYPE, Config.MF_DAMAGE_TYPE_FILENAME, download_all)
@@ -143,4 +143,4 @@ def DownloadManifest(path_to_download, path_to_save, download_all = False):
     
 
 if __name__ == "__main__":
-    main(False)
+    main(True)

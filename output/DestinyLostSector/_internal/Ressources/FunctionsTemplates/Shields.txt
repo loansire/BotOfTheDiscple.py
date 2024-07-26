@@ -1,0 +1,4 @@
+<div class="info-shield-champ">
+	<img src="ShieldIcon">
+	<span class="count ShieldType">ShieldCount</span>ShieldType
+</div>

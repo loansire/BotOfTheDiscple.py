@@ -1,5 +1,7 @@
-﻿import Config
-import json
+﻿import json
+
+from Utils import Config
+
 
 def main(sector_name):
 	with open(Config.MF_ACTIVITY_FILENAME, "r", encoding='utf-8') as file:

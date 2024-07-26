@@ -1,5 +1,7 @@
-import Config
 import json
+
+from Utils import Config
+
 
 def main(destination_hash):
 	with open(Config.MF_DESTINATION_FILENAME, "r", encoding='utf-8') as file:
