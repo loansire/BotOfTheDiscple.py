@@ -60,10 +60,14 @@ def GetInfosTypes(is_expert = True, is_shield = True):
 			print("Column : " + column_name + " is not in the table")
 			continue
 
-		if pd.isna(type_count) or type_count == 0:
+		if pd.isna(type_count) or type_count == "0":
 			continue
 		
-		types[type] = int(type_count)
+		try:
+			type_count_int = int(type_count)
+			types[type] = type_count_int
+		except:
+			continue
 
 	return types
 

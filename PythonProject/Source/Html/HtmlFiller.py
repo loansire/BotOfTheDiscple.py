@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 
 from Html import HtmlDefines
 from Utils import Dictionnary
+from Utils import Config
 
 
 
