@@ -45,18 +45,57 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
             return_dt = paris_tz.localize(return_dt)  # Localiser la date et l'heure au fuseau horaire de Paris
             return_timestamp = int(return_dt.timestamp())
 
-            await interaction.response.send_message(
-                f"Les informations de la maintenance sont mises à jour:\nArrêt: <t:{stop_timestamp}:t>\nRetour: <t:{return_timestamp}:t>",
-                ephemeral=True
-            )
+            embed, files = create_maintenance_embed()
+            await interaction.response.send_message(embed=embed, files=files)
 
-            # Appeler la commande /maintenance après mise à jour
-            await maintenance(interaction)
         except ValueError as e:
             await interaction.response.send_message(
                 f"Erreur dans la conversion des dates et heures: *{e}*",
                 ephemeral=True
             )
+
+def create_maintenance_embed():
+    global stop_timestamp, return_timestamp
+
+    embed = discord.Embed(
+        title="Informations de Maintenance et Mise à jour",
+        description="Voici les dernières informations concernant la maintenance.",
+        url="https://x.com/BungieHelp",
+        colour=0xff0000,
+        timestamp=datetime.now()
+    )
+    embed.add_field(
+        name=":x: Stop serveurs",
+        value=f"<t:{stop_timestamp}:t>",
+        inline=True
+    )
+    embed.add_field(
+        name=":white_check_mark: Retour serveurs",
+        value=f"<t:{return_timestamp}:t>",
+        inline=True
+    )
+    embed.add_field(
+        name=":repeat: Débute",
+        value=f"**<t:{stop_timestamp}:R>**",
+        inline=False
+    )
+
+    # Chemins vers les images locales
+    thumbnail_path = "thumbnail.png"
+    footer_icon_path = "footer_icon.png"
+
+    # Créer les objets discord.File pour les images locales
+    thumbnail_file = discord.File(thumbnail_path, filename="thumbnail.png")
+    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+
+    # Référencer les images dans l'embed
+    embed.set_thumbnail(url="attachment://thumbnail.png")
+    embed.set_footer(
+        text="BotOfTheDisciple",
+        icon_url="attachment://footer_icon.png"
+    )
+
+    return embed, [thumbnail_file, footer_icon_file]
 
 def detect_encoding(data):
     result = chardet.detect(data)
@@ -128,46 +167,8 @@ async def maintenance(interaction: discord.Interaction):
             ephemeral=True)
         return
 
-    embed = discord.Embed(
-        title="Informations de Maintenance et Mise à jour",
-        description="Voici les dernières informations concernant la maintenance.",
-        url="https://x.com/BungieHelp",
-        colour=0xff0000,
-        timestamp=datetime.now()
-    )
-    embed.add_field(
-        name=":x: Stop serveurs",
-        value=f"<t:{stop_timestamp}:t>",
-        inline=True
-    )
-    embed.add_field(
-        name=":white_check_mark: Retour serveurs",
-        value=f"<t:{return_timestamp}:t>",
-        inline=True
-    )
-    embed.add_field(
-        name=":repeat: Débute",
-        value=f"**<t:{stop_timestamp}:R>**",
-        inline=False
-    )
-
-    # Chemins vers les images locales
-    thumbnail_path = "thumbnail.png"
-    footer_icon_path = "footer_icon.png"
-
-    # Créer les objets discord.File pour les images locales
-    thumbnail_file = discord.File(thumbnail_path, filename="thumbnail.png")
-    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
-
-    # Référencer les images dans l'embed
-    embed.set_thumbnail(url="attachment://thumbnail.png")
-    embed.set_footer(
-        text="BotOfTheDisciple",
-        icon_url="attachment://footer_icon.png"
-    )
-
-    # Envoyer le message avec les fichiers joints
-    await interaction.response.send_message(embed=embed, files=[thumbnail_file, footer_icon_file])
+    embed, files = create_maintenance_embed()
+    await interaction.response.send_message(embed=embed, files=files)
 
 @bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
