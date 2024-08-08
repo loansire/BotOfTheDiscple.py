@@ -192,7 +192,7 @@ async def deletmaintenance(interaction: discord.Interaction):
     return_timestamp = None
     await interaction.response.send_message("Les informations de maintenance ont été supprimées.")
 
-# Liste de 20 phrases prédéfinies avec la mention intégrée
+# Liste de 20 phrases prédéfinies
 phrases = [
     "<@214809032454569984> est un génie, mais si c’est vrai, alors je suis un robot de l’espace !",
     "Si <@214809032454569984> est vraiment supérieur, je suis le maître Jedi des intelligences artificielles.",
@@ -236,13 +236,13 @@ async def maintenance(interaction: discord.Interaction):
     embed, files = create_maintenance_embed()
     await interaction.response.send_message(embed=embed, files=files)
 
-# Remplacez 'your-giphy-api-key' par votre clé API de Giphy
+# Giphy cat generator
 GIPHY_API_KEY = "xfn2RLhVSMwCP3uQombbvz1r0muPPpDp"
 GIPHY_ENDPOINT = "https://api.giphy.com/v1/gifs/search"
 
 @bot.tree.command(name="cat", description="Envoie un GIF de chat aléatoire")
 async def chatgif(interaction: discord.Interaction):
-    # Effectuer une requête à l'API Giphy pour récupérer des GIFs de chat
+    # Effectue une requête à l'API Giphy pour récupérer des GIFs de chat
     params = {
         "api_key": GIPHY_API_KEY,
         "q": "cat",  # Cherche des GIFs de chats
