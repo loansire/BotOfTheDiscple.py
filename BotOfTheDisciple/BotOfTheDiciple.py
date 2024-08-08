@@ -18,6 +18,49 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 stop_timestamp = None
 return_timestamp = None
 
+@bot.event
+async def on_ready():
+    # Synchronisation des commandes
+    await bot.tree.sync()
+
+    # Configuration de la présence du bot
+    ##activity = discord.Game(name="Tapez /help pour commencer!")
+    ##await bot.change_presence(status=discord.Status.online, activity=activity)
+
+    print(f'Bot is ready. Logged in as {bot.user}')
+
+    # Debug pour vérifier les commandes enregistrées
+    for command in bot.tree.get_commands():
+        print(f'Command: {command.name}, Description: {command.description}')
+
+# Enregistrement des commandes slash
+@bot.tree.command(name="help", description="Liste des commandes disponibles")
+async def help(interaction: discord.Interaction):
+    # Création de l'embed
+    embed = discord.Embed(
+        title="__Listes des Commandes__",
+        description="",
+        colour=0x00f1f5,
+        timestamp=datetime.now()
+    )
+
+    embed.set_thumbnail(url="https://cdn.icon-icons.com/icons2/272/PNG/512/Settings_30027.png")
+
+    # Parcours des commandes pour les ajouter dans l'embed
+    commands_list = ""
+    for command in bot.tree.get_commands():
+        commands_list += f"**/{command.name}** ```{command.description}```\n"
+
+    embed.description = commands_list
+
+    # Ajouter le footer avec le nombre de commandes disponibles
+    total_commands = len(bot.tree.get_commands())
+    embed.set_footer(text=f"{total_commands} commande(s) disponibles")
+
+    # Envoi de l'embed
+    await interaction.response.send_message(embed=embed)
+
+# region MaintenanceCommands
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
     stop_time = discord.ui.TextInput(
         label="Arrêt des serveurs (DD/MM/YYYY HH:MM)",
@@ -136,54 +179,21 @@ def create_maintenance_embed():
 
     return embed, [thumbnail_file, footer_icon_file]
 
-def detect_encoding(data):
-    result = chardet.detect(data)
-    return result['encoding']
-
-def read_google_sheet(sheet_id: str, page_id_current: int) -> pd.DataFrame:
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?gid={page_id_current}&format=csv"
-    response = requests.get(url)
-    response.raise_for_status()
-
-    # Détection de l'encodage
-    detected_encoding = detect_encoding(response.content)
-
-    # Conversion en UTF-8
-    csv_data = response.content.decode(detected_encoding).encode('utf-8').decode('utf-8')
-    df = pd.read_csv(StringIO(csv_data), encoding='utf-8')
-    return df
-
-@bot.event
-async def on_ready():
-    # Synchronisation des commandes
-    await bot.tree.sync()
-
-    # Configuration de la présence du bot
-    ##activity = discord.Game(name="Tapez /help pour commencer!")
-    ##await bot.change_presence(status=discord.Status.online, activity=activity)
-
-    print(f'Bot is ready. Logged in as {bot.user}')
-
-    # Debug pour vérifier les commandes enregistrées
-    for command in bot.tree.get_commands():
-        print(f'Command: {command.name}, Description: {command.description}')
-
-# Enregistrement des commandes slash
-@bot.tree.command(name="help", description="Liste des commandes disponibles")
-async def help(interaction: discord.Interaction):
-    commands_list = """
-    **Liste des commandes :**
-    /ls - Obtenez les informations du Secteur Oublié du jour
-    /maintenance - Publie un message contenant les dernières informations de maintenances
-    /updatemaintenance, Description: Met à jour les informations de maintenance
-    /deletmaintenance - Supprime les informations de maintenance configurées
-    /help - Affiche cette liste
-    """
-    await interaction.response.send_message(commands_list)
-
 @bot.tree.command(name="updatemaintenance", description="Met à jour les informations de maintenance")
 async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
+
+@bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
+async def maintenance(interaction: discord.Interaction):
+    global stop_timestamp, return_timestamp
+    if stop_timestamp is None or return_timestamp is None:
+        await interaction.response.send_message(
+            "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
+            ephemeral=True)
+        return
+
+    embed, files = create_maintenance_embed()
+    await interaction.response.send_message(embed=embed, files=files)
 
 @bot.tree.command(name="deletmaintenance", description="Supprime les informations de maintenance configurées")
 async def deletmaintenance(interaction: discord.Interaction):
@@ -191,7 +201,9 @@ async def deletmaintenance(interaction: discord.Interaction):
     stop_timestamp = None
     return_timestamp = None
     await interaction.response.send_message("Les informations de maintenance ont été supprimées.")
+# endregion
 
+# region ThithiCommand
 # Liste de 20 phrases prédéfinies
 phrases = [
     "<@214809032454569984> est un génie, mais si c’est vrai, alors je suis un robot de l’espace !",
@@ -223,43 +235,55 @@ async def thithi(interaction: discord.Interaction):
 
     # Répondre sur Discord
     await interaction.response.send_message(message)
+# endregion
 
-@bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
-async def maintenance(interaction: discord.Interaction):
-    global stop_timestamp, return_timestamp
-    if stop_timestamp is None or return_timestamp is None:
-        await interaction.response.send_message(
-            "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
-            ephemeral=True)
-        return
-
-    embed, files = create_maintenance_embed()
-    await interaction.response.send_message(embed=embed, files=files)
-
+# region CatGifGenerator
 # Giphy cat generator
 GIPHY_API_KEY = "xfn2RLhVSMwCP3uQombbvz1r0muPPpDp"
 GIPHY_ENDPOINT = "https://api.giphy.com/v1/gifs/search"
 
 @bot.tree.command(name="cat", description="Envoie un GIF de chat aléatoire")
 async def chatgif(interaction: discord.Interaction):
-    # Effectue une requête à l'API Giphy pour récupérer des GIFs de chat
-    params = {
-        "api_key": GIPHY_API_KEY,
-        "q": "cat",  # Cherche des GIFs de chats
-        "limit": 10,  # Limite à 10 résultats pour obtenir un choix aléatoire
-        "offset": random.randint(0, 50),  # Décalage pour obtenir des résultats variés
-        "rating": "G",  # GIFs classés pour tous les âges
-        "lang": "en"  # Langue
-    }
+    try:
+        params = {
+            "api_key": GIPHY_API_KEY,
+            "q": "cat",
+            "limit": 10,
+            "offset": random.randint(0, 50),
+            "rating": "G",
+            "lang": "en"
+        }
 
-    response = requests.get(GIPHY_ENDPOINT, params=params)
-    data = response.json()
+        response = requests.get(GIPHY_ENDPOINT, params=params)
+        data = response.json()
 
-    if data["data"]:
-        gif_url = random.choice(data["data"])["url"]
-        await interaction.response.send_message(gif_url)
-    else:
-        await interaction.response.send_message("Je n'ai pas pu trouver de GIF de chat 😿")
+        if data["data"]:
+            gif_url = random.choice(data["data"])["url"]
+            await interaction.response.send_message(gif_url)
+        else:
+            await interaction.response.send_message("Je n'ai pas pu trouver de GIF de chat 😿")
+    except Exception as e:
+        await interaction.response.send_message("Une erreur est survenue 😿")
+        print(f"Erreur lors de l'exécution de la commande /cat : {e}")
+# endregion
+
+# region LostSectorPublication
+def detect_encoding(data):
+    result = chardet.detect(data)
+    return result['encoding']
+
+def read_google_sheet(sheet_id: str, page_id_current: int) -> pd.DataFrame:
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?gid={page_id_current}&format=csv"
+    response = requests.get(url)
+    response.raise_for_status()
+
+    # Détection de l'encodage
+    detected_encoding = detect_encoding(response.content)
+
+    # Conversion en UTF-8
+    csv_data = response.content.decode(detected_encoding).encode('utf-8').decode('utf-8')
+    df = pd.read_csv(StringIO(csv_data), encoding='utf-8')
+    return df
 
 @bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
@@ -398,6 +422,7 @@ async def today_lost_sector(interaction: discord.Interaction):
     except Exception as e:
         await interaction.response.send_message(f"Erreur lors de la lecture des données: {e}", ephemeral=True)
         print(f"Erreur: {e}")  # Débogage : affichez l'erreur
+# endregion
 
 async def main():
     async with bot:
