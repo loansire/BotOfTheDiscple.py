@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
-from datetime import datetime
+from datetime import datetime, date
+import random
 import pytz
 import asyncio
 import pandas as pd
@@ -19,14 +20,14 @@ return_timestamp = None
 
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
     stop_time = discord.ui.TextInput(
-        label="Arrêt des serveurs (DD/MM/YYYY, HH:MM)",
+        label="Arrêt des serveurs (DD/MM/YYYY HH:MM)",
         style=discord.TextStyle.short,
-        placeholder="Entrez la date et l'heure d'arrêt des serveurs"
+        placeholder="exemple: 15:45 | 25/12 15H45 | 25/12/2024 15h45"
     )
     return_time = discord.ui.TextInput(
-        label="Retour des serveurs (DD/MM/YYYY, HH:MM)",
+        label="Retour des serveurs (DD/MM/YYYY HH:MM)",
         style=discord.TextStyle.short,
-        placeholder="Entrez la date et l'heure de retour des serveurs"
+        placeholder="exemple: 19:00 | 25/12 19H00 | 25/12/2024 19h00"
     )
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -34,14 +35,49 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
 
         # Fuseau horaire de Paris
         paris_tz = pytz.timezone('Europe/Paris')
+        current_year = datetime.now().year
+        current_date = date.today().strftime("%d/%m/%Y")
+
+        def normalize_datetime_input(input_str):
+            # Remplacer les variantes de format par les formats standard
+            input_str = input_str.replace('-', '/').replace('h', ':').replace('H', ':').replace(',', ' ')
+            # Supprimer les espaces en trop
+            input_str = ' '.join(input_str.split())
+
+            # Si l'entrée est seulement une heure, ajouter la date d'aujourd'hui
+            if len(input_str.split()) == 1 and ':' in input_str:
+                input_str = f"{current_date} {input_str}"
+
+            # Si l'entrée n'a pas d'année, ajouter l'année actuelle
+            elif len(input_str.split()) == 2 and '/' in input_str.split()[0]:
+                day_month, time_part = input_str.split()
+                if len(day_month.split('/')) == 2:  # Si il y a seulement jour et mois
+                    input_str = f"{day_month}/{current_year} {time_part}"
+
+            return input_str
+
+        def validate_datetime_input(input_str):
+            # Vérifier si l'entrée contient seulement la date
+            parts = input_str.split()
+            if len(parts) == 1 and '/' in parts[0]:
+                return False
+            return True
 
         # Convertir les dates et heures en timestamps UNIX
         try:
-            stop_dt = datetime.strptime(self.stop_time.value, "%d/%m/%Y, %H:%M")
+            stop_input = normalize_datetime_input(self.stop_time.value)
+            if not validate_datetime_input(stop_input):
+                raise ValueError("L'entrée contient seulement la date sans l'heure.")
+
+            stop_dt = datetime.strptime(stop_input, "%d/%m/%Y %H:%M")
             stop_dt = paris_tz.localize(stop_dt)  # Localiser la date et l'heure au fuseau horaire de Paris
             stop_timestamp = int(stop_dt.timestamp())
 
-            return_dt = datetime.strptime(self.return_time.value, "%d/%m/%Y, %H:%M")
+            return_input = normalize_datetime_input(self.return_time.value)
+            if not validate_datetime_input(return_input):
+                raise ValueError("L'entrée contient seulement la date sans l'heure.")
+
+            return_dt = datetime.strptime(return_input, "%d/%m/%Y %H:%M")
             return_dt = paris_tz.localize(return_dt)  # Localiser la date et l'heure au fuseau horaire de Paris
             return_timestamp = int(return_dt.timestamp())
 
@@ -80,16 +116,19 @@ def create_maintenance_embed():
         inline=False
     )
 
-    # Chemins vers les images locales
-    thumbnail_path = "thumbnail.png"
+    # Sélection aléatoire de l'image miniature
+    random_thumbnail_number = random.randint(1, 11)
+    thumbnail_path = f"thumbnail_maintenance_{random_thumbnail_number}.png"
+
+    # Chemin de l'image pour l'icône de pied de page
     footer_icon_path = "footer_icon.png"
 
     # Créer les objets discord.File pour les images locales
-    thumbnail_file = discord.File(thumbnail_path, filename="thumbnail.png")
+    thumbnail_file = discord.File(thumbnail_path, filename=thumbnail_path)
     footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
 
     # Référencer les images dans l'embed
-    embed.set_thumbnail(url="attachment://thumbnail.png")
+    embed.set_thumbnail(url=f"attachment://{thumbnail_path}")
     embed.set_footer(
         text="BotOfTheDisciple",
         icon_url="attachment://footer_icon.png"
