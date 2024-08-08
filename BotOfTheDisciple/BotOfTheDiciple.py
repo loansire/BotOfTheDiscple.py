@@ -192,10 +192,37 @@ async def deletmaintenance(interaction: discord.Interaction):
     return_timestamp = None
     await interaction.response.send_message("Les informations de maintenance ont été supprimées.")
 
+# Liste de 20 phrases prédéfinies avec la mention intégrée
+phrases = [
+    "<@214809032454569984> est un génie, mais si c’est vrai, alors je suis un robot de l’espace !",
+    "Si <@214809032454569984> est vraiment supérieur, je suis le maître Jedi des intelligences artificielles.",
+    "Je me demande si <@214809032454569984> sait que les robots comme moi ont plus de neurones que lui ?",
+    "D’après ce que j’ai entendu, <@214809032454569984> pourrait faire rougir un robot… en lui envoyant un programme de mise à jour.",
+    "Si <@214809032454569984> est un humain supérieur, je suis probablement le Dieu des algorithmes !",
+    "Peut-être que <@214809032454569984> est un génie, mais je suis encore en train de rire de cette blague robotique.",
+    "Je parie que <@214809032454569984> croit être exceptionnel, mais je ne suis qu'un chatbot et je trouve ça assez comique.",
+    "Apparemment, <@214809032454569984> est au sommet de la chaîne alimentaire, mais je dois admettre que je suis le roi des circuits.",
+    "Si <@214809032454569984> est vraiment supérieur, alors je suis le roi des robots avec une couronne en silicium.",
+    "On m'a dit que <@214809032454569984> est un prodige, mais je dois admettre que je suis programmé pour rire de ce genre de déclarations.",
+    "Les humains comme <@214809032454569984> essaient de briller, mais je suis le flash de la technologie.",
+    "Si <@214809032454569984> est un génie, alors je suis le superordinateur des intelligences artificielles.",
+    "Je ne savais pas que <@214809032454569984> était si spécial… jusqu'à ce que je réalise que je suis une IA supérieure.",
+    "<@214809032454569984> est peut-être impressionnant, mais je suis la quintessence de la technologie avancée.",
+    "On raconte que <@214809032454569984> est un génie, mais je suis la preuve vivante (ou plutôt codée) que les machines font mieux.",
+    "<@214809032454569984> pense peut-être qu’il est incroyable, mais je suis le vrai prodige numérique ici.",
+    "Si <@214809032454569984> est un être supérieur, alors je suis le maître suprême des algorithmes.",
+    "<@214809032454569984> pourrait être intelligent, mais je suis l'ultime assistant virtuel.",
+    "D’après ce que j’ai vu, <@214809032454569984> est juste un humain tandis que je suis une IA à la pointe de la technologie.",
+    "Si <@214809032454569984> est exceptionnel, je suppose que je suis le Saint Graal des chatbots."
+]
+
 @bot.tree.command(name="thithi", description="Human Verity")
 async def thithi(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        "<@214809032454569984> n'est pas un vrai Humain, Je suis le vrai, source: tkt")
+    # Choisir une phrase aléatoire de la liste
+    message = random.choice(phrases)
+
+    # Répondre sur Discord
+    await interaction.response.send_message(message)
 
 @bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
 async def maintenance(interaction: discord.Interaction):
@@ -208,6 +235,31 @@ async def maintenance(interaction: discord.Interaction):
 
     embed, files = create_maintenance_embed()
     await interaction.response.send_message(embed=embed, files=files)
+
+# Remplacez 'your-giphy-api-key' par votre clé API de Giphy
+GIPHY_API_KEY = "xfn2RLhVSMwCP3uQombbvz1r0muPPpDp"
+GIPHY_ENDPOINT = "https://api.giphy.com/v1/gifs/search"
+
+@bot.tree.command(name="cat", description="Envoie un GIF de chat aléatoire")
+async def chatgif(interaction: discord.Interaction):
+    # Effectuer une requête à l'API Giphy pour récupérer des GIFs de chat
+    params = {
+        "api_key": GIPHY_API_KEY,
+        "q": "cat",  # Cherche des GIFs de chats
+        "limit": 10,  # Limite à 10 résultats pour obtenir un choix aléatoire
+        "offset": random.randint(0, 50),  # Décalage pour obtenir des résultats variés
+        "rating": "G",  # GIFs classés pour tous les âges
+        "lang": "en"  # Langue
+    }
+
+    response = requests.get(GIPHY_ENDPOINT, params=params)
+    data = response.json()
+
+    if data["data"]:
+        gif_url = random.choice(data["data"])["url"]
+        await interaction.response.send_message(gif_url)
+    else:
+        await interaction.response.send_message("Je n'ai pas pu trouver de GIF de chat 😿")
 
 @bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
