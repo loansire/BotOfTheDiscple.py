@@ -268,10 +268,13 @@ async def chatgif(interaction: discord.Interaction):
 # endregion
 
 # region LostSectorPublication
+
+# Section : Détection de l'encodage
 def detect_encoding(data):
     result = chardet.detect(data)
     return result['encoding']
 
+# Section : Lecture du Google Sheet
 def read_google_sheet(sheet_id: str, page_id_current: int) -> pd.DataFrame:
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?gid={page_id_current}&format=csv"
     response = requests.get(url)
@@ -285,125 +288,139 @@ def read_google_sheet(sheet_id: str, page_id_current: int) -> pd.DataFrame:
     df = pd.read_csv(StringIO(csv_data), encoding='utf-8')
     return df
 
+# Section : Fabrication des fields
+def create_fields(df: pd.DataFrame) -> dict:
+    row = df.loc[0]  # Lire la première ligne (index 0)
+
+    # Vérification des colonnes nécessaires
+    required_columns = [
+        "Nom", "Surcharge1", "Surcharge2", "Power Expert", "Power Maitrise", "Expert Solaires",
+        "Expert Abyssaux", "Expert Cryo-électriques", "Expert Stasiques", "Expert Filobscures",
+        "Expert Brise-bouclier", "Expert Perturbation", "Expert Chancellement", "Maitrise Solaires",
+        "Maitrise Abyssaux", "Maitrise Cryo-électriques", "Maitrise Stasiques", "Maitrise Filobscures",
+        "Maitrise Brise-bouclier", "Maitrise Perturbation", "Maitrise Chancellement"
+    ]
+
+    for col in required_columns:
+        if col not in df.columns:
+            raise ValueError(f"Colonne manquante: {col}")
+
+    # Parser les informations nécessaires, en ignorant les valeurs "nan"
+    fields = {col: row[col] if not pd.isna(row[col]) else None for col in required_columns}
+    return fields
+
+# Section : Fabrication de l'embed
+def create_embed(fields: dict) -> discord.Embed:
+    # Gestion des surcharges
+    surcharges = []
+    if fields["Surcharge1"] == "Cryo" or fields["Surcharge2"] == "Cryo":
+        surcharges.append("<:Cryo:1270715011781627904>")
+    if fields["Surcharge1"] == "Abyssale" or fields["Surcharge2"] == "Abyssale":
+        surcharges.append("<:Abyssale:1270715025660711023>")
+    if fields["Surcharge1"] == "Solaire" or fields["Surcharge2"] == "Solaire":
+        surcharges.append("<:Solaire:1270714993553178624>")
+
+    # Construction des champs Expert et Maitrise
+    expert_field_value = ""
+    maitrise_field_value = ""
+
+    if any(fields[col] for col in ["Expert Solaires", "Expert Abyssaux", "Expert Cryo-électriques"]):
+        expert_field_value += "Boucliers\n"
+        if fields["Expert Solaires"]:
+            expert_field_value += f"> <:Solaire:1270714993553178624> {fields['Expert Solaires']}\n"
+        if fields["Expert Abyssaux"]:
+            expert_field_value += f"> <:Abyssale:1270715025660711023> {fields['Expert Abyssaux']}\n"
+        if fields["Expert Cryo-électriques"]:
+            expert_field_value += f"> <:Cryo:1270715011781627904> {fields['Expert Cryo-électriques']}\n"
+
+    if any(fields[col] for col in ["Expert Brise-bouclier", "Expert Perturbation", "Expert Chancellement"]):
+        expert_field_value += "\nChampions\n"
+        if fields["Expert Brise-bouclier"]:
+            expert_field_value += f"> <:Bloqueur:1270042102033678388> {fields['Expert Brise-bouclier']}\n"
+        if fields["Expert Perturbation"]:
+            expert_field_value += f"> <:Surcharge:1270042140944236619> {fields['Expert Perturbation']}\n"
+        if fields["Expert Chancellement"]:
+            expert_field_value += f"> <:Implacable:1270042120857849877> {fields['Expert Chancellement']}\n"
+
+    if any(fields[col] for col in ["Maitrise Solaires", "Maitrise Abyssaux", "Maitrise Cryo-électriques"]):
+        maitrise_field_value += "Boucliers\n"
+        if fields["Maitrise Solaires"]:
+            maitrise_field_value += f"> <:Solaire:1270714993553178624> {fields['Maitrise Solaires']}\n"
+        if fields["Maitrise Abyssaux"]:
+            maitrise_field_value += f"> <:Abyssale:1270715025660711023> {fields['Maitrise Abyssaux']}\n"
+        if fields["Maitrise Cryo-électriques"]:
+            maitrise_field_value += f"> <:Cryo:1270715011781627904> {fields['Maitrise Cryo-électriques']}\n"
+
+    if any(fields[col] for col in ["Maitrise Brise-bouclier", "Maitrise Perturbation", "Maitrise Chancellement"]):
+        maitrise_field_value += "\nChampions\n"
+        if fields["Maitrise Brise-bouclier"]:
+            maitrise_field_value += f"> <:Bloqueur:1270042102033678388> {fields['Maitrise Brise-bouclier']}\n"
+        if fields["Maitrise Perturbation"]:
+            maitrise_field_value += f"> <:Surcharge:1270042140944236619> {fields['Maitrise Perturbation']}\n"
+        if fields["Maitrise Chancellement"]:
+            maitrise_field_value += f"> <:Implacable:1270042120857849877> {fields['Maitrise Chancellement']}\n"
+
+    # Créer un embed pour afficher les informations
+    embed = discord.Embed(
+        title=fields["Nom"],
+        description=(
+            "**Récompenses**\n"
+            "<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>"
+        ),
+        colour=0xff7300,
+        timestamp=datetime.now()
+    )
+
+    embed.set_author(
+        name="Secteur oublié du jour",
+        icon_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png"
+    )
+
+    if expert_field_value.strip():  # Ajouter uniquement si le contenu n'est pas vide
+        embed.add_field(
+            name=f"Expert ({fields['Power Expert']})",
+            value=expert_field_value.strip(),
+            inline=True
+        )
+
+    if maitrise_field_value.strip():  # Ajouter uniquement si le contenu n'est pas vide
+        embed.add_field(
+            name=f"Maitrise ({fields['Power Maitrise']})",
+            value=maitrise_field_value.strip(),
+            inline=True
+        )
+
+    embed.add_field(
+        name="Surcharges",
+        value=" | ".join(surcharges) if surcharges else "Aucune surcharge définie",
+        inline=False
+    )
+
+    embed.set_image(
+        url="https://www.bungie.net/img/destiny_content/pgcr/lotus.jpg"
+    )
+
+    embed.set_thumbnail(
+        url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png"
+    )
+
+    embed.set_footer(
+        text="BotOfTheDisciple",
+        icon_url="attachment://footer_icon.png"
+    )
+
+    return embed
+
+# Section : Commande principale
 @bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
-    # Identifiants du fichier et de la page Google Sheets
     sheet_id = "1yzlUK5dlqhSg0ZGQ79o-4n9j2mRZiFgECi1CBI1Ht1I"
     page_id_current = 1205713815  # Remplacez par l'ID de votre page actuelle
 
     try:
         df = read_google_sheet(sheet_id, page_id_current)
-
-        row = df.loc[0]  # Lire la première ligne (index 0)
-
-        # Vérification des colonnes nécessaires
-        required_columns = [
-            "Nom", "Surcharge1", "Surcharge2", "Power Expert", "Power Maitrise", "Expert Solaires",
-            "Expert Abyssaux", "Expert Cryo-électriques", "Expert Stasiques", "Expert Filobscures",
-            "Expert Brise-bouclier", "Expert Perturbation", "Expert Chancellement", "Maitrise Solaires",
-            "Maitrise Abyssaux", "Maitrise Cryo-électriques", "Maitrise Stasiques", "Maitrise Filobscures",
-            "Maitrise Brise-bouclier", "Maitrise Perturbation", "Maitrise Chancellement"
-        ]
-
-        for col in required_columns:
-            if col not in df.columns:
-                raise ValueError(f"Colonne manquante: {col}")
-
-        # Parser les informations nécessaires, en ignorant les valeurs "nan"
-        fields = {col: row[col] if not pd.isna(row[col]) else None for col in required_columns}
-
-        # Gestion des surcharges
-        surcharges = []
-        if fields["Surcharge1"] == "Cryo" or fields["Surcharge2"] == "Cryo":
-            surcharges.append("<:Cryo:1270715011781627904>")
-        if fields["Surcharge1"] == "Abyssale" or fields["Surcharge2"] == "Abyssale":
-            surcharges.append("<:Abyssale:1270715025660711023>")
-        if fields["Surcharge1"] == "Solaire" or fields["Surcharge2"] == "Solaire":
-            surcharges.append("<:Solaire:1270714993553178624>")
-
-        # Construction des champs Expert et Maitrise
-        expert_field_value = ""
-        maitrise_field_value = ""
-
-        if any(fields[col] for col in ["Expert Solaires", "Expert Abyssaux", "Expert Cryo-électriques"]):
-            expert_field_value += "Boucliers\n"
-            if fields["Expert Solaires"]:
-                expert_field_value += f"> <:Solaire:1270714993553178624> {fields['Expert Solaires']}\n"
-            if fields["Expert Abyssaux"]:
-                expert_field_value += f"> <:Abyssale:1270715025660711023> {fields['Expert Abyssaux']}\n"
-            if fields["Expert Cryo-électriques"]:
-                expert_field_value += f"> <:Cryo:1270715011781627904> {fields['Expert Cryo-électriques']}\n"
-
-        if any(fields[col] for col in ["Expert Brise-bouclier", "Expert Perturbation", "Expert Chancellement"]):
-            expert_field_value += "\nChampions\n"
-            if fields["Expert Brise-bouclier"]:
-                expert_field_value += f"> <:Bloqueur:1270042102033678388> {fields['Expert Brise-bouclier']}\n"
-            if fields["Expert Perturbation"]:
-                expert_field_value += f"> <:Surcharge:1270042140944236619> {fields['Expert Perturbation']}\n"
-            if fields["Expert Chancellement"]:
-                expert_field_value += f"> <:Implacable:1270042120857849877> {fields['Expert Chancellement']}\n"
-
-        if any(fields[col] for col in ["Maitrise Solaires", "Maitrise Abyssaux", "Maitrise Cryo-électriques"]):
-            maitrise_field_value += "Boucliers\n"
-            if fields["Maitrise Solaires"]:
-                maitrise_field_value += f"> <:Solaire:1270714993553178624> {fields['Maitrise Solaires']}\n"
-            if fields["Maitrise Abyssaux"]:
-                maitrise_field_value += f"> <:Abyssale:1270715025660711023> {fields['Maitrise Abyssaux']}\n"
-            if fields["Maitrise Cryo-électriques"]:
-                maitrise_field_value += f"> <:Cryo:1270715011781627904> {fields['Maitrise Cryo-électriques']}\n"
-
-        if any(fields[col] for col in ["Maitrise Brise-bouclier", "Maitrise Perturbation", "Maitrise Chancellement"]):
-            maitrise_field_value += "\nChampions\n"
-            if fields["Maitrise Brise-bouclier"]:
-                maitrise_field_value += f"> <:Bloqueur:1270042102033678388> {fields['Maitrise Brise-bouclier']}\n"
-            if fields["Maitrise Perturbation"]:
-                maitrise_field_value += f"> <:Surcharge:1270042140944236619> {fields['Maitrise Perturbation']}\n"
-            if fields["Maitrise Chancellement"]:
-                maitrise_field_value += f"> <:Implacable:1270042120857849877> {fields['Maitrise Chancellement']}\n"
-
-        # Créer un embed pour afficher les informations
-        embed = discord.Embed(
-            title=fields["Nom"],
-            description=(
-                "**Récompenses**\n"
-                "<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>"
-            ),
-            colour=0xff7300,
-            timestamp=datetime.now()
-        )
-
-        embed.set_author(
-            name="Secteur oublié du jour",
-            icon_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png"
-        )
-
-        if expert_field_value.strip():  # Ajouter uniquement si le contenu n'est pas vide
-            embed.add_field(
-                name=f"Expert ({fields['Power Expert']})",
-                value=expert_field_value.strip(),
-                inline=True
-            )
-
-        if maitrise_field_value.strip():  # Ajouter uniquement si le contenu n'est pas vide
-            embed.add_field(
-                name=f"Maitrise ({fields['Power Maitrise']})",
-                value=maitrise_field_value.strip(),
-                inline=True
-            )
-
-        embed.add_field(
-            name="Surcharges",
-            value=" | ".join(surcharges) if surcharges else "Aucune surcharge définie",
-            inline=False
-        )
-
-        embed.set_image(
-            url="https://www.bungie.net/img/destiny_content/pgcr/lotus.jpg"
-        )
-
-        embed.set_thumbnail(
-            url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png"
-        )
+        fields = create_fields(df)
+        embed = create_embed(fields)
 
         # Chemins vers les images locales
         footer_icon_path = "footer_icon.png"
@@ -411,17 +428,13 @@ async def today_lost_sector(interaction: discord.Interaction):
         # Créer les objets discord.File pour les images locales
         footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
 
-        embed.set_footer(
-            text="BotOfTheDisciple",
-            icon_url="attachment://footer_icon.png"
-        )
-
         # Envoyer le message avec l'embed et le fichier d'icône
         await interaction.response.send_message(embed=embed, file=footer_icon_file)
 
     except Exception as e:
         await interaction.response.send_message(f"Erreur lors de la lecture des données: {e}", ephemeral=True)
         print(f"Erreur: {e}")  # Débogage : affichez l'erreur
+
 # endregion
 
 async def main():
