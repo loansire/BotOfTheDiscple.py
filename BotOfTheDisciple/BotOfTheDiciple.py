@@ -248,7 +248,7 @@ async def chatgif(interaction: discord.Interaction):
         params = {
             "api_key": GIPHY_API_KEY,
             "q": "cat",
-            "limit": 10,
+            "limit": 20,
             "offset": random.randint(0, 50),
             "rating": "G",
             "lang": "en"
@@ -268,7 +268,6 @@ async def chatgif(interaction: discord.Interaction):
 # endregion
 
 # region LostSectorPublication
-
 # Section : Détection de l'encodage
 def detect_encoding(data):
     result = chardet.detect(data)
