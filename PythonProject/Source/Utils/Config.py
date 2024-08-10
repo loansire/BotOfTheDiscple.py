@@ -1,16 +1,16 @@
-import sys
+ï»¿import sys
 import os
 #Ici On met toutes les variables, noms de manifest...
 
 #Functions
 
 def InitialiseDirs():
-    # Assurez-vous que le répertoire existe
+    # Assurez-vous que le rÃ©pertoire existe
     os.makedirs(os.path.dirname(MAIN_MF_OUTPUT_FILE), exist_ok=True)
 
 def RessourcePath(relative_path):
     try:
-        # PyInstaller crée une variable temporaire dans sys._MEIPASS
+        # PyInstaller crÃ©e une variable temporaire dans sys._MEIPASS
         base_path = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
@@ -21,7 +21,7 @@ def RessourcePath(relative_path):
 BASE_URL = "https://www.bungie.net"
 
 
-# URL de l'endpoint pour télécharger le manifeste complet
+# URL de l'endpoint pour tÃ©lÃ©charger le manifeste complet
 MAIN_MF_URL = "https://www.bungie.net/Platform/Destiny2/Manifest/"
 MAIN_MF_OUTPUT_FILE = RessourcePath("Manifests\MainManifest.json")
 
@@ -56,3 +56,7 @@ MF_DAMAGE_TYPE = "DestinyDamageTypeDefinition"
 MF_DAMAGE_TYPE_FILENAME = RessourcePath("Manifests\DamageType.json")
 MF_BREAKER_TYPE = "DestinyBreakerTypeDefinition"
 MF_BREAKER_TYPE_FILENAME = RessourcePath("Manifests\BreakerType.json")
+
+#GGdoc api credentials file
+CREDENTIALS_GGDOC = RessourcePath(r"Ressources\credentials.json")
+TOKEN_GGDOC = RessourcePath(r"Ressources\token.json")

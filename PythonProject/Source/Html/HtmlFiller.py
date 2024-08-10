@@ -1,8 +1,10 @@
+import html
 from bs4 import BeautifulSoup
 
 from Html import HtmlDefines
 from Utils import Dictionnary
 from Utils import Config
+from Utils import HTMLToPNG
 
 
 
@@ -161,3 +163,6 @@ def TreatRewardText(reward_text):
     rarity = "(" + name_rarity_split[1]
     
     return [name, rarity]
+
+def ConvertToJpeg():
+    HTMLToPNG.html_to_png(HtmlDefines.OUTPUT_PATH, HtmlDefines.OUTPUT_JPEG_PATH)

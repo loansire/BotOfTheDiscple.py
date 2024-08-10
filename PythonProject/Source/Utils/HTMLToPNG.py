@@ -31,9 +31,3 @@ def html_to_png(html_path, output_path):
     image.save(output_path)
 
     print(f"Image PNG générée avec succès : {output_path}")
-
-# Exemple d'utilisation avec des backslashes dans les chemins
-html_path = 'D:\\PC-Loan\\Desktop\\Destiny\\Destiny2LostSector_FR\\PythonProject\\Ressources\\Output.html'
-output_path = 'D:\\PC-Loan\\Desktop\\Destiny\\Destiny2LostSector_FR\\BotOfTheDisciple\\CurrentLostSector.png'
-
-html_to_png(html_path, output_path)

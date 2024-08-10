@@ -5,6 +5,7 @@ import os
 from Utils import Config
 from Utils import Download
 from Utils import CsvReader
+from Utils import GgdocAPI
 from Utils import Result
 from Utils import ModifierModif
 
@@ -17,6 +18,7 @@ from Manifests import ModifierDefinition
 from Manifests import BreakerDamageType
 
 from Html import HtmlFiller
+
 
 def main(download_all = False):
     #Variables to fill for the Html page
@@ -45,16 +47,19 @@ def main(download_all = False):
     
     print("Beginning of the programm")
     Config.InitialiseDirs()
-    ################################## CSV PARSING ###################################
+    ################################## GGDOC acces PARSING ###################################
     C_activity_name = "Extraction"
 
+    C_activity_name, C_surcharge1, C_surcharge2,E_power, M_power, E_shields, M_Shields, E_Champs, M_Champs = GgdocAPI.main()
+
+    """
     C_activity_name, C_surcharge1, C_surcharge2 = CsvReader.ReadGGDocActivity()
     E_power = CsvReader.GetExpertPower()
     M_power = CsvReader.GetMaitrisePower()
     E_Shields = CsvReader.GetInfosTypes(True, True)
     M_Shields = CsvReader.GetInfosTypes(False, True)
     E_Champs = CsvReader.GetInfosTypes(True, False)
-    M_Champs = CsvReader.GetInfosTypes(False, False)
+    M_Champs = CsvReader.GetInfosTypes(False, False)"""
 
     #################################### Main MF ######################################
     print("Main MF")
@@ -127,7 +132,9 @@ def main(download_all = False):
     HtmlFiller.MainInfos(C_activity_name, C_pgcr_image_link, C_place_name, C_destination_name, C_rewards)
     HtmlFiller.SpecificInfos(E_power, E_Shields, E_Champs, C_damange_breaker_type, E_modifier, True)
     HtmlFiller.SpecificInfos(M_power, M_Shields, M_Champs, C_damange_breaker_type, M_modifier, False)
-
+    
+    HtmlFiller.ConvertToJpeg()
+    
     #################################### Result Viewer ###################################
     Result.WriteResult("Expert", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, E_modifier)
     Result.WriteResult("Maitrise", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, M_modifier)
