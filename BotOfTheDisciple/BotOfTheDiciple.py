@@ -10,6 +10,7 @@ import pandas as pd
 import requests
 import chardet
 from io import StringIO
+from collections import Counter
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -490,19 +491,28 @@ async def raid_autocomplete(interaction: discord.Interaction, current: str):
                            raid4=raid_autocomplete, raid5=raid_autocomplete, raid6=raid_autocomplete)
 async def random_raidpick(interaction: discord.Interaction, raid1: str = None, raid2: str = None, raid3: str = None,
                           raid4: str = None, raid5: str = None, raid6: str = None):
-    # Créer la liste des raids sélectionnés
-    selected_raids = {raid1, raid2, raid3, raid4, raid5, raid6} - {None}
+    # Créer la liste des raids sélectionnés, éliminer les None
+    selected_raids = [raid for raid in [raid1, raid2, raid3, raid4, raid5, raid6] if raid]
 
     # Si aucun raid n'est sélectionné, choisir parmi tous les raids disponibles
     if not selected_raids:
-        selected_raids = set(all_raids)
+        selected_raids = all_raids
 
-    # Choisir aléatoirement un raid parmi les sélectionnés
-    chosen_raid = random.choice(list(selected_raids))
+    # Compter la fréquence des raids sélectionnés
+    raid_counts = Counter(selected_raids)
+
+    # Calculer les poids pour chaque raid basé sur leur fréquence
+    weighted_raids = []
+    for raid, count in raid_counts.items():
+        weighted_raids.extend([raid] * count)
+
+    # Choisir aléatoirement un raid parmi les raids pondérés
+    chosen_raid = random.choice(weighted_raids)
 
     # Créer un embed pour afficher le résultat
     embed = discord.Embed(title="Raid Aléatoire Sélectionné", color=discord.Color.blue())
-    embed.add_field(name="Raids disponibles:", value="\n".join(selected_raids), inline=False)
+    raid_text = "\n".join(f"{raid} (Sélectionné {count} fois)" for raid, count in raid_counts.items())
+    embed.add_field(name="Raids disponibles:", value=raid_text, inline=False)
     embed.add_field(name="Raid choisi:", value=chosen_raid, inline=False)
 
     # Ajouter l'image associée au raid choisi
