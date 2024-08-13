@@ -1,4 +1,6 @@
+import os
 import discord
+from discord import app_commands
 from discord.ext import commands
 from datetime import datetime, date
 import random
@@ -396,7 +398,7 @@ def create_embed(fields: dict) -> discord.Embed:
     )
 
     embed.set_image(
-        url="https://www.bungie.net/img/destiny_content/pgcr/lotus.jpg"
+        url="attachment://CurrentLostSector.png"
     )
 
     embed.set_thumbnail(
@@ -423,17 +425,95 @@ async def today_lost_sector(interaction: discord.Interaction):
 
         # Chemins vers les images locales
         footer_icon_path = "footer_icon.png"
+        lost_sector_image_path = "CurrentLostSector.png"
 
         # Créer les objets discord.File pour les images locales
         footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+        lost_sector_image_file = discord.File(lost_sector_image_path, filename="CurrentLostSector.png")
 
-        # Envoyer le message avec l'embed et le fichier d'icône
-        await interaction.response.send_message(embed=embed, file=footer_icon_file)
+        # Mettre à jour l'embed pour utiliser l'image locale
+        embed.set_image(url="attachment://CurrentLostSector.png")
+
+        # Envoyer le message avec l'embed et les fichiers d'icône et d'image
+        await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
 
     except Exception as e:
         await interaction.response.send_message(f"Erreur lors de la lecture des données: {e}", ephemeral=True)
         print(f"Erreur: {e}")  # Débogage : affichez l'erreur
 
+# endregion
+
+# region RAIDRandomizer
+# Liste des 9 raids disponibles
+all_raids = [
+    "Dernier Voeux",
+    "Jardin du Salut",
+    "Crypte de la Pierre",
+    "Caveau de verre",
+    "Serment du Disciple",
+    "Chute du Roi",
+    "Origine des Cauchemars",
+    "Chute de Cropta",
+    "Orée du Salut"
+]
+
+# Dictionnaire pour associer les raids à des images locales
+raid_images = {
+    "Dernier Voeux": "RAID_Thumbnail/LW.webp",
+    "Jardin du Salut": "RAID_Thumbnail/JDS.webp",
+    "Crypte de la Pierre": "RAID_Thumbnail/DSC.webp",
+    "Caveau de verre": "RAID_Thumbnail/VOG.webp",
+    "Serment du Disciple": "RAID_Thumbnail/SDD.webp",
+    "Chute du Roi": "RAID_Thumbnail/ORYX.webp",
+    "Origine des Cauchemars": "RAID_Thumbnail/RON.webp",
+    "Chute de Cropta": "RAID_Thumbnail/CROPTA.webp",
+    "Orée du Salut": "RAID_Thumbnail/ODS.webp"
+}
+
+# Autocomplétion pour les raids
+async def raid_autocomplete(interaction: discord.Interaction, current: str):
+    return [
+        app_commands.Choice(name=raid, value=raid)
+        for raid in all_raids if current.lower() in raid.lower()
+    ][:25]  # Limiter à 25 résultats
+
+@bot.tree.command(name="raidrandomizer", description="Choisir aléatoirement un raid parmi 6 raids sélectionnés")
+@app_commands.describe(
+    raid1="Premier choix de raid",
+    raid2="Deuxième choix de raid",
+    raid3="Troisième choix de raid",
+    raid4="Quatrième choix de raid",
+    raid5="Cinquième choix de raid",
+    raid6="Sixième choix de raid"
+)
+@app_commands.autocomplete(raid1=raid_autocomplete, raid2=raid_autocomplete, raid3=raid_autocomplete,
+                           raid4=raid_autocomplete, raid5=raid_autocomplete, raid6=raid_autocomplete)
+async def random_raidpick(interaction: discord.Interaction, raid1: str = None, raid2: str = None, raid3: str = None,
+                          raid4: str = None, raid5: str = None, raid6: str = None):
+    # Créer la liste des raids sélectionnés
+    selected_raids = {raid1, raid2, raid3, raid4, raid5, raid6} - {None}
+
+    # Si aucun raid n'est sélectionné, choisir parmi tous les raids disponibles
+    if not selected_raids:
+        selected_raids = set(all_raids)
+
+    # Choisir aléatoirement un raid parmi les sélectionnés
+    chosen_raid = random.choice(list(selected_raids))
+
+    # Créer un embed pour afficher le résultat
+    embed = discord.Embed(title="Raid Aléatoire Sélectionné", color=discord.Color.blue())
+    embed.add_field(name="Raids disponibles:", value="\n".join(selected_raids), inline=False)
+    embed.add_field(name="Raid choisi:", value=chosen_raid, inline=False)
+
+    # Ajouter l'image associée au raid choisi
+    image_path = raid_images.get(chosen_raid)
+    if image_path and os.path.isfile(image_path):  # Vérifier si le fichier existe
+        file = discord.File(image_path, filename="image.png")
+        embed.set_image(url="attachment://image.png")
+        await interaction.response.send_message(embed=embed, file=file)
+    else:
+        embed.set_footer(text="Image non trouvée")
+        await interaction.response.send_message(embed=embed)
 # endregion
 
 async def main():
