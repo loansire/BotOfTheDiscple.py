@@ -447,7 +447,7 @@ async def today_lost_sector(interaction: discord.Interaction):
 # region RAIDRandomizer
 # Liste des 9 raids disponibles
 all_raids = [
-    "Dernier Voeux",
+    "Dernier Voeu",
     "Jardin du Salut",
     "Crypte de la Pierre",
     "Caveau de verre",
@@ -460,7 +460,7 @@ all_raids = [
 
 # Dictionnaire pour associer les raids à des images locales
 raid_images = {
-    "Dernier Voeux": "RAID_Thumbnail/LW.webp",
+    "Dernier Voeu": "RAID_Thumbnail/LW.webp",
     "Jardin du Salut": "RAID_Thumbnail/JDS.webp",
     "Crypte de la Pierre": "RAID_Thumbnail/DSC.webp",
     "Caveau de verre": "RAID_Thumbnail/VOG.webp",
@@ -511,8 +511,8 @@ async def random_raidpick(interaction: discord.Interaction, raid1: str = None, r
 
     # Créer un embed pour afficher le résultat
     embed = discord.Embed(title="Raid Aléatoire Sélectionné", color=discord.Color.blue())
-    raid_text = "\n".join(f"{raid} (Sélectionné {count} fois)" for raid, count in raid_counts.items())
-    embed.add_field(name="Raids disponibles:", value=raid_text, inline=False)
+    raid_text = "\n".join(f"{raid} (x{count})" for raid, count in raid_counts.items())
+    embed.add_field(name="Raids Selectionnés:", value=raid_text, inline=False)
     embed.add_field(name="Raid choisi:", value=chosen_raid, inline=False)
 
     # Ajouter l'image associée au raid choisi
