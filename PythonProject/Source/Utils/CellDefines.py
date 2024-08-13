@@ -14,4 +14,4 @@ CELL_SHIELD_E = {"Brise-bouclier" : "K2", "Perturbation" : "L2","Chancellement" 
 CELL_CHAMP_M = {"Solaires" : "N2", "Abyssaux" : "O2", "Cryo-électriques" : "P2", "Stasiques" : "Q2", "Filobscures" : "R2"}
 
 #Cell Shields Maitrise
-CELL_SHIELD_M = {"Brise-bouclier" : "S2", "Perturbation" : "T2","Chancellement" : "U2"}
+CELL_SHIELD_M = {"Brise-bouclier" : "S2", "Perturbation" : "T2","Chancellement" : "U2"} 

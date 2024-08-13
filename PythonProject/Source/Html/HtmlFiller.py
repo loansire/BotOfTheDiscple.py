@@ -102,8 +102,8 @@ def SpecificInfos(power_level, shield_count, champ_count, icons_infos, modifiers
             txt_champ_template = file.read()
 
         for champion_type in champ_count.keys():
-            if champion_type in Dictionnary.FINAL_TRANSLATIONS.keys():
-                final_translation = Dictionnary.FINAL_TRANSLATIONS[champion_type]
+            if champion_type in Dictionnary.FINAL_TRANSLATIONS_HTML.keys():
+                final_translation = Dictionnary.FINAL_TRANSLATIONS_HTML[champion_type]
             else:
                 final_translation = champion_type
             txt_champ_template_copy = txt_champ_template
@@ -124,8 +124,8 @@ def SpecificInfos(power_level, shield_count, champ_count, icons_infos, modifiers
         with open(HtmlDefines.T_SHIELDS_PATH, 'r', encoding='utf-8') as file:
             txt_shield_template = file.read()
         for shield_type in shield_count.keys():
-            if shield_type in Dictionnary.FINAL_TRANSLATIONS.keys():
-                final_translation = Dictionnary.FINAL_TRANSLATIONS[shield_type]
+            if shield_type in Dictionnary.FINAL_TRANSLATIONS_HTML.keys():
+                final_translation = Dictionnary.FINAL_TRANSLATIONS_HTML[shield_type]
             else:
                 final_translation = shield_type
             txt_shield_copy = txt_shield_template
@@ -137,7 +137,7 @@ def SpecificInfos(power_level, shield_count, champ_count, icons_infos, modifiers
     #Modifiers
     if is_expert:
         container_name = "modifier_section_expert"
-    else:
+    else: 
         container_name = "modifier_section_master"
     modifier_container = html_file.find(id=container_name)
     if modifier_container:

@@ -4,10 +4,10 @@ import os
 #import intern
 from Utils import Config
 from Utils import Download
-from Utils import CsvReader
 from Utils import GgdocAPI
 from Utils import Result
 from Utils import ModifierModif
+from Utils import ActivityInfos
 
 from Manifests import JsonReader
 from Manifests import ActivityDefinition
@@ -19,6 +19,8 @@ from Manifests import BreakerDamageType
 
 from Html import HtmlFiller
 
+def GenerateActivity():
+    main(True)
 
 def main(download_all = False):
     #Variables to fill for the Html page
@@ -138,6 +140,19 @@ def main(download_all = False):
     #################################### Result Viewer ###################################
     Result.WriteResult("Expert", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, E_modifier)
     Result.WriteResult("Maitrise", C_activity_name, C_activity_description, C_place_name, C_destination_name, C_pgcr_image_link, C_rewards, M_modifier)
+    
+    ################################### Save Infos for Bot ###############################
+    
+    ActivityInfos.SetActivityName(C_activity_name)
+    ActivityInfos.SetPower(True, E_power)
+    ActivityInfos.SetPower(False, M_power)
+    ActivityInfos.SetSurcharges({C_surcharge1, C_surcharge2})
+    ActivityInfos.SetShields(True, E_Shields)
+    ActivityInfos.SetShields(False, M_Shields)
+    ActivityInfos.SetChamps(True, E_Champs)
+    ActivityInfos.SetChamps(False, M_Champs)
+    
+    #########################################################################################
 
 def DownloadManifest(path_to_download, path_to_save, download_all = False):
     if(os.path.exists(path_to_save) and not download_all):
@@ -151,3 +166,21 @@ def DownloadManifest(path_to_download, path_to_save, download_all = False):
 
 if __name__ == "__main__":
     main(True)
+    
+
+############################################### GETTERS #####################################
+
+def GetActivityName():
+    return ActivityInfos.GetActivityName()
+
+def GetPower(aExpert):
+    return ActivityInfos.GetPower(aExpert)
+    
+def GetSurcharges():
+    return ActivityInfos.GetSurcharges()
+
+def GetShields(aExpert):
+    return ActivityInfos.GetShields(aExpert)
+    
+def GetChamps(aExpert):
+    return ActivityInfos.GetChamps(aExpert)

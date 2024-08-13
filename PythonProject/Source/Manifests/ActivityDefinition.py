@@ -10,7 +10,7 @@ def main(sector_name):
 	filtered_activities = filter_lost_sector(json_data)
 	with open(Config.MF_ACTIVITY_FILTERED_GENERAL_FILENAME, 'w', encoding='utf-8') as file:
 		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
-
+		
 	filtered_activities = filter_activities_by_name(filtered_activities, sector_name)
 
 	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, 'w', encoding='utf-8') as file:
@@ -27,14 +27,15 @@ def filter_lost_sector(data):
 def filter_activities_by_name(data, sector_name):
 	filtered_activities = {}
 	description = ""
+	sector_name_rectified = sector_name.replace(" ", " ")
 	for activity_hash, activity_details in data.items():
-		if sector_name in activity_details.get('displayProperties').get("name"):
+		if sector_name in activity_details.get('displayProperties').get("name") or sector_name_rectified in activity_details.get('displayProperties').get("name"):
 			if "Expert" in activity_details.get('displayProperties').get("description") and description == "":
 				description = activity_details.get('displayProperties').get("description")
 				filtered_activities[activity_hash] = activity_details
 			elif  activity_details.get('displayProperties').get("description") == description:
 				filtered_activities[activity_hash] = activity_details
-	return filtered_activities
+	return filtered_activities		
 
 def get_activity_name_description(search_expert):
 	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
