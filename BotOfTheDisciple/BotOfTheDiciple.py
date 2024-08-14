@@ -164,17 +164,17 @@ def create_maintenance_embed():
 
     # Sélection aléatoire de l'image miniature
     random_thumbnail_number = random.randint(1, 11)
-    thumbnail_path = f"thumbnail_maintenance_{random_thumbnail_number}.png"
+    thumbnail_path = f"Ressources/MaintenanceThumbnail/thumbnail_maintenance_{random_thumbnail_number}.png"
 
     # Chemin de l'image pour l'icône de pied de page
-    footer_icon_path = "footer_icon.png"
+    footer_icon_path = "Ressources/footer_icon.png"
 
     # Créer les objets discord.File pour les images locales
-    thumbnail_file = discord.File(thumbnail_path, filename=thumbnail_path)
+    thumbnail_file = discord.File(thumbnail_path, filename=f"thumbnail_maintenance_{random_thumbnail_number}.png")
     footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
 
     # Référencer les images dans l'embed
-    embed.set_thumbnail(url=f"attachment://{thumbnail_path}")
+    embed.set_thumbnail(url=f"attachment://thumbnail_maintenance_{random_thumbnail_number}.png")
     embed.set_footer(
         text="BotOfTheDisciple",
         icon_url="attachment://footer_icon.png"
@@ -424,16 +424,16 @@ async def today_lost_sector(interaction: discord.Interaction):
         fields = create_fields(df)
         embed = create_embed(fields)
 
-        # Chemins vers les images locales
-        footer_icon_path = "footer_icon.png"
-        lost_sector_image_path = "CurrentLostSector.png"
+        # Chemins vers les images dans le répertoire Ressources
+        footer_icon_path = "Ressources/footer_icon.png"  # Mise à jour du chemin
+        lost_sector_image_path = "Ressources/Output.jpeg"  # Mise à jour du chemin
 
-        # Créer les objets discord.File pour les images locales
+        # Créer les objets discord.File pour les images
         footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
-        lost_sector_image_file = discord.File(lost_sector_image_path, filename="CurrentLostSector.png")
+        lost_sector_image_file = discord.File(lost_sector_image_path, filename="Output.jpeg")
 
         # Mettre à jour l'embed pour utiliser l'image locale
-        embed.set_image(url="attachment://CurrentLostSector.png")
+        embed.set_image(url="attachment://Output.jpeg")
 
         # Envoyer le message avec l'embed et les fichiers d'icône et d'image
         await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
@@ -445,31 +445,57 @@ async def today_lost_sector(interaction: discord.Interaction):
 # endregion
 
 # region RAIDRandomizer
-# Liste des 9 raids disponibles
-all_raids = [
-    "Dernier Voeu",
-    "Jardin du Salut",
-    "Crypte de la Pierre",
-    "Caveau de verre",
-    "Serment du Disciple",
-    "Chute du Roi",
-    "Origine des Cauchemars",
-    "Chute de Cropta",
-    "Orée du Salut"
-]
-
-# Dictionnaire pour associer les raids à des images locales
-raid_images = {
-    "Dernier Voeu": "RAID_Thumbnail/LW.webp",
-    "Jardin du Salut": "RAID_Thumbnail/JDS.webp",
-    "Crypte de la Pierre": "RAID_Thumbnail/DSC.webp",
-    "Caveau de verre": "RAID_Thumbnail/VOG.webp",
-    "Serment du Disciple": "RAID_Thumbnail/SDD.webp",
-    "Chute du Roi": "RAID_Thumbnail/ORYX.webp",
-    "Origine des Cauchemars": "RAID_Thumbnail/RON.webp",
-    "Chute de Cropta": "RAID_Thumbnail/CROPTA.webp",
-    "Orée du Salut": "RAID_Thumbnail/ODS.webp"
+# Dictionnaire centralisé pour les informations sur les raids
+raid_data = {
+    "Dernier Voeu": {
+        "emoji": "<:LW:1273058036209946634>",
+        "thumbnail": "Ressources/RaidEmotes/LW.webp",
+        "image": "Ressources/RAID_Thumbnail/LW.webp"
+    },
+    "Jardin du Salut": {
+        "emoji": "<:JDS:1273058012751335486>",
+        "thumbnail": "Ressources/RaidEmotes/JDS.webp",
+        "image": "Ressources/RAID_Thumbnail/JDS.webp"
+    },
+    "Crypte de la Pierre": {
+        "emoji": "<:DSC:1273057991670890496>",
+        "thumbnail": "Ressources/RaidEmotes/DSC.webp",
+        "image": "Ressources/RAID_Thumbnail/DSC.webp"
+    },
+    "Caveau de verre": {
+        "emoji": "<:VOG:1273058120192495658>",
+        "thumbnail": "Ressources/RaidEmotes/VOG.webp",
+        "image": "Ressources/RAID_Thumbnail/VOG.webp"
+    },
+    "Serment du Disciple": {
+        "emoji": "<:VOW:1273058146453295155>",
+        "thumbnail": "Ressources/RaidEmotes/VOW.webp",
+        "image": "Ressources/RAID_Thumbnail/VOW.webp"
+    },
+    "Chute du Roi": {
+        "emoji": "<:Oryx:1273058059849302056>",
+        "thumbnail": "Ressources/RaidEmotes/Oryx.webp",
+        "image": "Ressources/RAID_Thumbnail/Oryx.webp"
+    },
+    "Origine des Cauchemars": {
+        "emoji": "<:RON:1273058080086560870>",
+        "thumbnail": "Ressources/RaidEmotes/RON.webp",
+        "image": "Ressources/RAID_Thumbnail/RON.webp"
+    },
+    "Chute de Cropta": {
+        "emoji": "<:Cropta:1273057968660676790>",
+        "thumbnail": "Ressources/RaidEmotes/Cropta.webp",
+        "image": "Ressources/RAID_Thumbnail/Cropta.webp"
+    },
+    "Orée du Salut": {
+        "emoji": "<:SE:1273058098818322492>",
+        "thumbnail": "Ressources/RaidEmotes/SE.webp",
+        "image": "Ressources/RAID_Thumbnail/SE.webp"
+    }
 }
+
+# Liste des raids disponibles (extraits des clés du dictionnaire)
+all_raids = list(raid_data.keys())
 
 # Autocomplétion pour les raids
 async def raid_autocomplete(interaction: discord.Interaction, current: str):
@@ -509,21 +535,41 @@ async def random_raidpick(interaction: discord.Interaction, raid1: str = None, r
     # Choisir aléatoirement un raid parmi les raids pondérés
     chosen_raid = random.choice(weighted_raids)
 
-    # Créer un embed pour afficher le résultat
-    embed = discord.Embed(title="Raid Aléatoire Sélectionné", color=discord.Color.blue())
-    raid_text = "\n".join(f"{raid} (x{count})" for raid, count in raid_counts.items())
-    embed.add_field(name="Raids Selectionnés:", value=raid_text, inline=False)
-    embed.add_field(name="Raid choisi:", value=chosen_raid, inline=False)
+    # Création de l'embed
+    embed = discord.Embed(
+        title="Raid Aléatoire Sélectionné",
+        colour=0xffae00,
+        timestamp=datetime.now()
+    )
 
-    # Ajouter l'image associée au raid choisi
-    image_path = raid_images.get(chosen_raid)
-    if image_path and os.path.isfile(image_path):  # Vérifier si le fichier existe
-        file = discord.File(image_path, filename="image.png")
-        embed.set_image(url="attachment://image.png")
-        await interaction.response.send_message(embed=embed, file=file)
+    # Générer la liste des raids avec les emojis
+    raid_text = "\n".join(f"> {raid_data[raid]['emoji']} {raid} (x{count})" for raid, count in raid_counts.items())
+    embed.add_field(name="Liste des Raids choisis", value=raid_text, inline=True)
+    embed.add_field(name="Raid tiré au sort", value=chosen_raid, inline=False)
+
+    # Ajouter les images en attachement
+    raid_image_path = raid_data[chosen_raid]["image"]
+    if raid_image_path and os.path.isfile(raid_image_path):
+        image_path = discord.File(raid_image_path, filename="raid_image.png")
+        embed.set_image(url="attachment://raid_image.png")
     else:
         embed.set_footer(text="Image non trouvée")
-        await interaction.response.send_message(embed=embed)
+
+    # Associer la miniature
+    thumbnail_path = raid_data[chosen_raid]["thumbnail"]
+    if thumbnail_path and os.path.isfile(thumbnail_path):
+        thumbnail_file = discord.File(thumbnail_path, filename="raid_thumbnail.png")
+        embed.set_thumbnail(url="attachment://raid_thumbnail.png")
+
+    # Ajouter le footer
+    footer_icon_path = "Ressources/footer_icon.png"
+    if os.path.isfile(footer_icon_path):
+        footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+        embed.set_footer(text="BotOfTheDisciple", icon_url="attachment://footer_icon.png")
+
+    # Envoyer le message avec l'embed et les fichiers attachés
+    files = [file for file in [image_path, thumbnail_file, footer_icon_file] if file]
+    await interaction.response.send_message(embed=embed, files=files)
 # endregion
 
 async def main():
