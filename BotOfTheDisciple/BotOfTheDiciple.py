@@ -1,4 +1,5 @@
 import os
+import sys
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -6,11 +7,12 @@ from datetime import datetime, date
 import random
 import pytz
 import asyncio
-import pandas as pd
 import requests
-import chardet
-from io import StringIO
 from collections import Counter
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../PythonProject/Source')))
+from PythonProject.Source.LostSectorGenerator import *
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -35,6 +37,9 @@ async def on_ready():
     # Debug pour vérifier les commandes enregistrées
     for command in bot.tree.get_commands():
         print(f'Command: {command.name}, Description: {command.description}')
+
+    # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
+    GenerateActivity()
 
 # Enregistrement des commandes slash
 @bot.tree.command(name="help", description="Liste des commandes disponibles")
@@ -271,100 +276,73 @@ async def chatgif(interaction: discord.Interaction):
 # endregion
 
 # region LostSectorPublication
-# Section : Détection de l'encodage
-def detect_encoding(data):
-    result = chardet.detect(data)
-    return result['encoding']
-
-# Section : Lecture du Google Sheet
-def read_google_sheet(sheet_id: str, page_id_current: int) -> pd.DataFrame:
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?gid={page_id_current}&format=csv"
-    response = requests.get(url)
-    response.raise_for_status()
-
-    # Détection de l'encodage
-    detected_encoding = detect_encoding(response.content)
-
-    # Conversion en UTF-8
-    csv_data = response.content.decode(detected_encoding).encode('utf-8').decode('utf-8')
-    df = pd.read_csv(StringIO(csv_data), encoding='utf-8')
-    return df
-
-# Section : Fabrication des fields
-def create_fields(df: pd.DataFrame) -> dict:
-    row = df.loc[0]  # Lire la première ligne (index 0)
-
-    # Vérification des colonnes nécessaires
-    required_columns = [
-        "Nom", "Surcharge1", "Surcharge2", "Power Expert", "Power Maitrise", "Expert Solaires",
-        "Expert Abyssaux", "Expert Cryo-électriques", "Expert Stasiques", "Expert Filobscures",
-        "Expert Brise-bouclier", "Expert Perturbation", "Expert Chancellement", "Maitrise Solaires",
-        "Maitrise Abyssaux", "Maitrise Cryo-électriques", "Maitrise Stasiques", "Maitrise Filobscures",
-        "Maitrise Brise-bouclier", "Maitrise Perturbation", "Maitrise Chancellement"
-    ]
-
-    for col in required_columns:
-        if col not in df.columns:
-            raise ValueError(f"Colonne manquante: {col}")
-
-    # Parser les informations nécessaires, en ignorant les valeurs "nan"
-    fields = {col: row[col] if not pd.isna(row[col]) else None for col in required_columns}
-    return fields
-
 # Section : Fabrication de l'embed
-def create_embed(fields: dict) -> discord.Embed:
+def create_embed() -> discord.Embed:
     # Gestion des surcharges
     surcharges = []
-    if fields["Surcharge1"] == "Cryo" or fields["Surcharge2"] == "Cryo":
-        surcharges.append("<:Cryo:1270715011781627904>")
-    if fields["Surcharge1"] == "Abyssale" or fields["Surcharge2"] == "Abyssale":
-        surcharges.append("<:Abyssale:1270715025660711023>")
-    if fields["Surcharge1"] == "Solaire" or fields["Surcharge2"] == "Solaire":
-        surcharges.append("<:Solaire:1270714993553178624>")
+    for surcharge in GetSurcharges():
+        if surcharge == "Cryo":
+            surcharges.append("<:Cryo:1270715011781627904>")
+        elif surcharge == "Abyssale":
+            surcharges.append("<:Abyssale:1270715025660711023>")
+        elif surcharge == "Solaire":
+            surcharges.append("<:Solaire:1270714993553178624>")
 
     # Construction des champs Expert et Maitrise
     expert_field_value = ""
     maitrise_field_value = ""
 
-    if any(fields[col] for col in ["Expert Solaires", "Expert Abyssaux", "Expert Cryo-électriques"]):
+    # Boucliers Expert
+    expert_shields = GetShields(True)
+    if expert_shields:
         expert_field_value += "Boucliers\n"
-        if fields["Expert Solaires"]:
-            expert_field_value += f"> <:Solaire:1270714993553178624> {fields['Expert Solaires']}\n"
-        if fields["Expert Abyssaux"]:
-            expert_field_value += f"> <:Abyssale:1270715025660711023> {fields['Expert Abyssaux']}\n"
-        if fields["Expert Cryo-électriques"]:
-            expert_field_value += f"> <:Cryo:1270715011781627904> {fields['Expert Cryo-électriques']}\n"
+        for shield, count in expert_shields.items():
+            if shield == "Solaires":
+                expert_field_value += f"> <:Solaire:1270714993553178624> {count}\n"
+            elif shield == "Abyssaux":
+                expert_field_value += f"> <:Abyssale:1270715025660711023> {count}\n"
+            elif shield == "Cryo-électriques":
+                expert_field_value += f"> <:Cryo:1270715011781627904> {count}\n"
 
-    if any(fields[col] for col in ["Expert Brise-bouclier", "Expert Perturbation", "Expert Chancellement"]):
+    # Champions Expert
+    expert_champs = GetChamps(True)
+    if expert_champs:
         expert_field_value += "\nChampions\n"
-        if fields["Expert Brise-bouclier"]:
-            expert_field_value += f"> <:Bloqueur:1270042102033678388> {fields['Expert Brise-bouclier']}\n"
-        if fields["Expert Perturbation"]:
-            expert_field_value += f"> <:Surcharge:1270042140944236619> {fields['Expert Perturbation']}\n"
-        if fields["Expert Chancellement"]:
-            expert_field_value += f"> <:Implacable:1270042120857849877> {fields['Expert Chancellement']}\n"
+        for champ, count in expert_champs.items():
+            if champ == "Brise-bouclier":
+                expert_field_value += f"> <:Bloqueur:1270042102033678388> {count}\n"
+            elif champ == "Perturbation":
+                expert_field_value += f"> <:Surcharge:1270042140944236619> {count}\n"
+            elif champ == "Chancellement":
+                expert_field_value += f"> <:Implacable:1270042120857849877> {count}\n"
 
-    if any(fields[col] for col in ["Maitrise Solaires", "Maitrise Abyssaux", "Maitrise Cryo-électriques"]):
+    # Boucliers Maitrise
+    maitrise_shields = GetShields(False)
+    if maitrise_shields:
         maitrise_field_value += "Boucliers\n"
-        if fields["Maitrise Solaires"]:
-            maitrise_field_value += f"> <:Solaire:1270714993553178624> {fields['Maitrise Solaires']}\n"
-        if fields["Maitrise Abyssaux"]:
-            maitrise_field_value += f"> <:Abyssale:1270715025660711023> {fields['Maitrise Abyssaux']}\n"
-        if fields["Maitrise Cryo-électriques"]:
-            maitrise_field_value += f"> <:Cryo:1270715011781627904> {fields['Maitrise Cryo-électriques']}\n"
+        for shield, count in maitrise_shields.items():
+            if shield == "Solaires":
+                maitrise_field_value += f"> <:Solaire:1270714993553178624> {count}\n"
+            elif shield == "Abyssaux":
+                maitrise_field_value += f"> <:Abyssale:1270715025660711023> {count}\n"
+            elif shield == "Cryo-électriques":
+                maitrise_field_value += f"> <:Cryo:1270715011781627904> {count}\n"
 
-    if any(fields[col] for col in ["Maitrise Brise-bouclier", "Maitrise Perturbation", "Maitrise Chancellement"]):
+    # Champions Maitrise
+    maitrise_champs = GetChamps(False)
+    if maitrise_champs:
         maitrise_field_value += "\nChampions\n"
-        if fields["Maitrise Brise-bouclier"]:
-            maitrise_field_value += f"> <:Bloqueur:1270042102033678388> {fields['Maitrise Brise-bouclier']}\n"
-        if fields["Maitrise Perturbation"]:
-            maitrise_field_value += f"> <:Surcharge:1270042140944236619> {fields['Maitrise Perturbation']}\n"
-        if fields["Maitrise Chancellement"]:
-            maitrise_field_value += f"> <:Implacable:1270042120857849877> {fields['Maitrise Chancellement']}\n"
+        for champ, count in maitrise_champs.items():
+            if champ == "Brise-bouclier":
+                maitrise_field_value += f"> <:Bloqueur:1270042102033678388> {count}\n"
+            elif champ == "Perturbation":
+                maitrise_field_value += f"> <:Surcharge:1270042140944236619> {count}\n"
+            elif champ == "Chancellement":
+                maitrise_field_value += f"> <:Implacable:1270042120857849877> {count}\n"
 
     # Créer un embed pour afficher les informations
     embed = discord.Embed(
-        title=fields["Nom"],
+        title=GetActivityName(),
         description=(
             "**Récompenses**\n"
             "<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>"
@@ -378,16 +356,17 @@ def create_embed(fields: dict) -> discord.Embed:
         icon_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png"
     )
 
+    # Ajout des champs pour Expert et Maitrise
     if expert_field_value.strip():  # Ajouter uniquement si le contenu n'est pas vide
         embed.add_field(
-            name=f"Expert ({fields['Power Expert']})",
+            name=f"Expert ({GetPower(True)})",
             value=expert_field_value.strip(),
             inline=True
         )
 
     if maitrise_field_value.strip():  # Ajouter uniquement si le contenu n'est pas vide
         embed.add_field(
-            name=f"Maitrise ({fields['Power Maitrise']})",
+            name=f"Maitrise ({GetPower(False)})",
             value=maitrise_field_value.strip(),
             inline=True
         )
@@ -416,13 +395,8 @@ def create_embed(fields: dict) -> discord.Embed:
 # Section : Commande principale
 @bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
-    sheet_id = "1yzlUK5dlqhSg0ZGQ79o-4n9j2mRZiFgECi1CBI1Ht1I"
-    page_id_current = 1205713815  # Remplacez par l'ID de votre page actuelle
-
     try:
-        df = read_google_sheet(sheet_id, page_id_current)
-        fields = create_fields(df)
-        embed = create_embed(fields)
+        embed = create_embed()
 
         # Chemins vers les images dans le répertoire Ressources
         footer_icon_path = "Ressources/footer_icon.png"  # Mise à jour du chemin
@@ -439,7 +413,7 @@ async def today_lost_sector(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
 
     except Exception as e:
-        await interaction.response.send_message(f"Erreur lors de la lecture des données: {e}", ephemeral=True)
+        await interaction.response.send_message(f"Erreur lors de la génération de l'activité: {e}", ephemeral=True)
         print(f"Erreur: {e}")  # Débogage : affichez l'erreur
 
 # endregion
