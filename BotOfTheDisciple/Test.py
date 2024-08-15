@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 
@@ -8,7 +9,7 @@ from PythonProject.Source.LostSectorGenerator import *
 
 def main():
     
-    #On demande des infos non créés !!! (Tout renvoie "NONE")
+    #On demande des infos non crÃ©Ã©s !!! (Tout renvoie "NONE")
     if GetPower(True) == "NONE":
         print("MY POWER IS UNLIMITED (means no power :) )")
 

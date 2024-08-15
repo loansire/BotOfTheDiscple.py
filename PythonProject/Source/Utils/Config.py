@@ -13,7 +13,7 @@ def RessourcePath(relative_path):
         # PyInstaller crée une variable temporaire dans sys._MEIPASS
         base_path = sys._MEIPASS
     except AttributeError:
-        base_path = os.path.abspath("./BotOfTheDisciple/")
+        base_path = os.path.abspath("../BotOfTheDisciple/")
 
     return os.path.join(base_path, relative_path)
 
