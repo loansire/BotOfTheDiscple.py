@@ -36,10 +36,10 @@ def main():
         
     #Champs expert
     for champ, number in GetChamps(True).items():
-        print("Il y a " + str(number) + " shield expert de type " + champ)
+        print("Il y a " + str(number) + " champ expert de type " + champ)
     #Champs Maitrise    
     for champ, number in GetChamps(False).items():
-        print("Il y a " + str(number) + " shield maitrise de type " + champ)
+        print("Il y a " + str(number) + " champ maitrise de type " + champ)
 
 
 if __name__ == "__main__":

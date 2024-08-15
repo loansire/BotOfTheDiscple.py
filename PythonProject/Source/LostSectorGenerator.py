@@ -52,16 +52,7 @@ def main(download_all = False):
     ################################## GGDOC acces PARSING ###################################
     C_activity_name = "Extraction"
 
-    C_activity_name, C_surcharge1, C_surcharge2,E_power, M_power, E_shields, M_Shields, E_Champs, M_Champs = GgdocAPI.main()
-
-    """
-    C_activity_name, C_surcharge1, C_surcharge2 = CsvReader.ReadGGDocActivity()
-    E_power = CsvReader.GetExpertPower()
-    M_power = CsvReader.GetMaitrisePower()
-    E_Shields = CsvReader.GetInfosTypes(True, True)
-    M_Shields = CsvReader.GetInfosTypes(False, True)
-    E_Champs = CsvReader.GetInfosTypes(True, False)
-    M_Champs = CsvReader.GetInfosTypes(False, False)"""
+    C_activity_name, C_surcharge1, C_surcharge2,E_power, M_power, E_Shields, M_Shields, E_Champs, M_Champs = GgdocAPI.main()
 
     #################################### Main MF ######################################
     print("Main MF")

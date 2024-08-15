@@ -72,9 +72,6 @@ def main():
             shields_M[shield_name] = cell_value
 
 
-    
-        
-
     return activity_name, surcharge1, surcharge2, power_E, power_M, shields_E, shields_M, champs_E, champs_M 
 
 def token():
