@@ -1,6 +1,7 @@
 ﻿import json
 
 from Utils import Config
+from Exceptions import WrongNameException
 
 
 def main(sector_name):
@@ -12,6 +13,9 @@ def main(sector_name):
 		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
 		
 	filtered_activities = filter_activities_by_name(filtered_activities, sector_name)
+
+	if filtered_activities == {}:
+		raise WrongNameException.WrongNameException
 
 	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, 'w', encoding='utf-8') as file:
 		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)

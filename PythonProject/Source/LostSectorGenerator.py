@@ -17,6 +17,8 @@ from Manifests import InventoryItemDefinition
 from Manifests import ModifierDefinition
 from Manifests import BreakerDamageType
 
+from Exceptions import WrongNameException
+
 from Html import HtmlFiller
 
 def GenerateActivity():
@@ -68,7 +70,11 @@ def main(download_all = False):
     print("Activition Definition")
     DownloadManifest(Config.MF_ACTIVITY_DEFINITION, Config.MF_ACTIVITY_FILENAME, download_all)
     #Make Acitivty definition Treatment
-    ActivityDefinition.main(C_activity_name)
+    try:
+        ActivityDefinition.main(C_activity_name)
+    except WrongNameException.WrongNameException:
+        print("!!!!!!!!!!!!!!! Lost sector name " + C_activity_name + " is unknown. Generation cannot be done !!!!!!!!!!!!")
+        return 0
 
     C_destination_hash, C_place_hash = ActivityDefinition.get_activity_destination_and_place_hash()
     C_pgcr_image_link = Config.BASE_URL + ActivityDefinition.get_activity_pgcr_image()
@@ -144,6 +150,8 @@ def main(download_all = False):
     ActivityInfos.SetChamps(False, M_Champs)
     
     #########################################################################################
+    
+    return 1
 
 def DownloadManifest(path_to_download, path_to_save, download_all = False):
     if(os.path.exists(path_to_save) and not download_all):
@@ -152,6 +160,7 @@ def DownloadManifest(path_to_download, path_to_save, download_all = False):
         ActivityDefinitionPath = JsonReader.GetManifestPathInMainManifest(path_to_download)
         Download.download_manifest(Config.BASE_URL + ActivityDefinitionPath, path_to_save)
         print("-------------> MF downloaded : " + ActivityDefinitionPath + "\n")
+
 
     
 
