@@ -2,8 +2,8 @@ import os
 import sys
 import discord
 from discord import app_commands
-from discord.ext import commands
-from datetime import datetime, date
+from discord.ext import commands, tasks
+from datetime import datetime, date, time as dt_time, timedelta
 import random
 import pytz
 import asyncio
@@ -41,31 +41,27 @@ async def on_ready():
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
     GenerateActivity()
 
+    # Démarrer la tâche de mise à jour quotidienne à 19h
+    daily_update.start()
+
 # Enregistrement des commandes slash
 @bot.tree.command(name="help", description="Liste des commandes disponibles")
 async def help(interaction: discord.Interaction):
-    # Création de l'embed
     embed = discord.Embed(
         title="__Listes des Commandes__",
         description="",
         colour=0x00f1f5,
         timestamp=datetime.now()
     )
-
     embed.set_thumbnail(url="https://cdn.icon-icons.com/icons2/272/PNG/512/Settings_30027.png")
 
-    # Parcours des commandes pour les ajouter dans l'embed
     commands_list = ""
     for command in bot.tree.get_commands():
         commands_list += f"**/{command.name}** ```{command.description}```\n"
 
     embed.description = commands_list
-
-    # Ajouter le footer avec le nombre de commandes disponibles
     total_commands = len(bot.tree.get_commands())
     embed.set_footer(text=f"{total_commands} commande(s) disponibles")
-
-    # Envoi de l'embed
     await interaction.response.send_message(embed=embed)
 
 # region MaintenanceCommands
@@ -416,6 +412,48 @@ async def today_lost_sector(interaction: discord.Interaction):
         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: {e}", ephemeral=True)
         print(f"Erreur: {e}")  # Débogage : affichez l'erreur
 
+# Configuration de l'heure à laquelle vous souhaitez exécuter la tâche chaque jour
+TARGET_HOUR = 19  # Heure cible (19h00 dans cet exemple)
+TARGET_MINUTE = 0  # Minute cible (0 minute)
+
+async def wait_until_target():
+    # Obtenir l'heure actuelle en fuseau horaire de Paris
+    now = datetime.now(pytz.timezone('Europe/Paris'))
+    # Définir l'heure cible
+    target_time = dt_time(TARGET_HOUR, TARGET_MINUTE)
+    target_datetime = datetime.combine(now.date(), target_time, tzinfo=pytz.timezone('Europe/Paris'))
+
+    # Si l'heure actuelle est après l'heure cible, ajuster pour le jour suivant
+    if now > target_datetime:
+        target_datetime += timedelta(days=1)
+
+    # Calculer le nombre de secondes à attendre
+    wait_seconds = (target_datetime - now).total_seconds()
+
+    # Affichage pour débogage
+    print(f"Heure actuelle : {now.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Heure cible : {target_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Différence brute (jours, heures, minutes, secondes) : {target_datetime - now}")
+    print(f"Différence en secondes : {wait_seconds:.2f} secondes")
+    print(f"Différence en minutes : {(wait_seconds / 60):.2f} minutes")
+    print(f"Différence en heures : {(wait_seconds / 3600):.2f} heures")
+
+    # Attendre jusqu'à l'heure cible
+    await asyncio.sleep(max(wait_seconds, 0))  # Assurez-vous que le temps d'attente est non négatif
+
+# Tâche répétitive configurée pour s'exécuter tous les jours
+@tasks.loop(hours=24)
+async def daily_update():
+    await wait_until_target()
+    print("Début de la mise à jour quotidienne.")
+
+    try:
+        await GenerateActivity()
+        print("L'activité a été mise à jour.")
+    except Exception as e:
+        print(f"Erreur lors de la mise à jour quotidienne : {e}")
+
+    print("Fin de la mise à jour quotidienne.")
 # endregion
 
 # region RAIDRandomizer
