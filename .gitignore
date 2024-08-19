@@ -2,5 +2,4 @@
 *.log
 *.idea
 *.pyc
-
 !alert_channels.json
