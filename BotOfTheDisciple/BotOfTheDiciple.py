@@ -211,7 +211,7 @@ def create_maintenance_embed():
 
     return embed, [thumbnail_file, footer_icon_file]
 
-@bot.tree.command(name="updatemaintenance", description="Met à jour les informations de maintenance")
+@bot.tree.command(name="update-maintenance", description="Met à jour les informations de maintenance")
 async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
 
@@ -227,7 +227,7 @@ async def maintenance(interaction: discord.Interaction):
     embed, files = create_maintenance_embed()
     await interaction.response.send_message(embed=embed, files=files)
 
-@bot.tree.command(name="deletmaintenance", description="Supprime les informations de maintenance configurées")
+@bot.tree.command(name="delet-maintenance", description="Supprime les informations de maintenance configurées")
 async def deletmaintenance(interaction: discord.Interaction):
     global stop_timestamp, return_timestamp
     stop_timestamp = None
@@ -465,7 +465,7 @@ async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choic
     else:
         await interaction.response.send_message("Action invalide. Utilisez 'ajouter' ou 'retirer'.")
 
-@bot.tree.command(name="forceupdate-ls", description="Force la publication des alertes pour tous les salons configurés.")
+@bot.tree.command(name="update-ls", description="Force la publication des alertes pour tous les salons configurés.")
 async def force_update_ls(interaction: discord.Interaction):
     """Force la mise à jour et la publication des alertes des Secteurs Oubliés."""
     try:
@@ -498,47 +498,47 @@ raid_data = {
     "Dernier Voeu": {
         "emoji": "<:LW:1273058036209946634>",
         "thumbnail": "Ressources/RaidEmotes/LW.webp",
-        "image": "Ressources/RAID_Thumbnail/LW.webp"
+        "image": "Ressources/RaidImage/LW.webp"
     },
     "Jardin du Salut": {
         "emoji": "<:JDS:1273058012751335486>",
         "thumbnail": "Ressources/RaidEmotes/JDS.webp",
-        "image": "Ressources/RAID_Thumbnail/JDS.webp"
+        "image": "Ressources/RaidImage/JDS.webp"
     },
     "Crypte de la Pierre": {
         "emoji": "<:DSC:1273057991670890496>",
         "thumbnail": "Ressources/RaidEmotes/DSC.webp",
-        "image": "Ressources/RAID_Thumbnail/DSC.webp"
+        "image": "Ressources/RaidImage/DSC.webp"
     },
     "Caveau de verre": {
         "emoji": "<:VOG:1273058120192495658>",
         "thumbnail": "Ressources/RaidEmotes/VOG.webp",
-        "image": "Ressources/RAID_Thumbnail/VOG.webp"
+        "image": "Ressources/RaidImage/VOG.webp"
     },
     "Serment du Disciple": {
         "emoji": "<:VOW:1273058146453295155>",
         "thumbnail": "Ressources/RaidEmotes/VOW.webp",
-        "image": "Ressources/RAID_Thumbnail/VOW.webp"
+        "image": "Ressources/RaidImage/VOW.webp"
     },
     "Chute du Roi": {
         "emoji": "<:Oryx:1273058059849302056>",
         "thumbnail": "Ressources/RaidEmotes/Oryx.webp",
-        "image": "Ressources/RAID_Thumbnail/Oryx.webp"
+        "image": "Ressources/RaidImage/Oryx.webp"
     },
     "Origine des Cauchemars": {
         "emoji": "<:RON:1273058080086560870>",
         "thumbnail": "Ressources/RaidEmotes/RON.webp",
-        "image": "Ressources/RAID_Thumbnail/RON.webp"
+        "image": "Ressources/RaidImage/RON.webp"
     },
     "Chute de Cropta": {
         "emoji": "<:Cropta:1273057968660676790>",
         "thumbnail": "Ressources/RaidEmotes/Cropta.webp",
-        "image": "Ressources/RAID_Thumbnail/Cropta.webp"
+        "image": "Ressources/RaidImage/Cropta.webp"
     },
     "Orée du Salut": {
         "emoji": "<:SE:1273058098818322492>",
         "thumbnail": "Ressources/RaidEmotes/SE.webp",
-        "image": "Ressources/RAID_Thumbnail/SE.webp"
+        "image": "Ressources/RaidImage/SE.webp"
     }
 }
 
@@ -552,7 +552,7 @@ async def raid_autocomplete(interaction: discord.Interaction, current: str):
         for raid in all_raids if current.lower() in raid.lower()
     ][:25]  # Limiter à 25 résultats
 
-@bot.tree.command(name="raidrandomizer", description="Choisir aléatoirement un raid parmi 6 raids sélectionnés")
+@bot.tree.command(name="raid-randomizer", description="Choisir aléatoirement un raid")
 @app_commands.describe(
     raid1="Premier choix de raid",
     raid2="Deuxième choix de raid",
@@ -608,6 +608,124 @@ async def random_raidpick(interaction: discord.Interaction, raid1: str = None, r
     if thumbnail_path and os.path.isfile(thumbnail_path):
         thumbnail_file = discord.File(thumbnail_path, filename="raid_thumbnail.png")
         embed.set_thumbnail(url="attachment://raid_thumbnail.png")
+
+    # Ajouter le footer
+    footer_icon_path = "Ressources/footer_icon.png"
+    if os.path.isfile(footer_icon_path):
+        footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+        embed.set_footer(text="BotOfTheDisciple", icon_url="attachment://footer_icon.png")
+
+    # Envoyer le message avec l'embed et les fichiers attachés
+    files = [file for file in [image_path, thumbnail_file, footer_icon_file] if file]
+    await interaction.response.send_message(embed=embed, files=files)
+# endregion
+
+# region DungeonRandomizer
+# Dictionnaire centralisé pour les informations sur les donjons
+dungeon_data = {
+    "Fosse de l'Hérésie": {
+        "emoji": "<:Fosse:1275104301827620865>",
+        "thumbnail": "Ressources/DungeonEmotes/Fosse.webp",
+        "image": "Ressources/DungeonImage/Fosse.webp"
+    },
+    "Prophétie": {
+        "emoji": "<:Prophetie:1275104326854901852>",
+        "thumbnail": "Ressources/DungeonEmotes/Prophetie.webp",
+        "image": "Ressources/DungeonImage/Prophetie.webp"
+    },
+    "Trône Brisé": {
+        "emoji": "<:Trone:1275104381242572873>",
+        "thumbnail": "Ressources/DungeonEmotes/Trone.webp",
+        "image": "Ressources/DungeonImage/Trone.webp"
+    },
+    "Etreinte de l'Avarice": {
+        "emoji": "<:Etreinte:1275104223016517742>",
+        "thumbnail": "Ressources/DungeonEmotes/Etreinte.webp",
+        "image": "Ressources/DungeonImage/Etreinte.webp"
+    },
+    "Dualité": {
+        "emoji": "<:Dualite:1275104177143676948>",
+        "thumbnail": "Ressources/DungeonEmotes/Dualite.webp",
+        "image": "Ressources/DungeonImage/Dualite.webp"
+    },
+    "Flèche de la Vigie": {
+        "emoji": "<:Fleche:1275104276347359385>",
+        "thumbnail": "Ressources/DungeonEmotes/Fleche.webp",
+        "image": "Ressources/DungeonImage/Fleche.webp"
+    },
+    "Fantôme des Profondeurs": {
+        "emoji": "<:Fantome:1275104249700941844>",
+        "thumbnail": "Ressources/DungeonEmotes/Fantome.webp",
+        "image": "Ressources/DungeonImage/Fantome.webp"
+    },
+    "Ruine de la Guerrière": {
+        "emoji": "<:Ruine:1275104356387000450>",
+        "thumbnail": "Ressources/DungeonEmotes/Ruine.webp",
+        "image": "Ressources/DungeonImage/Ruine.webp"
+    },
+}
+
+# Liste des donjons disponibles (extraits des clés du dictionnaire)
+all_dungeons = list(dungeon_data.keys())
+
+# Autocomplétion pour les donjons
+async def dungeon_autocomplete(interaction: discord.Interaction, current: str):
+    return [
+        app_commands.Choice(name=dungeon, value=dungeon)
+        for dungeon in all_dungeons if current.lower() in dungeon.lower()
+    ][:25]  # Limiter à 25 résultats
+
+@bot.tree.command(name="dungeon-randomizer", description="Choisir aléatoirement un donjon")
+@app_commands.describe(
+    dungeon1="Premier choix de donjon",
+    dungeon2="Deuxième choix de donjon",
+    dungeon3="Troisième choix de donjon"
+)
+@app_commands.autocomplete(dungeon1=dungeon_autocomplete, dungeon2=dungeon_autocomplete, dungeon3=dungeon_autocomplete)
+async def random_dungeonpick(interaction: discord.Interaction, dungeon1: str = None, dungeon2: str = None, dungeon3: str = None):
+    # Créer la liste des donjons sélectionnés, éliminer les None
+    selected_dungeons = [dungeon for dungeon in [dungeon1, dungeon2, dungeon3] if dungeon]
+
+    # Si aucun donjon n'est sélectionné, choisir parmi tous les donjons disponibles
+    if not selected_dungeons:
+        selected_dungeons = all_dungeons
+
+    # Compter la fréquence des donjons sélectionnés
+    dungeon_counts = Counter(selected_dungeons)
+
+    # Calculer les poids pour chaque donjon basé sur leur fréquence
+    weighted_dungeons = []
+    for dungeon, count in dungeon_counts.items():
+        weighted_dungeons.extend([dungeon] * count)
+
+    # Choisir aléatoirement un donjon parmi les donjons pondérés
+    chosen_dungeon = random.choice(weighted_dungeons)
+
+    # Création de l'embed
+    embed = discord.Embed(
+        title="Donjon Aléatoire Sélectionné",
+        colour=0xffae00,
+        timestamp=datetime.now()
+    )
+
+    # Générer la liste des donjons avec les emojis
+    dungeon_text = "\n".join(f"> {dungeon_data[dungeon]['emoji']} {dungeon} (x{count})" for dungeon, count in dungeon_counts.items())
+    embed.add_field(name="Liste des Donjons choisis", value=dungeon_text, inline=True)
+    embed.add_field(name="Donjon tiré au sort", value=chosen_dungeon, inline=False)
+
+    # Ajouter les images en attachement
+    dungeon_image_path = dungeon_data[chosen_dungeon]["image"]
+    if dungeon_image_path and os.path.isfile(dungeon_image_path):
+        image_path = discord.File(dungeon_image_path, filename="dungeon_image.png")
+        embed.set_image(url="attachment://dungeon_image.png")
+    else:
+        embed.set_footer(text="Image non trouvée")
+
+    # Associer la miniature
+    thumbnail_path = dungeon_data[chosen_dungeon]["thumbnail"]
+    if thumbnail_path and os.path.isfile(thumbnail_path):
+        thumbnail_file = discord.File(thumbnail_path, filename="dungeon_thumbnail.png")
+        embed.set_thumbnail(url="attachment://dungeon_thumbnail.png")
 
     # Ajouter le footer
     footer_icon_path = "Ressources/footer_icon.png"
