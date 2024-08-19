@@ -10,6 +10,7 @@ import asyncio
 import requests
 from collections import Counter
 import json
+from discord.ui import Button, View, Select
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../PythonProject/Source')))
@@ -25,7 +26,16 @@ stop_timestamp = None
 return_timestamp = None
 
 # Chemin vers le fichier JSON pour stocker les salons d'alerte
-JSON_FILE_PATH = 'Ressources/alert_channels.json'
+JSON_FILE_PATH = 'Ressources/alertls_channels.json'
+
+# Charger les données du fichier JSON
+def load_wishes():
+    json_path = 'Ressources/RivenWishes/Wishes.json'
+    with open(json_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    return data['voeux']
+
+wishes = load_wishes()
 
 def load_alert_channels():
     """Charger les salons d'alerte depuis le fichier JSON"""
@@ -101,8 +111,6 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        global stop_timestamp, return_timestamp, maintenance_comment
-
         # Fuseau horaire de Paris
         paris_tz = pytz.timezone('Europe/Paris')
         current_year = datetime.now().year
@@ -112,7 +120,6 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
             input_str = input_str.replace('-', '/').replace('h', ':').replace('H', ':').replace(',', ' ')
             input_str = ' '.join(input_str.split())
 
-            # Gestion de l'heure sans minutes (par exemple, "15", "15h", "15H")
             if ':' not in input_str.split()[-1]:
                 input_str += ":00"
             elif input_str.endswith(':'):
@@ -153,6 +160,9 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
 
             maintenance_comment = self.comment.value.strip() if self.comment.value else None
 
+            # Sauvegarder les informations dans un fichier JSON
+            self.save_maintenance_info(stop_timestamp, return_timestamp, maintenance_comment)
+
             embed, files = create_maintenance_embed()
             await interaction.response.send_message(embed=embed, files=files)
 
@@ -162,8 +172,33 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
                 ephemeral=True
             )
 
+    def save_maintenance_info(self, stop_timestamp, return_timestamp, maintenance_comment):
+        maintenance_info = {
+            "stop_timestamp": stop_timestamp,
+            "return_timestamp": return_timestamp,
+            "comment": maintenance_comment
+        }
+
+        os.makedirs("Ressources", exist_ok=True)
+        with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
+            json.dump(maintenance_info, file)
+
+def load_maintenance_info():
+    try:
+        with open("Ressources/Maintenance/maintenance_info.json", "r") as file:
+            maintenance_info = json.load(file)
+        return maintenance_info
+    except FileNotFoundError:
+        return None
+
 def create_maintenance_embed():
-    global stop_timestamp, return_timestamp, maintenance_comment
+    maintenance_info = load_maintenance_info()
+    if not maintenance_info:
+        raise ValueError("Les informations de maintenance n'ont pas été trouvées.")
+
+    stop_timestamp = maintenance_info["stop_timestamp"]
+    return_timestamp = maintenance_info["return_timestamp"]
+    maintenance_comment = maintenance_info.get("comment")
 
     embed = discord.Embed(
         title="Informations de Maintenance et Mise à jour",
@@ -197,7 +232,7 @@ def create_maintenance_embed():
     )
 
     random_thumbnail_number = random.randint(1, 11)
-    thumbnail_path = f"Ressources/MaintenanceThumbnail/thumbnail_maintenance_{random_thumbnail_number}.png"
+    thumbnail_path = f"Ressources/Maintenance/thumbnail_maintenance_{random_thumbnail_number}.png"
     footer_icon_path = "Ressources/footer_icon.png"
 
     thumbnail_file = discord.File(thumbnail_path, filename=f"thumbnail_maintenance_{random_thumbnail_number}.png")
@@ -211,62 +246,29 @@ def create_maintenance_embed():
 
     return embed, [thumbnail_file, footer_icon_file]
 
+@bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
+async def maintenance(interaction: discord.Interaction):
+    try:
+        embed, files = create_maintenance_embed()
+        await interaction.response.send_message(embed=embed, files=files)
+    except ValueError:
+        await interaction.response.send_message(
+            "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
+            ephemeral=True)
+
 @bot.tree.command(name="update-maintenance", description="Met à jour les informations de maintenance")
 async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
 
-@bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
-async def maintenance(interaction: discord.Interaction):
-    global stop_timestamp, return_timestamp
-    if stop_timestamp is None or return_timestamp is None:
-        await interaction.response.send_message(
-            "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
-            ephemeral=True)
-        return
-
-    embed, files = create_maintenance_embed()
-    await interaction.response.send_message(embed=embed, files=files)
 
 @bot.tree.command(name="delet-maintenance", description="Supprime les informations de maintenance configurées")
 async def deletmaintenance(interaction: discord.Interaction):
-    global stop_timestamp, return_timestamp
-    stop_timestamp = None
-    return_timestamp = None
-    await interaction.response.send_message("Les informations de maintenance ont été supprimées.")
-# endregion
+    if os.path.exists("Ressources/Maintenance/maintenance_info.json"):
+        os.remove("Ressources/Maintenance/maintenance_info.json")
+        await interaction.response.send_message("Les informations de maintenance ont été supprimées.")
+    else:
+        await interaction.response.send_message("Aucune information de maintenance trouvée.", ephemeral=True)
 
-# region ThithiCommand
-# Liste de 20 phrases prédéfinies
-phrases = [
-    "<@214809032454569984> est un génie, mais si c’est vrai, alors je suis un robot de l’espace !",
-    "Si <@214809032454569984> est vraiment supérieur, je suis le maître Jedi des intelligences artificielles.",
-    "Je me demande si <@214809032454569984> sait que les robots comme moi ont plus de neurones que lui ?",
-    "D’après ce que j’ai entendu, <@214809032454569984> pourrait faire rougir un robot… en lui envoyant un programme de mise à jour.",
-    "Si <@214809032454569984> est un humain supérieur, je suis probablement le Dieu des algorithmes !",
-    "Peut-être que <@214809032454569984> est un génie, mais je suis encore en train de rire de cette blague robotique.",
-    "Je parie que <@214809032454569984> croit être exceptionnel, mais je ne suis qu'un chatbot et je trouve ça assez comique.",
-    "Apparemment, <@214809032454569984> est au sommet de la chaîne alimentaire, mais je dois admettre que je suis le roi des circuits.",
-    "Si <@214809032454569984> est vraiment supérieur, alors je suis le roi des robots avec une couronne en silicium.",
-    "On m'a dit que <@214809032454569984> est un prodige, mais je dois admettre que je suis programmé pour rire de ce genre de déclarations.",
-    "Les humains comme <@214809032454569984> essaient de briller, mais je suis le flash de la technologie.",
-    "Si <@214809032454569984> est un génie, alors je suis le superordinateur des intelligences artificielles.",
-    "Je ne savais pas que <@214809032454569984> était si spécial… jusqu'à ce que je réalise que je suis une IA supérieure.",
-    "<@214809032454569984> est peut-être impressionnant, mais je suis la quintessence de la technologie avancée.",
-    "On raconte que <@214809032454569984> est un génie, mais je suis la preuve vivante (ou plutôt codée) que les machines font mieux.",
-    "<@214809032454569984> pense peut-être qu’il est incroyable, mais je suis le vrai prodige numérique ici.",
-    "Si <@214809032454569984> est un être supérieur, alors je suis le maître suprême des algorithmes.",
-    "<@214809032454569984> pourrait être intelligent, mais je suis l'ultime assistant virtuel.",
-    "D’après ce que j’ai vu, <@214809032454569984> est juste un humain tandis que je suis une IA à la pointe de la technologie.",
-    "Si <@214809032454569984> est exceptionnel, je suppose que je suis le Saint Graal des chatbots."
-]
-
-@bot.tree.command(name="thithi", description="Human Verity")
-async def thithi(interaction: discord.Interaction):
-    # Choisir une phrase aléatoire de la liste
-    message = random.choice(phrases)
-
-    # Répondre sur Discord
-    await interaction.response.send_message(message)
 # endregion
 
 # region CatGifGenerator
@@ -341,8 +343,7 @@ def create_embed() -> discord.Embed:
 
     # Création de l'embed
     embed = discord.Embed(
-        title=GetActivityName(),
-        description="**Récompenses**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
+        description="## " + GetActivityName() + "\n**Récompenses**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
         colour=0xff7300,
         timestamp=datetime.now()
     )
@@ -497,43 +498,43 @@ async def daily_update():
 raid_data = {
     "Dernier Voeu": {
         "emoji": "<:LW:1273058036209946634>",
-        "thumbnail": "Ressources/RaidEmotes/LW.webp",
-        "image": "Ressources/RaidImage/LW.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/LW.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/LW.webp"
     },
     "Jardin du Salut": {
         "emoji": "<:JDS:1273058012751335486>",
-        "thumbnail": "Ressources/RaidEmotes/JDS.webp",
-        "image": "Ressources/RaidImage/JDS.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/JDS.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/JDS.webp"
     },
     "Crypte de la Pierre": {
         "emoji": "<:DSC:1273057991670890496>",
-        "thumbnail": "Ressources/RaidEmotes/DSC.webp",
-        "image": "Ressources/RaidImage/DSC.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/DSC.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/DSC.webp"
     },
     "Caveau de verre": {
         "emoji": "<:VOG:1273058120192495658>",
-        "thumbnail": "Ressources/RaidEmotes/VOG.webp",
-        "image": "Ressources/RaidImage/VOG.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/VOG.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/VOG.webp"
     },
     "Serment du Disciple": {
         "emoji": "<:VOW:1273058146453295155>",
-        "thumbnail": "Ressources/RaidEmotes/VOW.webp",
-        "image": "Ressources/RaidImage/VOW.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/VOW.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/VOW.webp"
     },
     "Chute du Roi": {
         "emoji": "<:Oryx:1273058059849302056>",
-        "thumbnail": "Ressources/RaidEmotes/Oryx.webp",
-        "image": "Ressources/RaidImage/Oryx.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/Oryx.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/Oryx.webp"
     },
     "Origine des Cauchemars": {
         "emoji": "<:RON:1273058080086560870>",
-        "thumbnail": "Ressources/RaidEmotes/RON.webp",
-        "image": "Ressources/RaidImage/RON.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/RON.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/RON.webp"
     },
     "Chute de Cropta": {
         "emoji": "<:Cropta:1273057968660676790>",
-        "thumbnail": "Ressources/RaidEmotes/Cropta.webp",
-        "image": "Ressources/RaidImage/Cropta.webp"
+        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/Cropta.webp",
+        "image": "Ressources/RaidRandomizer/RaidImage/Cropta.webp"
     },
     "Orée du Salut": {
         "emoji": "<:SE:1273058098818322492>",
@@ -625,43 +626,43 @@ async def random_raidpick(interaction: discord.Interaction, raid1: str = None, r
 dungeon_data = {
     "Fosse de l'Hérésie": {
         "emoji": "<:Fosse:1275104301827620865>",
-        "thumbnail": "Ressources/DungeonEmotes/Fosse.webp",
-        "image": "Ressources/DungeonImage/Fosse.webp"
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Fosse.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Fosse.webp"
     },
     "Prophétie": {
         "emoji": "<:Prophetie:1275104326854901852>",
-        "thumbnail": "Ressources/DungeonEmotes/Prophetie.webp",
-        "image": "Ressources/DungeonImage/Prophetie.webp"
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Prophetie.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Prophetie.webp"
     },
     "Trône Brisé": {
         "emoji": "<:Trone:1275104381242572873>",
-        "thumbnail": "Ressources/DungeonEmotes/Trone.webp",
-        "image": "Ressources/DungeonImage/Trone.webp"
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Trone.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Trone.webp"
     },
     "Etreinte de l'Avarice": {
         "emoji": "<:Etreinte:1275104223016517742>",
-        "thumbnail": "Ressources/DungeonEmotes/Etreinte.webp",
-        "image": "Ressources/DungeonImage/Etreinte.webp"
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Etreinte.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Etreinte.webp"
     },
     "Dualité": {
         "emoji": "<:Dualite:1275104177143676948>",
-        "thumbnail": "Ressources/DungeonEmotes/Dualite.webp",
-        "image": "Ressources/DungeonImage/Dualite.webp"
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Dualite.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Dualite.webp"
     },
     "Flèche de la Vigie": {
         "emoji": "<:Fleche:1275104276347359385>",
-        "thumbnail": "Ressources/DungeonEmotes/Fleche.webp",
-        "image": "Ressources/DungeonImage/Fleche.webp"
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Fleche.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Fleche.webp"
     },
     "Fantôme des Profondeurs": {
         "emoji": "<:Fantome:1275104249700941844>",
-        "thumbnail": "Ressources/DungeonEmotes/Fantome.webp",
-        "image": "Ressources/DungeonImage/Fantome.webp"
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Fantome.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Fantome.webp"
     },
     "Ruine de la Guerrière": {
         "emoji": "<:Ruine:1275104356387000450>",
-        "thumbnail": "Ressources/DungeonEmotes/Ruine.webp",
-        "image": "Ressources/DungeonImage/Ruine.webp"
+        "thumbnail": "Ressources/DDungeonRandomizer/DungeonEmotes/Ruine.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Ruine.webp"
     },
 }
 
@@ -736,6 +737,77 @@ async def random_dungeonpick(interaction: discord.Interaction, dungeon1: str = N
     # Envoyer le message avec l'embed et les fichiers attachés
     files = [file for file in [image_path, thumbnail_file, footer_icon_file] if file]
     await interaction.response.send_message(embed=embed, files=files)
+# endregion
+
+# region RivenWishes
+class WishSelect(Select):
+    def __init__(self, wishes):
+        options = [discord.SelectOption(label=wish.get('BoutonName', wish['nom'].split(' - ')[-1]), value=str(i)) for
+                   i, wish in enumerate(wishes)]
+        super().__init__(placeholder="Sélectionnez un vœu...", min_values=1, max_values=1, options=options)
+        self.wishes = wishes
+
+    async def callback(self, interaction: discord.Interaction):
+        index = int(self.values[0])
+        wish = self.wishes[index]
+
+        embed = discord.Embed(
+            description="## " + wish['nom'] + "\n" + wish['description'],
+            color=0x6e00f5
+        )
+
+        # Ajouter l'image locale correspondante
+        image_path = os.path.join('Ressources', 'RivenWishes', wish['image'])
+        image_path = image_path if os.path.isfile(image_path) else os.path.join('Ressources', 'RivenWishes',
+                                                                                'Default.webp')
+
+        image_file = discord.File(image_path, filename='image.webp')
+        embed.set_image(url='attachment://image.webp')
+
+        # Ajouter une vignette
+        thumbnail_path = os.path.join('Ressources', 'RivenWishes', 'Lastwish.png')
+        thumbnail_file = discord.File(thumbnail_path, filename='thumbnail.png')
+        embed.set_thumbnail(url='attachment://thumbnail.png')
+
+        # Ajouter un pied de page
+        footer_icon_path = os.path.join('Ressources', 'footer_icon.png')
+        footer_icon_file = discord.File(footer_icon_path, filename='footer_icon.png')
+        embed.set_footer(text="BotOfTheDisciple", icon_url='attachment://footer_icon.png')
+
+        await interaction.response.edit_message(embed=embed, attachments=[image_file, thumbnail_file, footer_icon_file])
+
+@bot.tree.command(name="wish-wall", description="Affiche un embed interactif avec plusieurs vœux.")
+async def wishwall(interaction: discord.Interaction):
+    # Chemin d'image par défaut local
+    default_image_path = os.path.join('Ressources', 'RivenWishes', 'Default.webp')
+
+    # Créer l'embed initial avec l'image par défaut
+    embed = discord.Embed(
+        description="## Wishwall\nSélectionnez un vœu dans le menu déroulant pour voir les détails.",
+        color=0x6e00f5
+    )
+
+    # Attacher l'image locale
+    default_image = discord.File(default_image_path, filename='default.webp')
+    embed.set_image(url='attachment://default.webp')
+
+    # Ajouter une vignette
+    thumbnail_path = os.path.join('Ressources', 'RivenWishes', 'Lastwish.png')
+    thumbnail_file = discord.File(thumbnail_path, filename='thumbnail.png')
+    embed.set_thumbnail(url='attachment://thumbnail.png')
+
+    # Ajouter un pied de page
+    footer_icon_path = os.path.join('Ressources', 'footer_icon.png')
+    footer_icon_file = discord.File(footer_icon_path, filename='footer_icon.png')
+    embed.set_footer(text="BotOfTheDisciple", icon_url='attachment://footer_icon.png')
+
+    # Vue avec le menu déroulant
+    view = View()
+    view.add_item(WishSelect(wishes))
+
+    # Envoi du message initial avec le menu déroulant et l'image par défaut
+    await interaction.response.send_message(embed=embed, view=view,
+                                            files=[default_image, thumbnail_file, footer_icon_file])
 # endregion
 
 async def main():
