@@ -167,7 +167,7 @@ def create_maintenance_embed():
 
     embed = discord.Embed(
         title="Informations de Maintenance et Mise à jour",
-        description="Voici les dernières informations concernant la maintenance.",
+        description="*Voici les dernières informations concernant la maintenance.*",
         url="https://x.com/BungieHelp",
         colour=0xff0000,
         timestamp=datetime.now()
@@ -175,23 +175,23 @@ def create_maintenance_embed():
 
     if maintenance_comment:
         embed.add_field(
-            name="📝 Commentaire",
+            name="📝 __Commentaire__",
             value=maintenance_comment,
             inline=False
         )
 
     embed.add_field(
-        name=":x: Stop serveurs",
-        value=f"<t:{stop_timestamp}:t>",
+        name=":x: __Stop serveurs__",
+        value=f"<t:{stop_timestamp}:F>",
         inline=True
     )
     embed.add_field(
-        name=":white_check_mark: Retour serveurs",
-        value=f"<t:{return_timestamp}:t>",
+        name=":white_check_mark: __Retour serveurs__",
+        value=f"<t:{return_timestamp}:F>",
         inline=True
     )
     embed.add_field(
-        name=":repeat: Débute",
+        name=":repeat: __Débute__",
         value=f"**<t:{stop_timestamp}:R>**",
         inline=False
     )
