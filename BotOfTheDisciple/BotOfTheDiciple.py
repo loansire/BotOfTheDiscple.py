@@ -9,6 +9,7 @@ import pytz
 import asyncio
 import requests
 from collections import Counter
+import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../PythonProject/Source')))
@@ -22,6 +23,22 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 # Variables globales pour stocker les informations de maintenance
 stop_timestamp = None
 return_timestamp = None
+
+# Chemin vers le fichier JSON pour stocker les salons d'alerte
+JSON_FILE_PATH = 'Ressources/alert_channels.json'
+
+def load_alert_channels():
+    """Charger les salons d'alerte depuis le fichier JSON"""
+    try:
+        with open(JSON_FILE_PATH, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_alert_channels(alert_channels):
+    """Sauvegarder les salons d'alerte dans le fichier JSON"""
+    with open(JSON_FILE_PATH, 'w') as f:
+        json.dump(alert_channels, f, indent=4)
 
 @bot.event
 async def on_ready():
@@ -275,7 +292,6 @@ async def chatgif(interaction: discord.Interaction):
 # Constants
 FOOTER_ICON_PATH = "Ressources/footer_icon.png"
 LOST_SECTOR_IMAGE_PATH = "Ressources/Output.jpeg"
-TARGET_CHANNEL_ID = 1180933180669304882
 TARGET_HOUR = 19
 TARGET_MINUTE = 00
 
@@ -385,6 +401,69 @@ async def wait_until_target():
     # Attendre jusqu'à l'heure cible
     await asyncio.sleep(max(wait_seconds, 0))
 
+async def publish_alerts():
+    """Publier les alertes dans tous les salons configurés"""
+    alert_channels = load_alert_channels()
+    for guild_id, channels in alert_channels.items():
+        guild = bot.get_guild(int(guild_id))
+        if guild:
+            for channel_id in channels:
+                channel = guild.get_channel(int(channel_id))
+                if channel and isinstance(channel, discord.TextChannel):
+                    try:
+                        embed = create_embed()
+
+                        # Créer les objets discord.File pour les images
+                        footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
+                        lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
+
+                        # Envoyer le message avec l'embed et les fichiers d'icône et d'image
+                        await channel.send(embed=embed, files=[footer_icon_file, lost_sector_image_file])
+                    except Exception as e:
+                        print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
+
+@bot.tree.command(name="alerte-ls", description="Configure les alertes pour ce salon")
+@app_commands.describe(action="Ajouter ou retirer ce salon des alertes")
+@app_commands.choices(action=[
+    app_commands.Choice(name="Ajouter", value="ajouter"),
+    app_commands.Choice(name="Retirer", value="retirer")
+])
+async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choice[str]):
+    """Commandes pour ajouter ou retirer des salons de la liste d'alertes"""
+    alert_channels = load_alert_channels()
+    guild_id = str(interaction.guild.id)
+
+    if action.value == 'ajouter':
+        if guild_id not in alert_channels:
+            alert_channels[guild_id] = []
+        if str(interaction.channel.id) not in alert_channels[guild_id]:
+            alert_channels[guild_id].append(str(interaction.channel.id))
+            save_alert_channels(alert_channels)
+            await interaction.response.send_message(f"Ce salon ({interaction.channel.name}) a été ajouté aux alertes.")
+        else:
+            await interaction.response.send_message("Ce salon est déjà configuré pour les alertes.")
+    elif action.value == 'retirer':
+        if guild_id in alert_channels and str(interaction.channel.id) in alert_channels[guild_id]:
+            alert_channels[guild_id].remove(str(interaction.channel.id))
+            if not alert_channels[guild_id]:  # Supprimer l'entrée si la liste est vide
+                del alert_channels[guild_id]
+            save_alert_channels(alert_channels)
+            await interaction.response.send_message(f"Ce salon ({interaction.channel.name}) a été retiré des alertes.")
+        else:
+            await interaction.response.send_message("Ce salon n'est pas configuré pour les alertes.")
+    else:
+        await interaction.response.send_message("Action invalide. Utilisez 'ajouter' ou 'retirer'.")
+
+@bot.tree.command(name="forceupdate-ls", description="Force la publication des alertes pour tous les salons configurés.")
+async def force_update_ls(interaction: discord.Interaction):
+    """Force la mise à jour et la publication des alertes des Secteurs Oubliés."""
+    try:
+        await publish_alerts()
+        await interaction.response.send_message("Les alertes ont été publiées avec succès.", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"Erreur lors de la publication des alertes: {e}", ephemeral=True)
+        print(f"Erreur lors de la commande /forceupdate-ls: {e}")
+
 @tasks.loop(hours=24)
 async def daily_update():
     await wait_until_target()
@@ -394,15 +473,8 @@ async def daily_update():
         GenerateActivity()
         print("L'activité a été mise à jour.")
         print("Publication en cours ...")
-        channel = bot.get_channel(TARGET_CHANNEL_ID)
-        if channel:
-            embed = create_embed()
-            footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
-            lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
-            await channel.send(embed=embed, files=[footer_icon_file, lost_sector_image_file])
-            print("Post publié !")
-        else:
-            print(f"Canal avec l'ID {TARGET_CHANNEL_ID} non trouvé.")
+        await publish_alerts()
+        print("Alerte quotidienne publiée !")
     except Exception as e:
         print(f"Erreur lors de la mise à jour quotidienne : {e}")
 
