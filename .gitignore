@@ -3,3 +3,7 @@
 *.idea
 *.pyc
 !alert_channels.json
+!dungeon_data.json
+!maintenance_info.json
+!raid_data.json
+!Wishes.json

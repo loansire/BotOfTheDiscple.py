@@ -21,35 +21,6 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-# Variables globales pour stocker les informations de maintenance
-stop_timestamp = None
-return_timestamp = None
-
-# Chemin vers le fichier JSON pour stocker les salons d'alerte
-JSON_FILE_PATH = 'Ressources/alertls_channels.json'
-
-# Charger les données du fichier JSON
-def load_wishes():
-    json_path = 'Ressources/RivenWishes/Wishes.json'
-    with open(json_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-    return data['voeux']
-
-wishes = load_wishes()
-
-def load_alert_channels():
-    """Charger les salons d'alerte depuis le fichier JSON"""
-    try:
-        with open(JSON_FILE_PATH, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-def save_alert_channels(alert_channels):
-    """Sauvegarder les salons d'alerte dans le fichier JSON"""
-    with open(JSON_FILE_PATH, 'w') as f:
-        json.dump(alert_channels, f, indent=4)
-
 @bot.event
 async def on_ready():
     # Synchronisation des commandes
@@ -66,10 +37,10 @@ async def on_ready():
         print(f'Command: {command.name}, Description: {command.description}')
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    GenerateActivity()
+    #GenerateActivity()
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
-    daily_update.start()
+    #daily_update.start()
 
 # Enregistrement des commandes slash
 @bot.tree.command(name="help", description="Liste des commandes disponibles")
@@ -92,6 +63,10 @@ async def help(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 # region MaintenanceCommands
+# Variables globales pour stocker les informations de maintenance
+stop_timestamp = None
+return_timestamp = None
+
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
     comment = discord.ui.TextInput(
         label="Commentaire (facultatif)",
@@ -185,7 +160,7 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
 
 def load_maintenance_info():
     try:
-        with open("Ressources/Maintenance/maintenance_info.json", "r") as file:
+        with open("Ressources/Maintenance/maintenance_info.json", "r", encoding='utf-8') as file:
             maintenance_info = json.load(file)
         return maintenance_info
     except FileNotFoundError:
@@ -302,11 +277,26 @@ async def chatgif(interaction: discord.Interaction):
 # endregion
 
 # region LostSectorPublication
+# Chemin vers le fichier JSON pour stocker les salons d'alerte
+JSON_FILE_PATH = 'Ressources/alertls_channels.json'
 # Constants
 FOOTER_ICON_PATH = "Ressources/footer_icon.png"
 LOST_SECTOR_IMAGE_PATH = "Ressources/Output.jpeg"
 TARGET_HOUR = 19
 TARGET_MINUTE = 00
+
+def load_alert_channels():
+    """Charger les salons d'alerte depuis le fichier JSON"""
+    try:
+        with open(JSON_FILE_PATH, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_alert_channels(alert_channels):
+    """Sauvegarder les salons d'alerte dans le fichier JSON"""
+    with open(JSON_FILE_PATH, 'w') as f:
+        json.dump(alert_channels, f, indent=4)
 
 # Mapping dictionaries
 EMOJI_MAP = {
@@ -494,54 +484,9 @@ async def daily_update():
 # endregion
 
 # region RAIDRandomizer
-# Dictionnaire centralisé pour les informations sur les raids
-raid_data = {
-    "Dernier Voeu": {
-        "emoji": "<:LW:1273058036209946634>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/LW.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/LW.webp"
-    },
-    "Jardin du Salut": {
-        "emoji": "<:JDS:1273058012751335486>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/JDS.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/JDS.webp"
-    },
-    "Crypte de la Pierre": {
-        "emoji": "<:DSC:1273057991670890496>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/DSC.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/DSC.webp"
-    },
-    "Caveau de verre": {
-        "emoji": "<:VOG:1273058120192495658>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/VOG.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/VOG.webp"
-    },
-    "Serment du Disciple": {
-        "emoji": "<:VOW:1273058146453295155>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/VOW.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/VOW.webp"
-    },
-    "Chute du Roi": {
-        "emoji": "<:Oryx:1273058059849302056>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/Oryx.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/Oryx.webp"
-    },
-    "Origine des Cauchemars": {
-        "emoji": "<:RON:1273058080086560870>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/RON.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/RON.webp"
-    },
-    "Chute de Cropta": {
-        "emoji": "<:Cropta:1273057968660676790>",
-        "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/Cropta.webp",
-        "image": "Ressources/RaidRandomizer/RaidImage/Cropta.webp"
-    },
-    "Orée du Salut": {
-        "emoji": "<:SE:1273058098818322492>",
-        "thumbnail": "Ressources/RaidEmotes/SE.webp",
-        "image": "Ressources/RaidImage/SE.webp"
-    }
-}
+# Charger les données des raids depuis le fichier JSON
+with open('Ressources/RaidRandomizer/raid_data.json', 'r', encoding='utf-8') as f:
+    raid_data = json.load(f)
 
 # Liste des raids disponibles (extraits des clés du dictionnaire)
 all_raids = list(raid_data.keys())
@@ -622,49 +567,9 @@ async def random_raidpick(interaction: discord.Interaction, raid1: str = None, r
 # endregion
 
 # region DungeonRandomizer
-# Dictionnaire centralisé pour les informations sur les donjons
-dungeon_data = {
-    "Fosse de l'Hérésie": {
-        "emoji": "<:Fosse:1275104301827620865>",
-        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Fosse.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Fosse.webp"
-    },
-    "Prophétie": {
-        "emoji": "<:Prophetie:1275104326854901852>",
-        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Prophetie.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Prophetie.webp"
-    },
-    "Trône Brisé": {
-        "emoji": "<:Trone:1275104381242572873>",
-        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Trone.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Trone.webp"
-    },
-    "Etreinte de l'Avarice": {
-        "emoji": "<:Etreinte:1275104223016517742>",
-        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Etreinte.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Etreinte.webp"
-    },
-    "Dualité": {
-        "emoji": "<:Dualite:1275104177143676948>",
-        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Dualite.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Dualite.webp"
-    },
-    "Flèche de la Vigie": {
-        "emoji": "<:Fleche:1275104276347359385>",
-        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Fleche.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Fleche.webp"
-    },
-    "Fantôme des Profondeurs": {
-        "emoji": "<:Fantome:1275104249700941844>",
-        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Fantome.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Fantome.webp"
-    },
-    "Ruine de la Guerrière": {
-        "emoji": "<:Ruine:1275104356387000450>",
-        "thumbnail": "Ressources/DDungeonRandomizer/DungeonEmotes/Ruine.webp",
-        "image": "Ressources/DungeonRandomizer/DungeonImage/Ruine.webp"
-    },
-}
+# Charger les données des donjons depuis le fichier JSON en UTF-8
+with open('Ressources/DungeonRandomizer/dungeon_data.json', 'r', encoding='utf-8') as f:
+    dungeon_data = json.load(f)
 
 # Liste des donjons disponibles (extraits des clés du dictionnaire)
 all_dungeons = list(dungeon_data.keys())
@@ -678,14 +583,14 @@ async def dungeon_autocomplete(interaction: discord.Interaction, current: str):
 
 @bot.tree.command(name="dungeon-randomizer", description="Choisir aléatoirement un donjon")
 @app_commands.describe(
-    dungeon1="Premier choix de donjon",
-    dungeon2="Deuxième choix de donjon",
-    dungeon3="Troisième choix de donjon"
+    donjon1="Premier choix de donjon",
+    donjon2="Deuxième choix de donjon",
+    donjon3="Troisième choix de donjon"
 )
-@app_commands.autocomplete(dungeon1=dungeon_autocomplete, dungeon2=dungeon_autocomplete, dungeon3=dungeon_autocomplete)
-async def random_dungeonpick(interaction: discord.Interaction, dungeon1: str = None, dungeon2: str = None, dungeon3: str = None):
+@app_commands.autocomplete(donjon1=dungeon_autocomplete, donjon2=dungeon_autocomplete, donjon3=dungeon_autocomplete)
+async def random_dungeonpick(interaction: discord.Interaction, donjon1: str = None, donjon2: str = None, donjon3: str = None):
     # Créer la liste des donjons sélectionnés, éliminer les None
-    selected_dungeons = [dungeon for dungeon in [dungeon1, dungeon2, dungeon3] if dungeon]
+    selected_dungeons = [dungeon for dungeon in [donjon1, donjon2, donjon3] if dungeon]
 
     # Si aucun donjon n'est sélectionné, choisir parmi tous les donjons disponibles
     if not selected_dungeons:
@@ -740,6 +645,15 @@ async def random_dungeonpick(interaction: discord.Interaction, dungeon1: str = N
 # endregion
 
 # region RivenWishes
+# Charger les données du fichier JSON
+def load_wishes():
+    json_path = 'Ressources/RivenWishes/wishes.json'
+    with open(json_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    return data['voeux']
+
+wishes = load_wishes()
+
 class WishSelect(Select):
     def __init__(self, wishes):
         options = [discord.SelectOption(label=wish.get('BoutonName', wish['nom'].split(' - ')[-1]), value=str(i)) for
