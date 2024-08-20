@@ -1,7 +1,5 @@
 import os
 import sys
-from typing import re
-import re
 import discord
 from bs4 import BeautifulSoup
 from discord import app_commands, user
@@ -40,7 +38,7 @@ async def on_ready():
         print(f'Command: {command.name}, Description: {command.description}')
 
     # Start the task to monitor messages
-    check_messages.start()
+    #await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
     GenerateActivity()
@@ -119,11 +117,14 @@ def format_time(time_str):
     return time_str  # Return as-is if the format is unexpected
 
 def clean_text(text):
-    """Clean text by replacing HTML entities and extra spaces, preserving line breaks."""
+    """Clean text by replacing HTML entities, removing links, and extra spaces, while preserving line breaks."""
     if text is None:
         return ""
-    # Replace HTML entities like &nbsp; with a space
+    # Parse the text with BeautifulSoup to handle HTML entities
     soup = BeautifulSoup(text, "html.parser")
+    # Remove all links
+    for a in soup.findAll('a'):
+        a.extract()  # Remove the entire link tag
     # Convert the HTML to plain text, but preserve line breaks
     cleaned_text = soup.get_text(separator='\n')
     # Replace multiple spaces with a single space
@@ -138,32 +139,32 @@ async def process_message(message):
     author_type = "bot" if author.bot else "user"
 
     # Affichez les informations sur l'auteur
-    print("--- Message Author Information ---")
-    print(f"Author Name: {author_name}")
-    print(f"Author ID: {author_id}")
-    print(f"Author Type: {author_type}")
+    print("\n*** Un Message a été intercepté ***\n--- Auteur Information ---")
+    print(f"Nom: {author_name}")
+    print(f"ID: {author_id}")
+    print(f"Type: {author_type}")
 
     if message.author.bot:
         if "twitter.com/BungieHelp" in message.content:
-            print("Message contains a BungieHelp Tweet.")
+            print("== Contient un tweet de BungieHelp ==")
             for embed in message.embeds:
-                # Process the title and description of the embed if they exist
+                # Nettoyage et formatage du titre et de la description
                 title = clean_text(embed.title) if embed.title else ""
                 description = clean_text(embed.description) if embed.description else ""
 
                 # Vérifiez si le titre ou la description commence par "UPCOMING DESTINY 2 MAINTENANCE"
                 if title.startswith("UPCOMING DESTINY 2 MAINTENANCE") or description.startswith(
                         "UPCOMING DESTINY 2 MAINTENANCE"):
-                    print("\n--- Maintenance Update Found ---")
+                    print("\n--- UPCOMING Maintenance trouvée ---")
                     content = description if description else title
                     lines = content.split('\n')
 
                     # Vérifiez si la ligne 3 ne contient pas "TIMELINE"
-                    if len(lines) >= 3 and "TIMELINE" in lines[3]:
+                    if "TIMELINE" in lines[3]:
                         if len(lines) >= 7:
                             # Extract comment
                             comment_line = lines[1].strip()
-                            print(f"\nExtracted Comment: {comment_line}")
+                            print(f"\nCommentaire: {comment_line}")
 
                             # Extract date, time_stop, and time_restart
                             date_line = lines[4].replace('❖ ', '').strip()  # 'August 20'
@@ -174,9 +175,9 @@ async def process_message(message):
                             formatted_time_stop = format_time(time_stop_line)
                             formatted_time_restart = format_time(time_restart_line)
 
-                            print(f"Extracted Date: {date_line}")
-                            print(f"Downtime Start Time: {formatted_time_stop}")
-                            print(f"Downtime End Time: {formatted_time_restart}")
+                            print(f"Date: {date_line}")
+                            print(f"Arrêt des serveurs: {formatted_time_stop}")
+                            print(f"Retour des serveurs: {formatted_time_restart}")
 
                             # Convert times to Unix timestamps
                             stop_timestamp = convert_pdt_to_unix(date_line, formatted_time_stop)
@@ -189,45 +190,88 @@ async def process_message(message):
                                     "return_timestamp": return_timestamp,
                                     "comment": comment_line
                                 }
-                                print(f"\nMaintenance Info to be Saved:")
+                                print(f"\nInformations à sauvegarder:")
                                 print(f"{json.dumps(maintenance_info, indent=4)}")
                                 os.makedirs("Ressources/Maintenance", exist_ok=True)
                                 with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
                                     json.dump(maintenance_info, file, indent=4)
-                                print("Maintenance information successfully updated.")
+                                print("Update des informations de maintenance effectuée")
                             else:
-                                print("Failed to convert dates and times to Unix timestamps.")
+                                print("== Failed to convert dates and times to Unix timestamps ==")
                         else:
-                            print("Not enough lines in the description to extract maintenance info.")
+                            print("== Pas assez de lignes pour extraire les informations ==")
                     else:
-                        print("Line 3 contains 'TIMELINE' or not enough lines to check.")
+                        print("== Ne contient pas 'TIMELINE' ==")
                     print("-------------------------")
+                elif title.startswith("DESTINY 2 MAINTENANCE") or description.startswith(
+                        "DESTINY 2 MAINTENANCE"):
+                    print("\n--- Maintenance Update trouvée ---")
+                    # Vérifiez si le texte contient "Maintenance is complete."
+                    if "Maintenance is complete." in description:
+                        print("== Maintenance is complete ==")
+
+                        # Supprimez le fichier maintenance_info.json s'il existe
+                        maintenance_file = "Ressources/Maintenance/maintenance_info.json"
+                        if os.path.exists(maintenance_file):
+                            os.remove(maintenance_file)
+                            print("== maintenance_info.json a été supprimé ==")
+                        else:
+                            print("== maintenance_info.json n'existe pas ==")
+                    else:
+                        # Actualisez le commentaire du JSON avec le contenu du texte sauf les 3 premières et 2 dernières lignes
+                        lines = description.split('\n')
+                        if len(lines) > 5:
+                            # Extraire les lignes du milieu
+                            updated_comment = '\n'.join(lines[3:-2]).strip()
+                            print(f"== Commentaire actualisé: {updated_comment} ==")
+
+                            maintenance_file = "Ressources/Maintenance/maintenance_info.json"
+                            if os.path.exists(maintenance_file):
+                                # Charger l'ancien contenu JSON
+                                with open(maintenance_file, "r") as file:
+                                    maintenance_info = json.load(file)
+
+                                # Mettre à jour le champ 'comment'
+                                maintenance_info["comment"] = updated_comment
+
+                                # Sauvegarder le JSON mis à jour
+                                with open(maintenance_file, "w") as file:
+                                    json.dump(maintenance_info, file, indent=4)
+
+                                print("== maintenance_info.json a été mis à jour ==")
+                            else:
+                                print("== maintenance_info.json n'existe pas ==")
+                        else:
+                            print("== Pas assez de lignes pour actualiser le commentaire ==")
                 else:
-                    print("Embed does not contain maintenance information.")
+                    print("== Ne contient pas d'info de Maintenance ==")
                     print("-------------------------")
         else:
-            print("Message does not contain a BungieHelp Tweet.")
+            print("== Ne contient pas de tweet de BungieHelp ==")
             print("-------------------------")
     else:
-        print("Message is from a user, not a bot.")
+        print("== Ce message provient d'un utilisateur, pas d'un bot ==")
         print("-------------------------")
 
-@tasks.loop(minutes=1)
-async def check_messages():
-    channel_id = 1270308084345995345  # Replace with your channel ID
-    channel = bot.get_channel(channel_id)
-    if channel is None:
-        print(f"Channel with ID {channel_id} not found.")
-        return
+#async def check_messages():
+    #channel_id = 1270308084345995345  # Remplacez par l'ID de votre canal
+    #channel = bot.get_channel(channel_id)
 
-    async for message in channel.history(limit=5):
-        print(f"\nChecked messages in Channel {channel_id}.")
-        await process_message(message)
+    #if channel is None:
+        #print(f"Channel with ID {channel_id} not found.")
+        #return
+
+    #async for message in channel.history(limit=4):
+        #await process_message(message)
 
 @bot.event
 async def on_message(message):
-    # Check the message when it's newly received
-    await process_message(message)
+     #ID du canal spécifique dans lequel vous souhaitez traiter les messages
+    target_channel_id = 1270308084345995345
+
+     #Vérifiez si le message provient du canal cible
+    if message.channel.id == target_channel_id:
+        await process_message(message)
 
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
     comment = discord.ui.TextInput(
@@ -345,7 +389,7 @@ def create_maintenance_embed_view():
     if maintenance_comment:
         embed.add_field(
             name="📝 __Commentaire__",
-            value=maintenance_comment,
+            value="```\n" + maintenance_comment + "\n```",
             inline=False
         )
 
