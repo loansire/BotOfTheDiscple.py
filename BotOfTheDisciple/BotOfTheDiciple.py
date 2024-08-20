@@ -1,6 +1,9 @@
 import os
 import sys
+from typing import re
+import re
 import discord
+from bs4 import BeautifulSoup
 from discord import app_commands, user
 from discord.ext import commands, tasks
 from datetime import datetime, date, time as dt_time, timedelta
@@ -36,11 +39,14 @@ async def on_ready():
     for command in bot.tree.get_commands():
         print(f'Command: {command.name}, Description: {command.description}')
 
+    # Start the task to monitor messages
+    check_messages.start()
+
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    #GenerateActivity()
+    GenerateActivity()
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
-    #daily_update.start()
+    daily_update.start()
 
 # Enregistrement des commandes slash
 @bot.tree.command(name="help", description="Liste des commandes disponibles")
@@ -63,9 +69,165 @@ async def help(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 # region MaintenanceCommands
-# Variables globales pour stocker les informations de maintenance
-stop_timestamp = None
-return_timestamp = None
+# Define Pacific Daylight Time timezone
+pdt_tz = pytz.timezone('America/Los_Angeles')
+
+def convert_pdt_to_unix(date_str, time_str):
+    try:
+        # Get the current year
+        current_year = datetime.now().year
+
+        # Format the time string
+        time_str = format_time(time_str)
+        # Combine the date and time strings into a single datetime string, including the current year
+        datetime_str = f"{date_str} {current_year} {time_str}"
+        # Parse the string into a datetime object, assuming PDT timezone
+        dt_pdt = datetime.strptime(datetime_str, "%B %d %Y %I:%M %p")
+        # Localize the datetime to PDT timezone
+        dt_pdt = pdt_tz.localize(dt_pdt)
+        # Convert the datetime to a Unix timestamp
+        timestamp = int(dt_pdt.timestamp())
+        return timestamp
+    except Exception as e:
+        print(f"Error converting PDT to Unix timestamp: {e}")
+        return None
+
+def format_time(time_str):
+    """Format the time string to HH:MM AM/PM format."""
+    time_str = time_str.strip()  # Remove any leading/trailing whitespace
+    if not time_str:
+        return time_str
+
+    parts = time_str.split()
+
+    if len(parts) == 1:
+        # Only hour is provided (e.g., '10 AM')
+        hour = parts[0]
+        return f"{hour}:00"
+
+    if len(parts) == 2:
+        # Hour and AM/PM (e.g., '6:45 AM')
+        hour_minute = parts[0]
+        am_pm = parts[1]
+
+        if ':' not in hour_minute:
+            # No minutes specified, add ':00'
+            return f"{hour_minute}:00 {am_pm}"
+
+        return f"{hour_minute} {am_pm}"
+
+    return time_str  # Return as-is if the format is unexpected
+
+def clean_text(text):
+    """Clean text by replacing HTML entities and extra spaces, preserving line breaks."""
+    if text is None:
+        return ""
+    # Replace HTML entities like &nbsp; with a space
+    soup = BeautifulSoup(text, "html.parser")
+    # Convert the HTML to plain text, but preserve line breaks
+    cleaned_text = soup.get_text(separator='\n')
+    # Replace multiple spaces with a single space
+    cleaned_text = '\n'.join(' '.join(line.split()) for line in cleaned_text.split('\n'))
+    return cleaned_text
+
+async def process_message(message):
+    # Identifiez l'auteur du message
+    author = message.author
+    author_name = author.name
+    author_id = author.id
+    author_type = "bot" if author.bot else "user"
+
+    # Affichez les informations sur l'auteur
+    print("--- Message Author Information ---")
+    print(f"Author Name: {author_name}")
+    print(f"Author ID: {author_id}")
+    print(f"Author Type: {author_type}")
+
+    if message.author.bot:
+        if "twitter.com/BungieHelp" in message.content:
+            print("Message contains a BungieHelp Tweet.")
+            for embed in message.embeds:
+                # Process the title and description of the embed if they exist
+                title = clean_text(embed.title) if embed.title else ""
+                description = clean_text(embed.description) if embed.description else ""
+
+                # Vérifiez si le titre ou la description commence par "UPCOMING DESTINY 2 MAINTENANCE"
+                if title.startswith("UPCOMING DESTINY 2 MAINTENANCE") or description.startswith(
+                        "UPCOMING DESTINY 2 MAINTENANCE"):
+                    print("\n--- Maintenance Update Found ---")
+                    content = description if description else title
+                    lines = content.split('\n')
+
+                    # Vérifiez si la ligne 3 ne contient pas "TIMELINE"
+                    if len(lines) >= 3 and "TIMELINE" in lines[3]:
+                        if len(lines) >= 7:
+                            # Extract comment
+                            comment_line = lines[1].strip()
+                            print(f"\nExtracted Comment: {comment_line}")
+
+                            # Extract date, time_stop, and time_restart
+                            date_line = lines[4].replace('❖ ', '').strip()  # 'August 20'
+                            time_stop_line = lines[6].replace('❖ Downtime begins: ', '').strip()  # '6:45 AM'
+                            time_restart_line = lines[7].replace('❖ Downtime ends: ', '').strip()  # '10 AM'
+
+                            # Format times
+                            formatted_time_stop = format_time(time_stop_line)
+                            formatted_time_restart = format_time(time_restart_line)
+
+                            print(f"Extracted Date: {date_line}")
+                            print(f"Downtime Start Time: {formatted_time_stop}")
+                            print(f"Downtime End Time: {formatted_time_restart}")
+
+                            # Convert times to Unix timestamps
+                            stop_timestamp = convert_pdt_to_unix(date_line, formatted_time_stop)
+                            return_timestamp = convert_pdt_to_unix(date_line, formatted_time_restart)
+
+                            if stop_timestamp and return_timestamp:
+                                # Save the information to a JSON file
+                                maintenance_info = {
+                                    "stop_timestamp": stop_timestamp,
+                                    "return_timestamp": return_timestamp,
+                                    "comment": comment_line
+                                }
+                                print(f"\nMaintenance Info to be Saved:")
+                                print(f"{json.dumps(maintenance_info, indent=4)}")
+                                os.makedirs("Ressources/Maintenance", exist_ok=True)
+                                with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
+                                    json.dump(maintenance_info, file, indent=4)
+                                print("Maintenance information successfully updated.")
+                            else:
+                                print("Failed to convert dates and times to Unix timestamps.")
+                        else:
+                            print("Not enough lines in the description to extract maintenance info.")
+                    else:
+                        print("Line 3 contains 'TIMELINE' or not enough lines to check.")
+                    print("-------------------------")
+                else:
+                    print("Embed does not contain maintenance information.")
+                    print("-------------------------")
+        else:
+            print("Message does not contain a BungieHelp Tweet.")
+            print("-------------------------")
+    else:
+        print("Message is from a user, not a bot.")
+        print("-------------------------")
+
+@tasks.loop(minutes=1)
+async def check_messages():
+    channel_id = 1270308084345995345  # Replace with your channel ID
+    channel = bot.get_channel(channel_id)
+    if channel is None:
+        print(f"Channel with ID {channel_id} not found.")
+        return
+
+    async for message in channel.history(limit=5):
+        print(f"\nChecked messages in Channel {channel_id}.")
+        await process_message(message)
+
+@bot.event
+async def on_message(message):
+    # Check the message when it's newly received
+    await process_message(message)
 
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
     comment = discord.ui.TextInput(
@@ -86,10 +248,9 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Fuseau horaire de Paris
         paris_tz = pytz.timezone('Europe/Paris')
         current_year = datetime.now().year
-        current_date = date.today().strftime("%d/%m/%Y")
+        current_date = datetime.today().strftime("%d/%m/%Y")
 
         def normalize_datetime_input(input_str):
             input_str = input_str.replace('-', '/').replace('h', ':').replace('H', ':').replace(',', ' ')
@@ -222,7 +383,7 @@ def create_maintenance_embed_view():
 
     return embed, [thumbnail_file, footer_icon_file], view
 
-class MaintenanceView(View):
+class MaintenanceView(discord.ui.View):
     def __init__(self, stop_timestamp, return_timestamp):
         super().__init__()
         self.stop_timestamp = stop_timestamp
