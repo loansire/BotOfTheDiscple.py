@@ -1,7 +1,7 @@
 import os
 import sys
 import discord
-from discord import app_commands
+from discord import app_commands, user
 from discord.ext import commands, tasks
 from datetime import datetime, date, time as dt_time, timedelta
 import random
@@ -231,12 +231,11 @@ async def maintenance(interaction: discord.Interaction):
             "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
             ephemeral=True)
 
-@bot.tree.command(name="update-maintenance", description="Met à jour les informations de maintenance")
+@bot.tree.command(name="maintenance-update", description="Met à jour les informations de maintenance")
 async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
 
-
-@bot.tree.command(name="delet-maintenance", description="Supprime les informations de maintenance configurées")
+@bot.tree.command(name="maintenance-delete", description="Supprime les informations de maintenance configurées")
 async def deletmaintenance(interaction: discord.Interaction):
     if os.path.exists("Ressources/Maintenance/maintenance_info.json"):
         os.remove("Ressources/Maintenance/maintenance_info.json")
@@ -424,7 +423,7 @@ async def publish_alerts():
                     except Exception as e:
                         print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
 
-@bot.tree.command(name="alerte-ls", description="Configure les alertes pour ce salon")
+@bot.tree.command(name="ls-alert", description="Configure les alertes pour ce salon")
 @app_commands.describe(action="Ajouter ou retirer ce salon des alertes")
 @app_commands.choices(action=[
     app_commands.Choice(name="Ajouter", value="ajouter"),
@@ -456,7 +455,7 @@ async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choic
     else:
         await interaction.response.send_message("Action invalide. Utilisez 'ajouter' ou 'retirer'.")
 
-@bot.tree.command(name="update-ls", description="Force la publication des alertes pour tous les salons configurés.")
+@bot.tree.command(name="ls-updade", description="Force la publication des alertes pour tous les salons configurés.")
 async def force_update_ls(interaction: discord.Interaction):
     """Force la mise à jour et la publication des alertes des Secteurs Oubliés."""
     try:
@@ -498,7 +497,7 @@ async def raid_autocomplete(interaction: discord.Interaction, current: str):
         for raid in all_raids if current.lower() in raid.lower()
     ][:25]  # Limiter à 25 résultats
 
-@bot.tree.command(name="raid-randomizer", description="Choisir aléatoirement un raid")
+@bot.tree.command(name="randomizer-raid", description="Choisir aléatoirement un raid")
 @app_commands.describe(
     raid1="Premier choix de raid",
     raid2="Deuxième choix de raid",
@@ -581,7 +580,7 @@ async def dungeon_autocomplete(interaction: discord.Interaction, current: str):
         for dungeon in all_dungeons if current.lower() in dungeon.lower()
     ][:25]  # Limiter à 25 résultats
 
-@bot.tree.command(name="dungeon-randomizer", description="Choisir aléatoirement un donjon")
+@bot.tree.command(name="randomizer-dungeon", description="Choisir aléatoirement un donjon")
 @app_commands.describe(
     donjon1="Premier choix de donjon",
     donjon2="Deuxième choix de donjon",
@@ -722,6 +721,60 @@ async def wishwall(interaction: discord.Interaction):
     # Envoi du message initial avec le menu déroulant et l'image par défaut
     await interaction.response.send_message(embed=embed, view=view,
                                             files=[default_image, thumbnail_file, footer_icon_file])
+# endregion
+
+# region PrismaticRandomizer
+# Liste des classes valides
+classes_valides = ["Arcaniste", "Chasseur", "Titan"]
+
+# Auto-complétion pour la classe
+async def classe_autocomplete(interaction: discord.Interaction, current: str):
+    return [
+        discord.app_commands.Choice(name=classe, value=classe)
+        for classe in classes_valides if current.lower() in classe.lower()
+    ]
+
+# Définir la commande /randomize-prismatic
+@bot.tree.command(name="randomize-prismatic", description="Génère un setup de Prismatique aléatoire pour une classe donnée.")
+@discord.app_commands.autocomplete(classe=classe_autocomplete)
+async def randomize_prismatic(interaction: discord.Interaction, classe: str):
+    # Vérification de la classe
+    if classe not in classes_valides:
+        await interaction.response.send_message("Classe invalide. Choisissez parmi Arcaniste, Chasseur ou Titan.", ephemeral=True)
+        return
+
+    # Récupérer l'utilisateur qui a exécuté la commande
+    user = interaction.user
+
+    # Créer l'embed
+    embed = discord.Embed(
+        description=f"## {classe} Prismatique Aléatoire\n{user.mention}, voici ton prochain build aléatoire en Doctrine prismatique !\n\n*Clic sur l'image ci-dessous pour visualiser ton roll.*",
+        color=0xf500d8,
+        timestamp=datetime.now()
+    )
+
+    # Chemins des images
+    bg_image_path = f"Ressources/PrismaticRandomizer/{classe}_BG.png"
+    thumbnail_image_path = f"Ressources/PrismaticRandomizer/{classe}_prismatique.jpg"
+
+    # Vérification de l'existence des fichiers
+    if not os.path.exists(bg_image_path):
+        await interaction.response.send_message(f"Erreur: L'image de fond n'existe pas pour la classe {classe}.", ephemeral=True)
+        return
+
+    if not os.path.exists(thumbnail_image_path):
+        await interaction.response.send_message(f"Erreur: Le thumbnail n'existe pas pour la classe {classe}.", ephemeral=True)
+        return
+
+    # Ajouter l'image en tant que thumbnail et l'image principale
+    file = discord.File(bg_image_path, filename="bg.png")
+    embed.set_image(url="attachment://bg.png")
+
+    thumb_file = discord.File(thumbnail_image_path, filename="thumb.jpg")
+    embed.set_thumbnail(url="attachment://thumb.jpg")
+
+    # Envoyer l'embed avec les images
+    await interaction.response.send_message(files=[file, thumb_file], embed=embed)
 # endregion
 
 async def main():
