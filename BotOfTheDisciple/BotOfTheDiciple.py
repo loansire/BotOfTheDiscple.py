@@ -138,8 +138,8 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
             # Sauvegarder les informations dans un fichier JSON
             self.save_maintenance_info(stop_timestamp, return_timestamp, maintenance_comment)
 
-            embed, files = create_maintenance_embed()
-            await interaction.response.send_message(embed=embed, files=files)
+            embed, files, view = create_maintenance_embed_view()
+            await interaction.response.send_message(embed=embed, files=files, view=view)
 
         except ValueError as e:
             await interaction.response.send_message(
@@ -166,7 +166,7 @@ def load_maintenance_info():
     except FileNotFoundError:
         return None
 
-def create_maintenance_embed():
+def create_maintenance_embed_view():
     maintenance_info = load_maintenance_info()
     if not maintenance_info:
         raise ValueError("Les informations de maintenance n'ont pas été trouvées.")
@@ -176,9 +176,7 @@ def create_maintenance_embed():
     maintenance_comment = maintenance_info.get("comment")
 
     embed = discord.Embed(
-        title="Informations de Maintenance et Mise à jour",
-        description="*Voici les dernières informations concernant la maintenance.*",
-        url="https://x.com/BungieHelp",
+        description="## [Infos de Maintenance et Mise à jour](https://x.com/BungieHelp)\n*Voici les dernières informations concernant la maintenance.*",
         colour=0xff0000,
         timestamp=datetime.now()
     )
@@ -219,13 +217,36 @@ def create_maintenance_embed():
         icon_url="attachment://footer_icon.png"
     )
 
-    return embed, [thumbnail_file, footer_icon_file]
+    # Ajouter le bouton pour copier dans le presse-papiers
+    view = MaintenanceView(stop_timestamp, return_timestamp)
+
+    return embed, [thumbnail_file, footer_icon_file], view
+
+class MaintenanceView(View):
+    def __init__(self, stop_timestamp, return_timestamp):
+        super().__init__()
+        self.stop_timestamp = stop_timestamp
+        self.return_timestamp = return_timestamp
+
+    @discord.ui.button(label="💾 Copier les infos", style=discord.ButtonStyle.primary)
+    async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        message_content = (
+            f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
+            f"- :x: Stop serveurs <t:{self.stop_timestamp}:t>\n"
+            f"- :white_check_mark: Retour serveurs <t:{self.return_timestamp}:t>\n\n"
+            f":repeat: Début : __**<t:{self.stop_timestamp}:R>**__"
+        )
+
+        await interaction.response.send_message(
+            f"Voici le texte formaté, prêt à être copié:\n```\n{message_content}\n```",
+            ephemeral=True
+        )
 
 @bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
 async def maintenance(interaction: discord.Interaction):
     try:
-        embed, files = create_maintenance_embed()
-        await interaction.response.send_message(embed=embed, files=files)
+        embed, files, view = create_maintenance_embed_view()
+        await interaction.response.send_message(embed=embed, files=files, view=view)
     except ValueError:
         await interaction.response.send_message(
             "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
@@ -242,7 +263,6 @@ async def deletmaintenance(interaction: discord.Interaction):
         await interaction.response.send_message("Les informations de maintenance ont été supprimées.")
     else:
         await interaction.response.send_message("Aucune information de maintenance trouvée.", ephemeral=True)
-
 # endregion
 
 # region CatGifGenerator
