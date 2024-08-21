@@ -2,7 +2,7 @@ import os
 import sys
 import discord
 from bs4 import BeautifulSoup
-from discord import app_commands, user
+from discord import app_commands, user, Interaction
 from discord.ext import commands, tasks
 from datetime import datetime, date, time as dt_time, timedelta
 import random
@@ -12,6 +12,7 @@ import requests
 from collections import Counter
 import json
 from discord.ui import Button, View, Select
+from BungieNewsRequest import *
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../PythonProject/Source')))
@@ -41,10 +42,10 @@ async def on_ready():
     # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    GenerateActivity()
+    #GenerateActivity()
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
-    daily_update.start()
+    #daily_update.start()
 
 # Enregistrement des commandes slash
 @bot.tree.command(name="help", description="Liste des commandes disponibles")
@@ -239,35 +240,42 @@ async def process_message(message):
                     else:
                         # Actualisez le commentaire du JSON avec le contenu du texte sauf les 3 premières et 2 dernières lignes
                         lines = description.split('\n')
-                        if len(lines) > 5:
-                            # Extraire les lignes du milieu
-                            updated_comment = '\n'.join(lines[3:-2]).strip()
-                            print(f"== Commentaire à traduire: {updated_comment} ==")
 
-                            # Traduire le commentaire en français
-                            translated_comment = translate_text_deepl(updated_comment)
-                            if translated_comment:
-                                print(f"== Commentaire traduit: {translated_comment} ==")
-                                maintenance_file = "Ressources/Maintenance/maintenance_info.json"
-                                if os.path.exists(maintenance_file):
-                                    # Charger l'ancien contenu JSON
-                                    with open(maintenance_file, "r") as file:
-                                        maintenance_info = json.load(file)
+                        # Filtrer les lignes pour retirer celles qui contiennent des liens
+                        filtered_lines = [line for line in lines if not ("http://" in line or "https://" in line)]
 
-                                    # Mettre à jour le champ 'comment'
-                                    maintenance_info["comment"] = translated_comment
-
-                                    # Sauvegarder le JSON mis à jour
-                                    with open(maintenance_file, "w") as file:
-                                        json.dump(maintenance_info, file, indent=4)
-
-                                    print("== maintenance_info.json a été mis à jour ==")
-                                else:
-                                    print("== maintenance_info.json n'existe pas ==")
-                            else:
-                                print("== La traduction a échoué ==")
+                        # Vérifier s'il reste suffisamment de lignes après filtrage
+                        if len(filtered_lines) > 5:
+                            # Extraire les lignes du milieu (en retirant les 3 premières lignes et les 2 dernières)
+                            updated_comment = '\n'.join(filtered_lines[3:-2]).strip()
                         else:
-                            print("== Pas assez de lignes pour actualiser le commentaire ==")
+                            # Si après filtrage, il reste moins de lignes que prévu, on retire simplement les 3 premières lignes
+                            updated_comment = '\n'.join(filtered_lines[3:]).strip()
+
+                        print(f"== Commentaire à traduire: {updated_comment} ==")
+
+                        # Traduire le commentaire en français
+                        translated_comment = translate_text_deepl(updated_comment)
+                        if translated_comment:
+                            print(f"== Commentaire traduit: {translated_comment} ==")
+                            maintenance_file = "Ressources/Maintenance/maintenance_info.json"
+                            if os.path.exists(maintenance_file):
+                                # Charger l'ancien contenu JSON
+                                with open(maintenance_file, "r") as file:
+                                    maintenance_info = json.load(file)
+
+                                # Mettre à jour le champ 'comment'
+                                maintenance_info["comment"] = translated_comment
+
+                                # Sauvegarder le JSON mis à jour
+                                with open(maintenance_file, "w") as file:
+                                    json.dump(maintenance_info, file, indent=4)
+
+                                print("== maintenance_info.json a été mis à jour ==")
+                            else:
+                                print("== maintenance_info.json n'existe pas ==")
+                        else:
+                            print("== La traduction a échoué ==")
                 else:
                     print("== Ne contient pas d'info de Maintenance ==")
                     print("-------------------------")
@@ -1025,6 +1033,82 @@ async def randomize_prismatic(interaction: discord.Interaction, classe: str):
 
     # Envoyer l'embed avec les images
     await interaction.response.send_message(files=[file, thumb_file], embed=embed)
+# endregion
+
+# region TWID-info
+# API_KEY = '95d66cb52e4d443ea72e729779de4263'
+#
+# class LanguageView(View):
+#     def __init__(self, api_key: str):
+#         super().__init__(timeout=60)
+#         self.api_key = api_key
+#         self.articles = {}  # Dictionnaire pour stocker les articles des deux langues
+#         print("LanguageView initialisé avec l'API_KEY.")
+#
+#     async def fetch_articles(self):
+#         print("Récupération des articles...")
+#         self.articles['en'] = await get_latest_twid_article(self.api_key, 'en')
+#         self.articles['fr'] = await get_latest_twid_article(self.api_key, 'fr')
+#         print(f"Articles récupérés: {self.articles}")
+#
+#     async def update_embed(self, interaction: discord.Interaction, language: str):
+#         print(f"Demande de mise à jour de l'embedded avec la langue: {language}")
+#         article = self.articles.get(language)
+#         if article:
+#             print(f"Article trouvé: {article}")
+#             embed = discord.Embed(
+#                 title=article.get('Title', 'Sans titre'),
+#                 description=article.get('Description', 'Pas de description disponible'),
+#                 url=f"https://www.bungie.net{article.get('Link', '#')}",
+#                 color=discord.Color.dark_red()
+#             )
+#             embed.set_image(url=article.get('ImagePath', ''))
+#             embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+#             await interaction.response.defer()  # Ajoutez cette ligne pour différer la réponse
+#             await interaction.response.edit_message(embed=embed, view=self)
+#         else:
+#             print(f"Aucun article trouvé pour la langue: {language}")
+#             await interaction.response.defer()  # Ajoutez cette ligne pour différer la réponse
+#             await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
+#
+#     @discord.ui.button(label="Anglais", style=discord.ButtonStyle.secondary, custom_id="lang_en")
+#     async def english_button(self, button: Button, interaction: discord.Interaction):
+#         print("Bouton Anglais pressé.")
+#         await self.update_embed(interaction, 'en')
+#
+#     @discord.ui.button(label="Français", style=discord.ButtonStyle.secondary, custom_id="lang_fr")
+#     async def french_button(self, button: Button, interaction: discord.Interaction):
+#         print("Bouton Français pressé.")
+#         await self.update_embed(interaction, 'fr')
+#
+# @bot.tree.command(name='twid', description="Affiche le TWID le plus récent.")
+# @app_commands.describe(language="Langue de l'article")
+# @app_commands.choices(language=[
+#     app_commands.Choice(name="Anglais", value="en"),
+#     app_commands.Choice(name="Français", value="fr")
+# ])
+# async def twid(interaction: discord.Interaction, language: str):
+#     view = LanguageView(API_KEY)
+#     await view.fetch_articles()  # Récupérer les articles pour les deux langues
+#
+#     article = view.articles.get(language)
+#     if article:
+#         embed = discord.Embed(
+#             title=article.get('Title', 'Sans titre'),
+#             description=article.get('Description', 'Pas de description disponible'),
+#             url=f"https://www.bungie.net{article.get('Link', '#')}",
+#             color=discord.Color.dark_red()
+#         )
+#         embed.set_image(url=article.get('ImagePath', ''))
+#         embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+#
+#         await interaction.response.send_message(embed=embed, view=view)
+#     else:
+#         await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
+#
+# @bot.event
+# async def on_interaction(interaction: discord.Interaction):
+#     print(f'Interaction reçue: {interaction.data}')
 # endregion
 
 async def main():
