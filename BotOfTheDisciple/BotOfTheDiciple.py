@@ -38,7 +38,7 @@ async def on_ready():
         print(f'Command: {command.name}, Description: {command.description}')
 
     # Start the task to monitor messages
-    #await check_messages()
+    # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
     GenerateActivity()
@@ -130,6 +130,25 @@ def clean_text(text):
     # Replace multiple spaces with a single space
     cleaned_text = '\n'.join(' '.join(line.split()) for line in cleaned_text.split('\n'))
     return cleaned_text
+
+def translate_text_deepl(text, target_lang="FR"):
+    """Traduit un texte de l'anglais vers la langue cible en utilisant l'API DeepL."""
+    api_key = "63bf6b23-8b8f-41c6-8ab0-90f3c270f216:fx"  # Remplacez par votre clé API DeepL
+    url = "https://api-free.deepl.com/v2/translate"
+
+    params = {
+        "auth_key": api_key,
+        "text": text,
+        "target_lang": target_lang
+    }
+
+    response = requests.post(url, data=params)
+
+    if response.status_code == 200:
+        return response.json()["translations"][0]["text"]
+    else:
+        print(f"Erreur lors de la traduction: {response.status_code}")
+        return None
 
 async def process_message(message):
     # Identifiez l'auteur du message
@@ -223,24 +242,30 @@ async def process_message(message):
                         if len(lines) > 5:
                             # Extraire les lignes du milieu
                             updated_comment = '\n'.join(lines[3:-2]).strip()
-                            print(f"== Commentaire actualisé: {updated_comment} ==")
+                            print(f"== Commentaire à traduire: {updated_comment} ==")
 
-                            maintenance_file = "Ressources/Maintenance/maintenance_info.json"
-                            if os.path.exists(maintenance_file):
-                                # Charger l'ancien contenu JSON
-                                with open(maintenance_file, "r") as file:
-                                    maintenance_info = json.load(file)
+                            # Traduire le commentaire en français
+                            translated_comment = translate_text_deepl(updated_comment)
+                            if translated_comment:
+                                print(f"== Commentaire traduit: {translated_comment} ==")
+                                maintenance_file = "Ressources/Maintenance/maintenance_info.json"
+                                if os.path.exists(maintenance_file):
+                                    # Charger l'ancien contenu JSON
+                                    with open(maintenance_file, "r") as file:
+                                        maintenance_info = json.load(file)
 
-                                # Mettre à jour le champ 'comment'
-                                maintenance_info["comment"] = updated_comment
+                                    # Mettre à jour le champ 'comment'
+                                    maintenance_info["comment"] = translated_comment
 
-                                # Sauvegarder le JSON mis à jour
-                                with open(maintenance_file, "w") as file:
-                                    json.dump(maintenance_info, file, indent=4)
+                                    # Sauvegarder le JSON mis à jour
+                                    with open(maintenance_file, "w") as file:
+                                        json.dump(maintenance_info, file, indent=4)
 
-                                print("== maintenance_info.json a été mis à jour ==")
+                                    print("== maintenance_info.json a été mis à jour ==")
+                                else:
+                                    print("== maintenance_info.json n'existe pas ==")
                             else:
-                                print("== maintenance_info.json n'existe pas ==")
+                                print("== La traduction a échoué ==")
                         else:
                             print("== Pas assez de lignes pour actualiser le commentaire ==")
                 else:
@@ -253,16 +278,16 @@ async def process_message(message):
         print("== Ce message provient d'un utilisateur, pas d'un bot ==")
         print("-------------------------")
 
-#async def check_messages():
-    #channel_id = 1270308084345995345  # Remplacez par l'ID de votre canal
-    #channel = bot.get_channel(channel_id)
-
-    #if channel is None:
-        #print(f"Channel with ID {channel_id} not found.")
-        #return
-
-    #async for message in channel.history(limit=4):
-        #await process_message(message)
+# async def check_messages():
+#     channel_id = 1270308084345995345  # Remplacez par l'ID de votre canal
+#     channel = bot.get_channel(channel_id)
+#
+#     if channel is None:
+#         print(f"Channel with ID {channel_id} not found.")
+#         return
+#
+#     async for message in channel.history(limit=1):
+#         await process_message(message)
 
 @bot.event
 async def on_message(message):
