@@ -1036,79 +1036,53 @@ async def randomize_prismatic(interaction: discord.Interaction, classe: str):
 # endregion
 
 # region TWID-info
-# API_KEY = '95d66cb52e4d443ea72e729779de4263'
-#
-# class LanguageView(View):
-#     def __init__(self, api_key: str):
-#         super().__init__(timeout=60)
-#         self.api_key = api_key
-#         self.articles = {}  # Dictionnaire pour stocker les articles des deux langues
-#         print("LanguageView initialisé avec l'API_KEY.")
-#
-#     async def fetch_articles(self):
-#         print("Récupération des articles...")
-#         self.articles['en'] = await get_latest_twid_article(self.api_key, 'en')
-#         self.articles['fr'] = await get_latest_twid_article(self.api_key, 'fr')
-#         print(f"Articles récupérés: {self.articles}")
-#
-#     async def update_embed(self, interaction: discord.Interaction, language: str):
-#         print(f"Demande de mise à jour de l'embedded avec la langue: {language}")
-#         article = self.articles.get(language)
-#         if article:
-#             print(f"Article trouvé: {article}")
-#             embed = discord.Embed(
-#                 title=article.get('Title', 'Sans titre'),
-#                 description=article.get('Description', 'Pas de description disponible'),
-#                 url=f"https://www.bungie.net{article.get('Link', '#')}",
-#                 color=discord.Color.dark_red()
-#             )
-#             embed.set_image(url=article.get('ImagePath', ''))
-#             embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
-#             await interaction.response.defer()  # Ajoutez cette ligne pour différer la réponse
-#             await interaction.response.edit_message(embed=embed, view=self)
-#         else:
-#             print(f"Aucun article trouvé pour la langue: {language}")
-#             await interaction.response.defer()  # Ajoutez cette ligne pour différer la réponse
-#             await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
-#
-#     @discord.ui.button(label="Anglais", style=discord.ButtonStyle.secondary, custom_id="lang_en")
-#     async def english_button(self, button: Button, interaction: discord.Interaction):
-#         print("Bouton Anglais pressé.")
-#         await self.update_embed(interaction, 'en')
-#
-#     @discord.ui.button(label="Français", style=discord.ButtonStyle.secondary, custom_id="lang_fr")
-#     async def french_button(self, button: Button, interaction: discord.Interaction):
-#         print("Bouton Français pressé.")
-#         await self.update_embed(interaction, 'fr')
-#
-# @bot.tree.command(name='twid', description="Affiche le TWID le plus récent.")
-# @app_commands.describe(language="Langue de l'article")
-# @app_commands.choices(language=[
-#     app_commands.Choice(name="Anglais", value="en"),
-#     app_commands.Choice(name="Français", value="fr")
-# ])
-# async def twid(interaction: discord.Interaction, language: str):
-#     view = LanguageView(API_KEY)
-#     await view.fetch_articles()  # Récupérer les articles pour les deux langues
-#
-#     article = view.articles.get(language)
-#     if article:
-#         embed = discord.Embed(
-#             title=article.get('Title', 'Sans titre'),
-#             description=article.get('Description', 'Pas de description disponible'),
-#             url=f"https://www.bungie.net{article.get('Link', '#')}",
-#             color=discord.Color.dark_red()
-#         )
-#         embed.set_image(url=article.get('ImagePath', ''))
-#         embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
-#
-#         await interaction.response.send_message(embed=embed, view=view)
-#     else:
-#         await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
-#
-# @bot.event
-# async def on_interaction(interaction: discord.Interaction):
-#     print(f'Interaction reçue: {interaction.data}')
+API_KEY = '95d66cb52e4d443ea72e729779de4263'
+
+@bot.tree.command(name='twid', description="Affiche le TWID le plus récent.")
+@app_commands.describe(language="Langue de l'article")
+@app_commands.choices(language=[
+    app_commands.Choice(name="Anglais", value="en"),
+    app_commands.Choice(name="Français", value="fr")
+])
+async def twid(interaction: discord.Interaction, language: str):
+    article = await get_latest_twid_article(API_KEY, language)
+    if article:
+        embed = discord.Embed(
+            title=article.get('Title', 'Sans titre'),
+            description=article.get('Description', 'Pas de description disponible'),
+            url=f"https://www.bungie.net{article.get('Link', '#')}",
+            color=discord.Color.dark_red()
+        )
+        embed.set_image(url=article.get('ImagePath', ''))
+        embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+
+        await interaction.response.send_message(embed=embed)
+    else:
+        await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
+# endregion
+
+# region PatchNote-inf
+@bot.tree.command(name='patch-note', description="Affiche la patch-note la plus récente.")
+@app_commands.describe(language="Langue de l'article")
+@app_commands.choices(language=[
+    app_commands.Choice(name="Anglais", value="en"),
+    app_commands.Choice(name="Français", value="fr")
+])
+async def twid(interaction: discord.Interaction, language: str):
+    article = await get_latest_patch_note_article(API_KEY, language)
+    if article:
+        embed = discord.Embed(
+            title=article.get('Title', 'Sans titre'),
+            description=article.get('Description', 'Pas de description disponible'),
+            url=f"https://www.bungie.net{article.get('Link', '#')}",
+            color=discord.Color.dark_red()
+        )
+        embed.set_image(url=article.get('ImagePath', ''))
+        embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+
+        await interaction.response.send_message(embed=embed)
+    else:
+        await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
 # endregion
 
 async def main():
