@@ -3,6 +3,7 @@ import sys
 import discord
 from bs4 import BeautifulSoup
 from discord import app_commands, user, Interaction
+from discord.app_commands import default_permissions
 from discord.ext import commands, tasks
 from datetime import datetime, date, time as dt_time, timedelta
 import random
@@ -70,6 +71,180 @@ async def help(interaction: discord.Interaction):
 # region MaintenanceCommands
 # Define Pacific Daylight Time timezone
 pdt_tz = pytz.timezone('America/Los_Angeles')
+
+class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
+    comment = discord.ui.TextInput(
+        label="Commentaire (facultatif)",
+        style=discord.TextStyle.long,
+        placeholder="Ajoutez un commentaire sur la maintenance...",
+        required=False
+    )
+    stop_time = discord.ui.TextInput(
+        label="Arrêt des serveurs (DD/MM/YYYY HH:MM)",
+        style=discord.TextStyle.short,
+        placeholder="exemple: 15:45 | 25/12 15H45 | 25/12/2024 15h45"
+    )
+    return_time = discord.ui.TextInput(
+        label="Retour des serveurs (DD/MM/YYYY HH:MM)",
+        style=discord.TextStyle.short,
+        placeholder="exemple: 19:00 | 25/12 19H00 | 25/12/2024 19h00"
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        paris_tz = pytz.timezone('Europe/Paris')
+        current_year = datetime.now().year
+        current_date = datetime.today().strftime("%d/%m/%Y")
+
+        def normalize_datetime_input(input_str):
+            input_str = input_str.replace('-', '/').replace('h', ':').replace('H', ':').replace(',', ' ')
+            input_str = ' '.join(input_str.split())
+
+            if ':' not in input_str.split()[-1]:
+                input_str += ":00"
+            elif input_str.endswith(':'):
+                input_str += "00"
+
+            if len(input_str.split()) == 1 and ':' in input_str:
+                input_str = f"{current_date} {input_str}"
+
+            elif len(input_str.split()) == 2 and '/' in input_str.split()[0]:
+                day_month, time_part = input_str.split()
+                if len(day_month.split('/')) == 2:
+                    input_str = f"{day_month}/{current_year} {time_part}"
+
+            return input_str
+
+        def validate_datetime_input(input_str):
+            parts = input_str.split()
+            if len(parts) == 1 and '/' in parts[0]:
+                return False
+            return True
+
+        try:
+            stop_input = normalize_datetime_input(self.stop_time.value)
+            if not validate_datetime_input(stop_input):
+                raise ValueError("L'entrée contient seulement la date sans l'heure.")
+
+            stop_dt = datetime.strptime(stop_input, "%d/%m/%Y %H:%M")
+            stop_dt = paris_tz.localize(stop_dt)
+            stop_timestamp = int(stop_dt.timestamp())
+
+            return_input = normalize_datetime_input(self.return_time.value)
+            if not validate_datetime_input(return_input):
+                raise ValueError("L'entrée contient seulement la date sans l'heure.")
+
+            return_dt = datetime.strptime(return_input, "%d/%m/%Y %H:%M")
+            return_dt = paris_tz.localize(return_dt)
+            return_timestamp = int(return_dt.timestamp())
+
+            maintenance_comment = self.comment.value.strip() if self.comment.value else None
+
+            # Sauvegarder les informations dans un fichier JSON
+            self.save_maintenance_info(stop_timestamp, return_timestamp, maintenance_comment)
+
+            embed, files, view = create_maintenance_embed_view()
+            await interaction.response.send_message(embed=embed, files=files, view=view)
+
+        except ValueError as e:
+            await interaction.response.send_message(
+                f"Erreur dans la conversion des dates et heures: *{e}*",
+                ephemeral=True
+            )
+
+    def save_maintenance_info(self, stop_timestamp, return_timestamp, maintenance_comment):
+        maintenance_info = {
+            "stop_timestamp": stop_timestamp,
+            "return_timestamp": return_timestamp,
+            "comment": maintenance_comment
+        }
+
+        os.makedirs("Ressources", exist_ok=True)
+        with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
+            json.dump(maintenance_info, file)
+
+class MaintenanceView(discord.ui.View):
+    def __init__(self, stop_timestamp, return_timestamp):
+        super().__init__()
+        self.stop_timestamp = stop_timestamp
+        self.return_timestamp = return_timestamp
+
+    @discord.ui.button(label="💾 Copier les infos", style=discord.ButtonStyle.primary)
+    async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        message_content = (
+            f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
+            f"- :x: Stop serveurs <t:{self.stop_timestamp}:t>\n"
+            f"- :white_check_mark: Retour serveurs <t:{self.return_timestamp}:t>\n\n"
+            f":repeat: Début : __**<t:{self.stop_timestamp}:R>**__"
+        )
+
+        await interaction.response.send_message(
+            f"Voici le texte formaté, prêt à être copié:\n```\n{message_content}\n```",
+            ephemeral=True
+        )
+
+def load_maintenance_info():
+    try:
+        with open("Ressources/Maintenance/maintenance_info.json", "r", encoding='utf-8') as file:
+            maintenance_info = json.load(file)
+        return maintenance_info
+    except FileNotFoundError:
+        return None
+
+def create_maintenance_embed_view():
+    maintenance_info = load_maintenance_info()
+    if not maintenance_info:
+        raise ValueError("Les informations de maintenance n'ont pas été trouvées.")
+
+    stop_timestamp = maintenance_info["stop_timestamp"]
+    return_timestamp = maintenance_info["return_timestamp"]
+    maintenance_comment = maintenance_info.get("comment")
+
+    embed = discord.Embed(
+        description="## [Infos de Maintenance et Mise à jour](https://x.com/BungieHelp)\n*Voici les dernières informations concernant la maintenance.*",
+        colour=0xff0000,
+        timestamp=datetime.now()
+    )
+
+    if maintenance_comment:
+        embed.add_field(
+            name="📝 __Commentaire__",
+            value="```\n" + maintenance_comment + "\n```",
+            inline=False
+        )
+
+    embed.add_field(
+        name=":x: __Stop serveurs__",
+        value=f"<t:{stop_timestamp}:F>",
+        inline=True
+    )
+    embed.add_field(
+        name=":white_check_mark: __Retour serveurs__",
+        value=f"<t:{return_timestamp}:F>",
+        inline=True
+    )
+    embed.add_field(
+        name=":repeat: __Débute__",
+        value=f"**<t:{stop_timestamp}:R>**",
+        inline=False
+    )
+
+    random_thumbnail_number = random.randint(1, 11)
+    thumbnail_path = f"Ressources/Maintenance/thumbnail_maintenance_{random_thumbnail_number}.png"
+    footer_icon_path = "Ressources/footer_icon.png"
+
+    thumbnail_file = discord.File(thumbnail_path, filename=f"thumbnail_maintenance_{random_thumbnail_number}.png")
+    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+
+    embed.set_thumbnail(url=f"attachment://thumbnail_maintenance_{random_thumbnail_number}.png")
+    embed.set_footer(
+        text="BotOfTheDisciple",
+        icon_url="attachment://footer_icon.png"
+    )
+
+    # Ajouter le bouton pour copier dans le presse-papiers
+    view = MaintenanceView(stop_timestamp, return_timestamp)
+
+    return embed, [thumbnail_file, footer_icon_file], view
 
 def convert_pdt_to_unix(date_str, time_str):
     try:
@@ -306,180 +481,6 @@ async def on_message(message):
     if message.channel.id == target_channel_id:
         await process_message(message)
 
-class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
-    comment = discord.ui.TextInput(
-        label="Commentaire (facultatif)",
-        style=discord.TextStyle.long,
-        placeholder="Ajoutez un commentaire sur la maintenance...",
-        required=False
-    )
-    stop_time = discord.ui.TextInput(
-        label="Arrêt des serveurs (DD/MM/YYYY HH:MM)",
-        style=discord.TextStyle.short,
-        placeholder="exemple: 15:45 | 25/12 15H45 | 25/12/2024 15h45"
-    )
-    return_time = discord.ui.TextInput(
-        label="Retour des serveurs (DD/MM/YYYY HH:MM)",
-        style=discord.TextStyle.short,
-        placeholder="exemple: 19:00 | 25/12 19H00 | 25/12/2024 19h00"
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        paris_tz = pytz.timezone('Europe/Paris')
-        current_year = datetime.now().year
-        current_date = datetime.today().strftime("%d/%m/%Y")
-
-        def normalize_datetime_input(input_str):
-            input_str = input_str.replace('-', '/').replace('h', ':').replace('H', ':').replace(',', ' ')
-            input_str = ' '.join(input_str.split())
-
-            if ':' not in input_str.split()[-1]:
-                input_str += ":00"
-            elif input_str.endswith(':'):
-                input_str += "00"
-
-            if len(input_str.split()) == 1 and ':' in input_str:
-                input_str = f"{current_date} {input_str}"
-
-            elif len(input_str.split()) == 2 and '/' in input_str.split()[0]:
-                day_month, time_part = input_str.split()
-                if len(day_month.split('/')) == 2:
-                    input_str = f"{day_month}/{current_year} {time_part}"
-
-            return input_str
-
-        def validate_datetime_input(input_str):
-            parts = input_str.split()
-            if len(parts) == 1 and '/' in parts[0]:
-                return False
-            return True
-
-        try:
-            stop_input = normalize_datetime_input(self.stop_time.value)
-            if not validate_datetime_input(stop_input):
-                raise ValueError("L'entrée contient seulement la date sans l'heure.")
-
-            stop_dt = datetime.strptime(stop_input, "%d/%m/%Y %H:%M")
-            stop_dt = paris_tz.localize(stop_dt)
-            stop_timestamp = int(stop_dt.timestamp())
-
-            return_input = normalize_datetime_input(self.return_time.value)
-            if not validate_datetime_input(return_input):
-                raise ValueError("L'entrée contient seulement la date sans l'heure.")
-
-            return_dt = datetime.strptime(return_input, "%d/%m/%Y %H:%M")
-            return_dt = paris_tz.localize(return_dt)
-            return_timestamp = int(return_dt.timestamp())
-
-            maintenance_comment = self.comment.value.strip() if self.comment.value else None
-
-            # Sauvegarder les informations dans un fichier JSON
-            self.save_maintenance_info(stop_timestamp, return_timestamp, maintenance_comment)
-
-            embed, files, view = create_maintenance_embed_view()
-            await interaction.response.send_message(embed=embed, files=files, view=view)
-
-        except ValueError as e:
-            await interaction.response.send_message(
-                f"Erreur dans la conversion des dates et heures: *{e}*",
-                ephemeral=True
-            )
-
-    def save_maintenance_info(self, stop_timestamp, return_timestamp, maintenance_comment):
-        maintenance_info = {
-            "stop_timestamp": stop_timestamp,
-            "return_timestamp": return_timestamp,
-            "comment": maintenance_comment
-        }
-
-        os.makedirs("Ressources", exist_ok=True)
-        with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
-            json.dump(maintenance_info, file)
-
-def load_maintenance_info():
-    try:
-        with open("Ressources/Maintenance/maintenance_info.json", "r", encoding='utf-8') as file:
-            maintenance_info = json.load(file)
-        return maintenance_info
-    except FileNotFoundError:
-        return None
-
-def create_maintenance_embed_view():
-    maintenance_info = load_maintenance_info()
-    if not maintenance_info:
-        raise ValueError("Les informations de maintenance n'ont pas été trouvées.")
-
-    stop_timestamp = maintenance_info["stop_timestamp"]
-    return_timestamp = maintenance_info["return_timestamp"]
-    maintenance_comment = maintenance_info.get("comment")
-
-    embed = discord.Embed(
-        description="## [Infos de Maintenance et Mise à jour](https://x.com/BungieHelp)\n*Voici les dernières informations concernant la maintenance.*",
-        colour=0xff0000,
-        timestamp=datetime.now()
-    )
-
-    if maintenance_comment:
-        embed.add_field(
-            name="📝 __Commentaire__",
-            value="```\n" + maintenance_comment + "\n```",
-            inline=False
-        )
-
-    embed.add_field(
-        name=":x: __Stop serveurs__",
-        value=f"<t:{stop_timestamp}:F>",
-        inline=True
-    )
-    embed.add_field(
-        name=":white_check_mark: __Retour serveurs__",
-        value=f"<t:{return_timestamp}:F>",
-        inline=True
-    )
-    embed.add_field(
-        name=":repeat: __Débute__",
-        value=f"**<t:{stop_timestamp}:R>**",
-        inline=False
-    )
-
-    random_thumbnail_number = random.randint(1, 11)
-    thumbnail_path = f"Ressources/Maintenance/thumbnail_maintenance_{random_thumbnail_number}.png"
-    footer_icon_path = "Ressources/footer_icon.png"
-
-    thumbnail_file = discord.File(thumbnail_path, filename=f"thumbnail_maintenance_{random_thumbnail_number}.png")
-    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
-
-    embed.set_thumbnail(url=f"attachment://thumbnail_maintenance_{random_thumbnail_number}.png")
-    embed.set_footer(
-        text="BotOfTheDisciple",
-        icon_url="attachment://footer_icon.png"
-    )
-
-    # Ajouter le bouton pour copier dans le presse-papiers
-    view = MaintenanceView(stop_timestamp, return_timestamp)
-
-    return embed, [thumbnail_file, footer_icon_file], view
-
-class MaintenanceView(discord.ui.View):
-    def __init__(self, stop_timestamp, return_timestamp):
-        super().__init__()
-        self.stop_timestamp = stop_timestamp
-        self.return_timestamp = return_timestamp
-
-    @discord.ui.button(label="💾 Copier les infos", style=discord.ButtonStyle.primary)
-    async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        message_content = (
-            f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
-            f"- :x: Stop serveurs <t:{self.stop_timestamp}:t>\n"
-            f"- :white_check_mark: Retour serveurs <t:{self.return_timestamp}:t>\n\n"
-            f":repeat: Début : __**<t:{self.stop_timestamp}:R>**__"
-        )
-
-        await interaction.response.send_message(
-            f"Voici le texte formaté, prêt à être copié:\n```\n{message_content}\n```",
-            ephemeral=True
-        )
-
 @bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
 async def maintenance(interaction: discord.Interaction):
     try:
@@ -491,10 +492,12 @@ async def maintenance(interaction: discord.Interaction):
             ephemeral=True)
 
 @bot.tree.command(name="maintenance-update", description="Met à jour les informations de maintenance")
+@default_permissions(administrator=True)
 async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
 
 @bot.tree.command(name="maintenance-delete", description="Supprime les informations de maintenance configurées")
+@default_permissions(administrator=True)
 async def deletmaintenance(interaction: discord.Interaction):
     if os.path.exists("Ressources/Maintenance/maintenance_info.json"):
         os.remove("Ressources/Maintenance/maintenance_info.json")
@@ -542,19 +545,6 @@ LOST_SECTOR_IMAGE_PATH = "Ressources/Output.png"
 TARGET_HOUR = 19
 TARGET_MINUTE = 00
 
-def load_alert_channels():
-    """Charger les salons d'alerte depuis le fichier JSON"""
-    try:
-        with open(JSON_FILE_PATH, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-def save_alert_channels(alert_channels):
-    """Sauvegarder les salons d'alerte dans le fichier JSON"""
-    with open(JSON_FILE_PATH, 'w') as f:
-        json.dump(alert_channels, f, indent=4)
-
 # Mapping dictionaries
 EMOJI_MAP = {
     "Cryo": "<:Cryo:1270715011781627904>",
@@ -567,6 +557,19 @@ EMOJI_MAP = {
     "Perturbation": "<:Surcharge:1270042140944236619>",
     "Chancellement": "<:Implacable:1270042120857849877>"
 }
+
+def load_alert_channels():
+    """Charger les salons d'alerte depuis le fichier JSON"""
+    try:
+        with open(JSON_FILE_PATH, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_alert_channels(alert_channels):
+    """Sauvegarder les salons d'alerte dans le fichier JSON"""
+    with open(JSON_FILE_PATH, 'w') as f:
+        json.dump(alert_channels, f, indent=4)
 
 def format_field(data, title):
     if not data:
@@ -618,22 +621,6 @@ def create_embed() -> discord.Embed:
 
     return embed
 
-@bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
-async def today_lost_sector(interaction: discord.Interaction):
-    try:
-        embed = create_embed()
-
-        # Créer les objets discord.File pour les images
-        footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
-        lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
-
-        # Envoyer le message avec l'embed et les fichiers d'icône et d'image
-        await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
-
-    except Exception as e:
-        await interaction.response.send_message(f"Erreur lors de la génération de l'activité: {e}", ephemeral=True)
-        print(f"Erreur: {e}")
-
 async def wait_until_target():
     # Obtenir l'heure actuelle en fuseau horaire de Paris
     paris_tz = pytz.timezone('Europe/Paris')
@@ -681,12 +668,29 @@ async def publish_alerts():
                     except Exception as e:
                         print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
 
+@bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
+async def today_lost_sector(interaction: discord.Interaction):
+    try:
+        embed = create_embed()
+
+        # Créer les objets discord.File pour les images
+        footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
+        lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
+
+        # Envoyer le message avec l'embed et les fichiers d'icône et d'image
+        await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
+
+    except Exception as e:
+        await interaction.response.send_message(f"Erreur lors de la génération de l'activité: {e}", ephemeral=True)
+        print(f"Erreur: {e}")
+
 @bot.tree.command(name="ls-alert", description="Configure les alertes pour ce salon")
 @app_commands.describe(action="Ajouter ou retirer ce salon des alertes")
 @app_commands.choices(action=[
     app_commands.Choice(name="Ajouter", value="ajouter"),
     app_commands.Choice(name="Retirer", value="retirer")
 ])
+@default_permissions(administrator=True)
 async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choice[str]):
     """Commandes pour ajouter ou retirer des salons de la liste d'alertes"""
     alert_channels = load_alert_channels()
@@ -714,6 +718,7 @@ async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choic
         await interaction.response.send_message("Action invalide. Utilisez 'ajouter' ou 'retirer'.")
 
 @bot.tree.command(name="ls-updade", description="Force la publication des alertes pour tous les salons configurés.")
+@default_permissions(administrator=True)
 async def force_update_ls(interaction: discord.Interaction):
     """Force la mise à jour et la publication des alertes des Secteurs Oubliés."""
     try:
