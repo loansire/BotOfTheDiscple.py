@@ -671,7 +671,7 @@ class twid_LanguageView(View):
                 color=discord.Color.dark_red()
             )
             embed.set_image(url=article.get('ImagePath', ''))
-            embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+            embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
 
             self.selected_language = language
             self.is_both_language = is_both_language
