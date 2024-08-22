@@ -2,7 +2,7 @@
 
 TEMPLATE_PATH = Config.RessourcePath(r"Ressources\Template.html")
 OUTPUT_PATH = Config.RessourcePath(r'Ressources\Output.html')
-OUTPUT_JPEG_PATH = Config.RessourcePath(r"Ressources\Output.jpeg")
+OUTPUT_JPEG_PATH = Config.RessourcePath(r"Ressources\Output.png")
 
 
 #Expert

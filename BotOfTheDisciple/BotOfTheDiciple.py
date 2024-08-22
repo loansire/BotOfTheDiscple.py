@@ -538,7 +538,7 @@ async def chatgif(interaction: discord.Interaction):
 JSON_FILE_PATH = 'Ressources/alertls_channels.json'
 # Constants
 FOOTER_ICON_PATH = "Ressources/footer_icon.png"
-LOST_SECTOR_IMAGE_PATH = "Ressources/Output.jpeg"
+LOST_SECTOR_IMAGE_PATH = "Ressources/Output.png"
 TARGET_HOUR = 19
 TARGET_MINUTE = 00
 
