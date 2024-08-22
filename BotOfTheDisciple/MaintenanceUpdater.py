@@ -107,7 +107,7 @@ class MaintenanceView(discord.ui.View):
         self.stop_timestamp = stop_timestamp
         self.return_timestamp = return_timestamp
 
-    @discord.ui.button(label="💾 Copier les infos", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Copier les infos", style=discord.ButtonStyle.primary, emoji="💾")
     async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         message_content = (
             f"__**Maintenance**__ et mise à jour aujourd'hui:\n"

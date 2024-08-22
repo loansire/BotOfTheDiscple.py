@@ -44,10 +44,10 @@ async def on_ready():
     # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    GenerateActivity()
+    #GenerateActivity()
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
-    daily_update.start()
+    #daily_update.start()
 
 # Enregistrement des commandes slash
 @bot.tree.command(name="help", description="Liste des commandes disponibles")
@@ -652,14 +652,58 @@ async def randomize_prismatic(interaction: discord.Interaction, classe: str):
 # region TWID-info
 API_KEY = '95d66cb52e4d443ea72e729779de4263'
 
+class twid_LanguageView(View):
+    def __init__(self, api_key: str, initial_article: dict, selected_language: str):
+        super().__init__(timeout=60)
+        self.api_key = api_key
+        self.initial_article = initial_article
+        self.selected_language = selected_language
+
+    async def update_embed(self, interaction: discord.Interaction, language: str):
+        article = await get_latest_twid_article(self.api_key, language)
+        if article:
+            embed = discord.Embed(
+                title=article.get('Title', 'Sans titre'),
+                description=article.get('Description', 'Pas de description disponible'),
+                url=f"https://www.bungie.net{article.get('Link', '#')}",
+                color=discord.Color.dark_red()
+            )
+            embed.set_image(url=article.get('ImagePath', ''))
+            embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+            # Met à jour la langue sélectionnée et les boutons
+            self.selected_language = language
+            self.update_buttons()
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
+
+    def update_buttons(self):
+        # Mettre à jour le style des boutons en fonction de la langue sélectionnée
+        for child in self.children:
+            if isinstance(child, Button):
+                if (child.label == "EN" and self.selected_language == 'en') or (
+                        child.label == "FR" and self.selected_language == 'fr'):
+                    child.style = discord.ButtonStyle.success  # Vert pour la langue sélectionnée
+                else:
+                    child.style = discord.ButtonStyle.secondary  # Gris pour les autres
+
+    @discord.ui.button(label="EN", style=discord.ButtonStyle.secondary, emoji="🇺🇸")
+    async def english_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.update_embed(interaction, 'en')
+
+    @discord.ui.button(label="FR", style=discord.ButtonStyle.secondary, emoji="🇫🇷")
+    async def french_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.update_embed(interaction, 'fr')
+
+
 @bot.tree.command(name='twid', description="Affiche le TWID le plus récent.")
 @app_commands.describe(language="Langue de l'article")
 @app_commands.choices(language=[
-    app_commands.Choice(name="Anglais", value="en"),
-    app_commands.Choice(name="Français", value="fr")
+    app_commands.Choice(name="En", value="en"),
+    app_commands.Choice(name="Fr", value="fr")
 ])
 async def twid(interaction: discord.Interaction, language: str):
-    article = await get_latest_twid_article(API_KEY, language)
+    article = await get_latest_twid_article(API_KEY, language=language)
     if article:
         embed = discord.Embed(
             title=article.get('Title', 'Sans titre'),
@@ -670,20 +714,67 @@ async def twid(interaction: discord.Interaction, language: str):
         embed.set_image(url=article.get('ImagePath', ''))
         embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
 
-        await interaction.response.send_message(embed=embed)
+        # Initialiser la vue avec la langue sélectionnée
+        view = twid_LanguageView(API_KEY, article, language)
+        view.update_buttons()  # Mettre à jour les boutons dès le départ
+        await interaction.response.send_message(embed=embed, view=view)
     else:
         await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
 # endregion
 
-# region PatchNote-inf
+# region PatchNote-info
+class PatchNote_LanguageView(View):
+    def __init__(self, api_key: str, initial_article: dict, selected_language: str):
+        super().__init__(timeout=60)
+        self.api_key = api_key
+        self.initial_article = initial_article
+        self.selected_language = selected_language
+
+    async def update_embed(self, interaction: discord.Interaction, language: str):
+        article = await get_latest_patch_note_article(self.api_key, language)
+        if article:
+            embed = discord.Embed(
+                title=article.get('Title', 'Sans titre'),
+                description=article.get('Description', 'Pas de description disponible'),
+                url=f"https://www.bungie.net{article.get('Link', '#')}",
+                color=discord.Color.dark_red()
+            )
+            embed.set_image(url=article.get('ImagePath', ''))
+            embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+            # Met à jour la langue sélectionnée et les boutons
+            self.selected_language = language
+            self.update_buttons()
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
+
+    def update_buttons(self):
+        # Mettre à jour le style des boutons en fonction de la langue sélectionnée
+        for child in self.children:
+            if isinstance(child, Button):
+                if (child.label == "EN" and self.selected_language == 'en') or (
+                        child.label == "FR" and self.selected_language == 'fr'):
+                    child.style = discord.ButtonStyle.success  # Vert pour la langue sélectionnée
+                else:
+                    child.style = discord.ButtonStyle.secondary  # Gris pour les autres
+
+    @discord.ui.button(label="EN", style=discord.ButtonStyle.secondary, emoji="🇺🇸")
+    async def english_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.update_embed(interaction, 'en')
+
+    @discord.ui.button(label="FR", style=discord.ButtonStyle.secondary, emoji="🇫🇷")
+    async def french_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.update_embed(interaction, 'fr')
+
+
 @bot.tree.command(name='patch-note', description="Affiche la patch-note la plus récente.")
 @app_commands.describe(language="Langue de l'article")
 @app_commands.choices(language=[
     app_commands.Choice(name="Anglais", value="en"),
     app_commands.Choice(name="Français", value="fr")
 ])
-async def twid(interaction: discord.Interaction, language: str):
-    article = await get_latest_patch_note_article(API_KEY, language)
+async def patch_note(interaction: discord.Interaction, language: str):
+    article = await get_latest_patch_note_article(API_KEY, language=language)
     if article:
         embed = discord.Embed(
             title=article.get('Title', 'Sans titre'),
@@ -694,12 +785,13 @@ async def twid(interaction: discord.Interaction, language: str):
         embed.set_image(url=article.get('ImagePath', ''))
         embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
 
-        await interaction.response.send_message(embed=embed)
+        # Initialiser la vue avec la langue sélectionnée
+        view = PatchNote_LanguageView(API_KEY, article, language)
+        view.update_buttons()  # Mettre à jour les boutons dès le départ
+        await interaction.response.send_message(embed=embed, view=view)
     else:
         await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
 # endregion
-
-
 
 async def main():
     async with bot:
