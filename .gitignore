@@ -1,7 +1,4 @@
 *.json
-*.log
-*.idea
-*.pyc
 !alert_channels.json
 !dungeon_data.json
 !maintenance_info.json
