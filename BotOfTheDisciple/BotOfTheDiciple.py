@@ -713,7 +713,7 @@ class twid_LanguageView(View):
     app_commands.Choice(name="En", value="en"),
     app_commands.Choice(name="Fr", value="fr")
 ])
-async def twid(interaction: discord.Interaction, language: str = "en"):  # Valeur par défaut = "en"
+async def twid(interaction: discord.Interaction, language: str):  # Valeur par défaut = "en"
     article, is_both_language = await get_latest_twid_article(API_KEY, language=language)
 
     if article:
@@ -724,7 +724,7 @@ async def twid(interaction: discord.Interaction, language: str = "en"):  # Valeu
             color=discord.Color.dark_red()
         )
         embed.set_image(url=article.get('ImagePath', ''))
-        embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+        embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
 
         # Initialiser la vue avec la langue sélectionnée et la disponibilité des langues
         view = twid_LanguageView(API_KEY, article, language, is_both_language)
@@ -759,7 +759,7 @@ class PatchNote_LanguageView(View):
                 color=discord.Color.dark_red()
             )
             embed.set_image(url=article.get('ImagePath', ''))
-            embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+            embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
             # Met à jour la langue sélectionnée et les boutons
             self.selected_language = language
             self.update_buttons()
@@ -802,7 +802,7 @@ async def patch_note(interaction: discord.Interaction, language: str):
             color=discord.Color.dark_red()
         )
         embed.set_image(url=article.get('ImagePath', ''))
-        embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
+        embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
 
         # Initialiser la vue avec la langue sélectionnée
         view = PatchNote_LanguageView(API_KEY, article, language)

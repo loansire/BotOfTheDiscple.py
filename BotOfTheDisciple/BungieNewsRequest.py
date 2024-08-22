@@ -67,11 +67,12 @@ async def get_latest_twid_article(api_key, language):
     if english_articles and 'Response' in english_articles and 'NewsArticles' in english_articles['Response']:
         # Chercher l'article en anglais
         for item in english_articles['Response']['NewsArticles']:
-            title = item.get('Title', '')
+            link = item.get('Link', '')
 
             await reformat_pubdate(item)
 
-            if title.startswith("This Week In Destiny"):
+            # Vérifier la présence de "twid" dans le lien
+            if "twid" in link:
                 unique_id = item.get('UniqueIdentifier', None)
 
                 if language == 'en':
@@ -111,26 +112,21 @@ async def get_latest_patch_note_article(api_key, language):
 
     if articles and 'Response' in articles and 'NewsArticles' in articles['Response']:
         for item in articles['Response']['NewsArticles']:
-            title = item.get('Title', '')
+            link = item.get('Link', '')
 
             await reformat_pubdate(item)
 
-            if language == "en":
-                # Pour l'anglais, vous vérifiez directement la chaîne exacte
-                if title.startswith("Destiny 2 Update"):
-                    return item
-            elif language == "fr":
-                # Pour le français, vous extrayez la version et construisez la chaîne de recherche
-                version = await extract_version_from_title(title)
-                if version and title.startswith(f"Mise à jour {version} de Destiny 2"):
-                    return item
-    return None
+            # Vérification de la présence de "patch" dans le lien
+            if "destiny_2_update" in link:
+                return item
 
+    # Si aucun article correspondant n'est trouvé, retourner None
+    return None
 
 # Exemple d'utilisation
 async def main():
     API_KEY = '95d66cb52e4d443ea72e729779de4263'
-    LANGUAGE = 'fr'  # Langue souhaitée (par exemple 'fr' pour français, 'en' pour anglais)
+    LANGUAGE = 'en'  # Langue souhaitée (par exemple 'fr' pour français, 'en' pour anglais)
 
     article, is_french_available = await get_latest_twid_article(API_KEY, language=LANGUAGE)
 
