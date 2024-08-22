@@ -68,6 +68,9 @@ async def get_latest_twid_article(api_key, language):
         # Chercher l'article en anglais
         for item in english_articles['Response']['NewsArticles']:
             title = item.get('Title', '')
+
+            await reformat_pubdate(item)
+
             if title.startswith("This Week In Destiny"):
                 unique_id = item.get('UniqueIdentifier', None)
 
@@ -88,6 +91,9 @@ async def get_latest_twid_article(api_key, language):
                             french_articles['Response']:
                         for french_item in french_articles['Response']['NewsArticles']:
                             if french_item.get('UniqueIdentifier') == unique_id:
+
+                                await reformat_pubdate(french_item)
+
                                 return french_item, True
 
                     # Si la version française n'est pas trouvée, retourner l'article en anglais
@@ -124,7 +130,7 @@ async def get_latest_patch_note_article(api_key, language):
 # Exemple d'utilisation
 async def main():
     API_KEY = '95d66cb52e4d443ea72e729779de4263'
-    LANGUAGE = 'en'  # Langue souhaitée (par exemple 'fr' pour français, 'en' pour anglais)
+    LANGUAGE = 'fr'  # Langue souhaitée (par exemple 'fr' pour français, 'en' pour anglais)
 
     article, is_french_available = await get_latest_twid_article(API_KEY, language=LANGUAGE)
 

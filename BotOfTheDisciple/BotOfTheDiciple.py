@@ -713,8 +713,9 @@ class twid_LanguageView(View):
     app_commands.Choice(name="En", value="en"),
     app_commands.Choice(name="Fr", value="fr")
 ])
-async def twid(interaction: discord.Interaction, language: str):
+async def twid(interaction: discord.Interaction, language: str = "en"):  # Valeur par défaut = "en"
     article, is_both_language = await get_latest_twid_article(API_KEY, language=language)
+
     if article:
         embed = discord.Embed(
             title=article.get('Title', 'Sans titre'),
@@ -731,7 +732,9 @@ async def twid(interaction: discord.Interaction, language: str):
 
         # Si on demande la version française mais qu'elle n'existe pas encore
         if language == 'fr' and not is_both_language:
-            await interaction.response.send_message(content="⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*", embed=embed, view=view)
+            await interaction.response.send_message(
+                content="⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*", embed=embed,
+                view=view)
         else:
             await interaction.response.send_message(embed=embed, view=view)
     else:
