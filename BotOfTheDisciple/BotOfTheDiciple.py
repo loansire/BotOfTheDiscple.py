@@ -653,14 +653,16 @@ async def randomize_prismatic(interaction: discord.Interaction, classe: str):
 API_KEY = '95d66cb52e4d443ea72e729779de4263'
 
 class twid_LanguageView(View):
-    def __init__(self, api_key: str, initial_article: dict, selected_language: str):
+    def __init__(self, api_key: str, initial_article: dict, selected_language: str, is_both_language: bool):
         super().__init__(timeout=None)
         self.api_key = api_key
         self.initial_article = initial_article
         self.selected_language = selected_language
+        self.is_both_language = is_both_language
 
     async def update_embed(self, interaction: discord.Interaction, language: str):
-        article = await get_latest_twid_article(self.api_key, language)
+        article, is_both_language = await get_latest_twid_article(self.api_key, language)
+
         if article:
             embed = discord.Embed(
                 title=article.get('Title', 'Sans titre'),
@@ -670,9 +672,11 @@ class twid_LanguageView(View):
             )
             embed.set_image(url=article.get('ImagePath', ''))
             embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
-            # Met à jour la langue sélectionnée et les boutons
+
             self.selected_language = language
+            self.is_both_language = is_both_language
             self.update_buttons()
+
             await interaction.response.edit_message(embed=embed, view=self)
         else:
             await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
@@ -687,6 +691,14 @@ class twid_LanguageView(View):
                 else:
                     child.style = discord.ButtonStyle.secondary  # Gris pour les autres
 
+        # Si la version française n'est pas disponible, masquer le bouton français
+        if not self.is_both_language:
+            for child in self.children:
+                if isinstance(child, Button) and child.label == "FR":
+                    self.remove_item(child)
+                if isinstance(child, Button) and child.label == "EN":
+                    child.style = discord.ButtonStyle.success
+
     @discord.ui.button(label="EN", style=discord.ButtonStyle.secondary, emoji="🇺🇸")
     async def english_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.update_embed(interaction, 'en')
@@ -695,7 +707,6 @@ class twid_LanguageView(View):
     async def french_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.update_embed(interaction, 'fr')
 
-
 @bot.tree.command(name='twid', description="Affiche le TWID le plus récent.")
 @app_commands.describe(language="Langue de l'article")
 @app_commands.choices(language=[
@@ -703,7 +714,7 @@ class twid_LanguageView(View):
     app_commands.Choice(name="Fr", value="fr")
 ])
 async def twid(interaction: discord.Interaction, language: str):
-    article = await get_latest_twid_article(API_KEY, language=language)
+    article, is_both_language = await get_latest_twid_article(API_KEY, language=language)
     if article:
         embed = discord.Embed(
             title=article.get('Title', 'Sans titre'),
@@ -714,10 +725,15 @@ async def twid(interaction: discord.Interaction, language: str):
         embed.set_image(url=article.get('ImagePath', ''))
         embed.set_footer(text=f"Publié le {article.get('PubDate', 'Date inconnue')}")
 
-        # Initialiser la vue avec la langue sélectionnée
-        view = twid_LanguageView(API_KEY, article, language)
+        # Initialiser la vue avec la langue sélectionnée et la disponibilité des langues
+        view = twid_LanguageView(API_KEY, article, language, is_both_language)
         view.update_buttons()  # Mettre à jour les boutons dès le départ
-        await interaction.response.send_message(embed=embed, view=view)
+
+        # Si on demande la version française mais qu'elle n'existe pas encore
+        if language == 'fr' and not is_both_language:
+            await interaction.response.send_message(content="⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*", embed=embed, view=view)
+        else:
+            await interaction.response.send_message(embed=embed, view=view)
     else:
         await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
 # endregion

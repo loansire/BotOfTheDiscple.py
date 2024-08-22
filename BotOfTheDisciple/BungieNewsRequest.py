@@ -32,6 +32,9 @@ async def reformat_pubdate(item):
         print(f"Invalid date format: {pubdate}")
 
 
+async def pretty_print_json(data):
+    print(json.dumps(data, indent=4, ensure_ascii=False))
+
 async def get_bungie_rss_articles(api_key, language, page_token='0'):
     url = f"https://www.bungie.net/Platform/Content/Rss/NewsArticles/{page_token}/"
 
@@ -51,24 +54,50 @@ async def get_bungie_rss_articles(api_key, language, page_token='0'):
                 return None
 
 
-async def pretty_print_json(data):
-    print(json.dumps(data, indent=4, ensure_ascii=False))
-
-
 async def get_latest_twid_article(api_key, language):
-    articles = await get_bungie_rss_articles(api_key, language=language, page_token='0')
+    # Récupérer tous les articles en anglais
+    english_articles = await get_bungie_rss_articles(api_key, language='en', page_token='0')
+    french_articles = await get_bungie_rss_articles(api_key, language='fr', page_token='0')
 
-    if articles and 'Response' in articles and 'NewsArticles' in articles['Response']:
-        for item in articles['Response']['NewsArticles']:
+    # Chercher l'article en anglais
+    # Récupérer tous les articles en anglais
+    english_articles = await get_bungie_rss_articles(api_key, language='en', page_token='0')
+    french_articles = await get_bungie_rss_articles(api_key, language='fr', page_token='0')
+
+    if english_articles and 'Response' in english_articles and 'NewsArticles' in english_articles['Response']:
+        # Chercher l'article en anglais
+        for item in english_articles['Response']['NewsArticles']:
             title = item.get('Title', '')
+            if title.startswith("This Week In Destiny"):
+                unique_id = item.get('UniqueIdentifier', None)
 
-            await reformat_pubdate(item)
+                if language == 'en':
+                    # Si demandé en anglais, vérifier si une version française existe
+                    has_french_version = False
+                    if unique_id and french_articles and 'Response' in french_articles and 'NewsArticles' in \
+                            french_articles['Response']:
+                        for french_item in french_articles['Response']['NewsArticles']:
+                            if french_item.get('UniqueIdentifier') == unique_id:
+                                has_french_version = True
+                                break
+                    return item, has_french_version
 
-            if language == "en" and title.startswith("This Week In Destiny"):
+                elif language == 'fr':
+                    # Si demandé en français, essayer de trouver la version française
+                    if unique_id and french_articles and 'Response' in french_articles and 'NewsArticles' in \
+                            french_articles['Response']:
+                        for french_item in french_articles['Response']['NewsArticles']:
+                            if french_item.get('UniqueIdentifier') == unique_id:
+                                return french_item, True
+
+                    # Si la version française n'est pas trouvée, retourner l'article en anglais
+                    return item, False
+
+                # Retourner l'article en anglais si aucune version française n'est trouvée
                 return item
-            if language == "fr" and title.startswith("Cette semaine dans Destiny"):
-                return item
-    return None
+
+    # Si aucun article trouvé, retourner None
+    return None, False
 
 
 async def get_latest_patch_note_article(api_key, language):
@@ -97,13 +126,16 @@ async def main():
     API_KEY = '95d66cb52e4d443ea72e729779de4263'
     LANGUAGE = 'en'  # Langue souhaitée (par exemple 'fr' pour français, 'en' pour anglais)
 
-    latest_twid = await get_latest_patch_note_article(API_KEY, language=LANGUAGE)
+    article, is_french_available = await get_latest_twid_article(API_KEY, language=LANGUAGE)
 
-    if latest_twid:
-        print("Dernier article TWID trouvé :")
-        await pretty_print_json(latest_twid)
+    if article:
+        if is_french_available:
+            print("L'article en français est disponible.")
+        else:
+            print("L'article en français n'est pas disponible, voici l'article en anglais.")
+        await pretty_print_json(article)
     else:
-        print("Aucun article TWID trouvé.")
+        print("Aucun article trouvé.")
 
 
 if __name__ == "__main__":
