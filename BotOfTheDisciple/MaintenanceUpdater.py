@@ -7,6 +7,8 @@ import pytz
 import requests
 import json
 
+# Define Pacific Daylight Time timezone
+pdt_tz = pytz.timezone('America/Los_Angeles')
 
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
     comment = discord.ui.TextInput(
@@ -187,7 +189,6 @@ def create_maintenance_embed_view():
 
 
 def convert_pdt_to_unix(date_str, time_str):
-    pdt_tz = pytz.timezone('America/Los_Angeles')
     try:
         # Get the current year
         current_year = datetime.now().year
