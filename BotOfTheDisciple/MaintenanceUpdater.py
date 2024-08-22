@@ -103,7 +103,7 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
 
 class MaintenanceView(discord.ui.View):
     def __init__(self, stop_timestamp, return_timestamp):
-        super().__init__()
+        super().__init__(timeout=None)
         self.stop_timestamp = stop_timestamp
         self.return_timestamp = return_timestamp
 

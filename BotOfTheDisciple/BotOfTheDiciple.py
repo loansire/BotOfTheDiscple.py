@@ -654,7 +654,7 @@ API_KEY = '95d66cb52e4d443ea72e729779de4263'
 
 class twid_LanguageView(View):
     def __init__(self, api_key: str, initial_article: dict, selected_language: str):
-        super().__init__(timeout=60)
+        super().__init__(timeout=None)
         self.api_key = api_key
         self.initial_article = initial_article
         self.selected_language = selected_language
@@ -725,7 +725,7 @@ async def twid(interaction: discord.Interaction, language: str):
 # region PatchNote-info
 class PatchNote_LanguageView(View):
     def __init__(self, api_key: str, initial_article: dict, selected_language: str):
-        super().__init__(timeout=60)
+        super().__init__(timeout=None)
         self.api_key = api_key
         self.initial_article = initial_article
         self.selected_language = selected_language
@@ -770,8 +770,8 @@ class PatchNote_LanguageView(View):
 @bot.tree.command(name='patch-note', description="Affiche la patch-note la plus récente.")
 @app_commands.describe(language="Langue de l'article")
 @app_commands.choices(language=[
-    app_commands.Choice(name="Anglais", value="en"),
-    app_commands.Choice(name="Français", value="fr")
+    app_commands.Choice(name="En", value="en"),
+    app_commands.Choice(name="Fr", value="fr")
 ])
 async def patch_note(interaction: discord.Interaction, language: str):
     article = await get_latest_patch_note_article(API_KEY, language=language)
