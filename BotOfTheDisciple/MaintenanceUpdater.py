@@ -130,6 +130,17 @@ def load_maintenance_info():
     except FileNotFoundError:
         return None
 
+def load_maintenance_alert_channels():
+    """Charge la liste des salons configurés pour les alertes de maintenance."""
+    if os.path.exists("Ressources/Maintenance/maintenance_alert_channels.json"):
+        with open("Ressources/Maintenance/maintenance_alert_channels.json", "r") as file:
+            return json.load(file)
+    return {}
+
+def save_maintenance_alert_channels(alert_channels):
+    """Enregistre la liste des salons configurés pour les alertes de maintenance."""
+    with open("Ressources/Maintenance/maintenance_alert_channels.json", "w") as file:
+        json.dump(alert_channels, file, indent=4)
 
 def create_maintenance_embed_view():
     maintenance_info = load_maintenance_info()

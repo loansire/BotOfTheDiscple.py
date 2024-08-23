@@ -81,6 +81,7 @@ async def help(interaction: discord.Interaction):
 #     async for message in channel.history(limit=1):
 #         await process_message(message)
 
+
 @bot.event
 async def on_message(message):
      #ID du canal spécifique dans lequel vous souhaitez traiter les messages
@@ -110,9 +111,9 @@ async def updatemaintenance(interaction: discord.Interaction):
 async def deletmaintenance(interaction: discord.Interaction):
     if os.path.exists("Ressources/Maintenance/maintenance_info.json"):
         os.remove("Ressources/Maintenance/maintenance_info.json")
-        await interaction.response.send_message("Les informations de maintenance ont été supprimées.")
+        await interaction.response.send_message(":wastebasket: Les informations de maintenance ont été supprimées.")
     else:
-        await interaction.response.send_message("Aucune information de maintenance trouvée.", ephemeral=True)
+        await interaction.response.send_message(":x: Aucune information de maintenance trouvée.", ephemeral=True)
 # endregion
 
 # region CatGifGenerator
@@ -311,20 +312,20 @@ async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choic
         if str(interaction.channel.id) not in alert_channels[guild_id]:
             alert_channels[guild_id].append(str(interaction.channel.id))
             save_alert_channels(alert_channels)
-            await interaction.response.send_message(f"Ce salon ({interaction.channel.name}) a été ajouté aux alertes.")
+            await interaction.response.send_message(f":white_check_mark: Ce salon ({interaction.channel.name}) a été ajouté aux alertes.")
         else:
-            await interaction.response.send_message("Ce salon est déjà configuré pour les alertes.")
+            await interaction.response.send_message(":x: Ce salon est déjà configuré pour les alertes.")
     elif action.value == 'retirer':
         if guild_id in alert_channels and str(interaction.channel.id) in alert_channels[guild_id]:
             alert_channels[guild_id].remove(str(interaction.channel.id))
             if not alert_channels[guild_id]:  # Supprimer l'entrée si la liste est vide
                 del alert_channels[guild_id]
             save_alert_channels(alert_channels)
-            await interaction.response.send_message(f"Ce salon ({interaction.channel.name}) a été retiré des alertes.")
+            await interaction.response.send_message(f":wastebasket: Ce salon ({interaction.channel.name}) a été retiré des alertes.")
         else:
-            await interaction.response.send_message("Ce salon n'est pas configuré pour les alertes.")
+            await interaction.response.send_message(":x: Ce salon n'est pas configuré pour les alertes.")
     else:
-        await interaction.response.send_message("Action invalide. Utilisez 'ajouter' ou 'retirer'.")
+        await interaction.response.send_message(":x: Action invalide. Utilisez 'ajouter' ou 'retirer'.")
 
 @bot.tree.command(name="ls-updade", description="Force la publication des alertes pour tous les salons configurés.")
 @default_permissions(administrator=True)
@@ -649,16 +650,17 @@ async def randomize_prismatic(interaction: discord.Interaction, classe: str):
     await interaction.response.send_message(files=[file, thumb_file], embed=embed)
 # endregion
 
-# region TWID-info
+# region News-info
 API_KEY = '95d66cb52e4d443ea72e729779de4263'
 
-class twid_LanguageView(View):
-    def __init__(self, api_key: str, initial_article: dict, selected_language: str, is_both_language: bool):
+class ArticleLanguageView(View):
+    def __init__(self, api_key: str, initial_article: dict, selected_language: str, is_both_language: bool, keyword: str):
         super().__init__(timeout=None)
         self.api_key = api_key
         self.initial_article = initial_article
         self.selected_language = selected_language
         self.is_both_language = is_both_language
+        self.keyword = keyword
 
         # Ajouter les boutons après l'initialisation de l'instance
         self.add_buttons()
@@ -709,7 +711,8 @@ class twid_LanguageView(View):
             self.add_item(reload_button)
 
     async def update_embed(self, interaction: discord.Interaction, language: str):
-        article, is_both_language = await get_latest_twid_article(self.api_key, language)
+        # Utilisation de la fonction générique avec le mot-clé
+        article, is_both_language = await get_latest_article_by_keyword(self.api_key, language, self.keyword)
 
         if article:
             embed = discord.Embed(
@@ -731,7 +734,7 @@ class twid_LanguageView(View):
 
             await interaction.response.edit_message(embed=embed, view=self)
         else:
-            await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
+            await interaction.response.edit_message(content="Aucun article trouvé.", embed=None, view=self)
 
     async def english_button(self, interaction: discord.Interaction):
         await self.update_embed(interaction, 'en')
@@ -741,7 +744,7 @@ class twid_LanguageView(View):
 
     async def reload_button(self, interaction: discord.Interaction):
         # Obtenez les informations les plus récentes sur l'article pour la langue française
-        article, is_both_language = await get_latest_twid_article(self.api_key, 'fr')
+        article, is_both_language = await get_latest_article_by_keyword(self.api_key, 'fr', self.keyword)
 
         if not is_both_language:
             await interaction.response.send_message(
@@ -753,15 +756,9 @@ class twid_LanguageView(View):
             self.is_both_language = is_both_language
             await self.update_embed(interaction, 'fr')
 
-
-@bot.tree.command(name='twid', description="Affiche le TWID le plus récent.")
-@app_commands.describe(language="Langue de l'article")
-@app_commands.choices(language=[
-    app_commands.Choice(name="En", value="en"),
-    app_commands.Choice(name="Fr", value="fr")
-])
-async def twid(interaction: discord.Interaction, language: str):
-    article, is_both_language = await get_latest_twid_article(API_KEY, language=language)
+async def news_article_command(interaction: discord.Interaction, language: str, keyword: str, no_article_message: str):
+    # Utilisation de la fonction générique avec le mot-clé
+    article, is_both_language = await get_latest_article_by_keyword(API_KEY, language=language, keyword=keyword)
 
     if article:
         embed = discord.Embed(
@@ -774,7 +771,7 @@ async def twid(interaction: discord.Interaction, language: str):
         embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
 
         # Initialiser la vue avec la langue sélectionnée et la disponibilité des langues
-        view = twid_LanguageView(API_KEY, article, language, is_both_language)
+        view = ArticleLanguageView(API_KEY, article, language, is_both_language, keyword)
 
         # Si on demande la version française mais qu'elle n'existe pas encore
         if language == 'fr' and not is_both_language:
@@ -786,78 +783,49 @@ async def twid(interaction: discord.Interaction, language: str):
         else:
             await interaction.response.send_message(embed=embed, view=view)
     else:
-        await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
-# endregion
+        await interaction.response.send_message(no_article_message)
 
-# region PatchNote-info
-class PatchNote_LanguageView(View):
-    def __init__(self, api_key: str, initial_article: dict, selected_language: str):
-        super().__init__(timeout=None)
-        self.api_key = api_key
-        self.initial_article = initial_article
-        self.selected_language = selected_language
+@bot.tree.command(name='twid', description="Affiche la TWID la plus récente.")
+@app_commands.describe(language="Langue de l'article")
+@app_commands.choices(language=[
+    app_commands.Choice(name="En", value="en"),
+    app_commands.Choice(name="Fr", value="fr")
+])
+async def twid(interaction: discord.Interaction, language: str):
+    await news_article_command(
+        interaction=interaction,
+        language=language,
+        keyword='twid',
+        no_article_message="Aucun article TWID/TWAB trouvé."
+    )
 
-    async def update_embed(self, interaction: discord.Interaction, language: str):
-        article = await get_latest_patch_note_article(self.api_key, language)
-        if article:
-            embed = discord.Embed(
-                title=article.get('Title', 'Sans titre'),
-                description=article.get('Description', 'Pas de description disponible'),
-                url=f"https://www.bungie.net{article.get('Link', '#')}",
-                color=discord.Color.dark_red()
-            )
-            embed.set_image(url=article.get('ImagePath', ''))
-            embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
-            # Met à jour la langue sélectionnée et les boutons
-            self.selected_language = language
-            self.update_buttons()
-            await interaction.response.edit_message(embed=embed, view=self)
-        else:
-            await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
+@bot.tree.command(name='twab', description="Affiche la TWAB la plus récente. Rien que pour Nexus o7")
+@app_commands.describe(language="Langue de l'article")
+@app_commands.choices(language=[
+    app_commands.Choice(name="En", value="en"),
+    app_commands.Choice(name="Fr", value="fr")
+])
+async def twab(interaction: discord.Interaction, language: str):
+    await news_article_command(
+        interaction=interaction,
+        language=language,
+        keyword='twid',  # Utiliser le même mot-clé 'twid' pour la recherche
+        no_article_message="Aucun article TWID/TWAB trouvé."
+    )
 
-    def update_buttons(self):
-        # Mettre à jour le style des boutons en fonction de la langue sélectionnée
-        for child in self.children:
-            if isinstance(child, Button):
-                if (child.label == "EN" and self.selected_language == 'en') or (
-                        child.label == "FR" and self.selected_language == 'fr'):
-                    child.style = discord.ButtonStyle.success  # Vert pour la langue sélectionnée
-                else:
-                    child.style = discord.ButtonStyle.secondary  # Gris pour les autres
-
-    @discord.ui.button(label="EN", style=discord.ButtonStyle.secondary, emoji="🇺🇸")
-    async def english_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.update_embed(interaction, 'en')
-
-    @discord.ui.button(label="FR", style=discord.ButtonStyle.secondary, emoji="🇫🇷")
-    async def french_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.update_embed(interaction, 'fr')
-
-
-@bot.tree.command(name='patch-note', description="Affiche la patch-note la plus récente.")
+@bot.tree.command(name='patch-note', description="Affiche le dernier patch note Destiny 2.")
 @app_commands.describe(language="Langue de l'article")
 @app_commands.choices(language=[
     app_commands.Choice(name="En", value="en"),
     app_commands.Choice(name="Fr", value="fr")
 ])
 async def patch_note(interaction: discord.Interaction, language: str):
-    article = await get_latest_patch_note_article(API_KEY, language=language)
-    if article:
-        embed = discord.Embed(
-            title=article.get('Title', 'Sans titre'),
-            description=article.get('Description', 'Pas de description disponible'),
-            url=f"https://www.bungie.net{article.get('Link', '#')}",
-            color=discord.Color.dark_red()
-        )
-        embed.set_image(url=article.get('ImagePath', ''))
-        embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
-
-        # Initialiser la vue avec la langue sélectionnée
-        view = PatchNote_LanguageView(API_KEY, article, language)
-        view.update_buttons()  # Mettre à jour les boutons dès le départ
-        await interaction.response.send_message(embed=embed, view=view)
-    else:
-        await interaction.response.send_message("Aucun article TWID/TWAB trouvé.")
+    await news_article_command(
+        interaction=interaction,
+        language=language,
+        keyword='destiny_2_update',
+        no_article_message="Aucun article de patch note trouvé."
+    )
 # endregion
 
 async def main():
