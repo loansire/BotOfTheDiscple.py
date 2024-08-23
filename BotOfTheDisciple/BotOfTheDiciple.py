@@ -660,6 +660,54 @@ class twid_LanguageView(View):
         self.selected_language = selected_language
         self.is_both_language = is_both_language
 
+        # Ajouter les boutons après l'initialisation de l'instance
+        self.add_buttons()
+
+    def add_buttons(self):
+        # Déterminer le style des boutons
+        if self.selected_language == 'en':
+            english_style = discord.ButtonStyle.success
+            french_style = discord.ButtonStyle.danger if not self.is_both_language else discord.ButtonStyle.secondary
+        elif self.selected_language == 'fr' and self.is_both_language:
+            english_style = discord.ButtonStyle.secondary
+            french_style = discord.ButtonStyle.success
+        else:
+            english_style = discord.ButtonStyle.success
+            french_style = discord.ButtonStyle.danger
+
+        # Crée et ajoute le bouton anglais
+        english_button = Button(
+            label="EN",
+            style=english_style,
+            emoji="🇺🇸"
+        )
+
+        # Crée et ajoute le bouton Français
+        french_button = Button(
+            label="FR",
+            style=french_style,
+            emoji="🇫🇷",
+            disabled=not self.is_both_language
+        )
+
+        # Associe les callbacks
+        english_button.callback = self.english_button
+        french_button.callback = self.french_button
+
+        # Ajouter les boutons à la vue
+        self.add_item(english_button)
+        self.add_item(french_button)
+
+        # Crée et ajoute le bouton Reload si applicable
+        if not self.is_both_language:
+            reload_button = Button(
+                label=None,
+                style=discord.ButtonStyle.secondary,
+                emoji="🔄"
+            )
+            reload_button.callback = self.reload_button
+            self.add_item(reload_button)
+
     async def update_embed(self, interaction: discord.Interaction, language: str):
         article, is_both_language = await get_latest_twid_article(self.api_key, language)
 
@@ -673,39 +721,38 @@ class twid_LanguageView(View):
             embed.set_image(url=article.get('ImagePath', ''))
             embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
 
+            # Mettre à jour la langue et la disponibilité des langues
             self.selected_language = language
             self.is_both_language = is_both_language
-            self.update_buttons()
+
+            # Mettre à jour les boutons en fonction de la langue sélectionnée
+            self.clear_items()
+            self.add_buttons()
 
             await interaction.response.edit_message(embed=embed, view=self)
         else:
             await interaction.response.edit_message(content="Aucun article TWID/TWAB trouvé.", embed=None, view=self)
 
-    def update_buttons(self):
-        # Mettre à jour le style des boutons en fonction de la langue sélectionnée
-        for child in self.children:
-            if isinstance(child, Button):
-                if (child.label == "EN" and self.selected_language == 'en') or (
-                        child.label == "FR" and self.selected_language == 'fr'):
-                    child.style = discord.ButtonStyle.success  # Vert pour la langue sélectionnée
-                else:
-                    child.style = discord.ButtonStyle.secondary  # Gris pour les autres
-
-        # Si la version française n'est pas disponible, masquer le bouton français
-        if not self.is_both_language:
-            for child in self.children:
-                if isinstance(child, Button) and child.label == "FR":
-                    self.remove_item(child)
-                if isinstance(child, Button) and child.label == "EN":
-                    child.style = discord.ButtonStyle.success
-
-    @discord.ui.button(label="EN", style=discord.ButtonStyle.secondary, emoji="🇺🇸")
-    async def english_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def english_button(self, interaction: discord.Interaction):
         await self.update_embed(interaction, 'en')
 
-    @discord.ui.button(label="FR", style=discord.ButtonStyle.secondary, emoji="🇫🇷")
-    async def french_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def french_button(self, interaction: discord.Interaction):
         await self.update_embed(interaction, 'fr')
+
+    async def reload_button(self, interaction: discord.Interaction):
+        # Obtenez les informations les plus récentes sur l'article pour la langue française
+        article, is_both_language = await get_latest_twid_article(self.api_key, 'fr')
+
+        if not is_both_language:
+            await interaction.response.send_message(
+                content="⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*",
+                ephemeral=True
+            )
+        else:
+            self.selected_language = 'fr'
+            self.is_both_language = is_both_language
+            await self.update_embed(interaction, 'fr')
+
 
 @bot.tree.command(name='twid', description="Affiche le TWID le plus récent.")
 @app_commands.describe(language="Langue de l'article")
@@ -713,7 +760,7 @@ class twid_LanguageView(View):
     app_commands.Choice(name="En", value="en"),
     app_commands.Choice(name="Fr", value="fr")
 ])
-async def twid(interaction: discord.Interaction, language: str):  # Valeur par défaut = "en"
+async def twid(interaction: discord.Interaction, language: str):
     article, is_both_language = await get_latest_twid_article(API_KEY, language=language)
 
     if article:
@@ -728,13 +775,14 @@ async def twid(interaction: discord.Interaction, language: str):  # Valeur par d
 
         # Initialiser la vue avec la langue sélectionnée et la disponibilité des langues
         view = twid_LanguageView(API_KEY, article, language, is_both_language)
-        view.update_buttons()  # Mettre à jour les boutons dès le départ
 
         # Si on demande la version française mais qu'elle n'existe pas encore
         if language == 'fr' and not is_both_language:
-            await interaction.response.send_message(
-                content="⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*", embed=embed,
-                view=view)
+            await interaction.response.send_message(embed=embed, view=view)
+            await interaction.followup.send(
+                content="⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*",
+                ephemeral=True
+            )
         else:
             await interaction.response.send_message(embed=embed, view=view)
     else:
