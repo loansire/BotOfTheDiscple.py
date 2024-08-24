@@ -1,0 +1,7 @@
+X: AAAAAAAAAAAAAAAAAAAAADYLvQEAAAAAxxEcrL2vc6JceNDms%2Ftgybs1ohE%3Dhq1pNyTGcY4Y52DUqHGd5LRBgUY7AGKAcOCsMkRIuH7FCkMZ4j
+Discord: MTI3MDAyMjIyMTc4MzQ5ODg0NA.GzQ5Zl.MuQAcDfdlTAqifThbcML96gXcwdM9gmFlZ5xfI
+Giphy: xfn2RLhVSMwCP3uQombbvz1r0muPPpDp
+
+Avec ces modifications, fais moi un code qui permet de publier le embed des secteurs oublié tous les jours à 19h dans les salons dont le bot est abonné. il faut aussi mettre en place une commande qui permet au bot de s'abonner au salon.
+
+De ce fait, lorsqu'un utilisateur indique /alert-ls dans un salon textuel, le bot publie un post secteur oublié, et s'abonne au salon en question. Puis tous les jours à 19h, il doit republier.
