@@ -1,0 +1,47 @@
+{
+  "Dernier Voeu": {
+    "emoji": "<:LW:1273058036209946634>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/LW.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/LW.webp"
+  },
+  "Jardin du Salut": {
+    "emoji": "<:JDS:1273058012751335486>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/JDS.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/JDS.webp"
+  },
+  "Crypte de la Pierre": {
+    "emoji": "<:DSC:1273057991670890496>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/DSC.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/DSC.webp"
+  },
+  "Caveau de verre": {
+    "emoji": "<:VOG:1273058120192495658>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/VOG.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/VOG.webp"
+  },
+  "Serment du Disciple": {
+    "emoji": "<:VOW:1273058146453295155>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/VOW.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/VOW.webp"
+  },
+  "Chute du Roi": {
+    "emoji": "<:Oryx:1273058059849302056>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/Oryx.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/Oryx.webp"
+  },
+  "Origine des Cauchemars": {
+    "emoji": "<:RON:1273058080086560870>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/RON.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/RON.webp"
+  },
+  "Chute de Cropta": {
+    "emoji": "<:Cropta:1273057968660676790>",
+    "thumbnail": "Ressources/RaidRandomizer/RaidEmotes/Cropta.webp",
+    "image": "Ressources/RaidRandomizer/RaidImage/Cropta.webp"
+  },
+  "Orée du Salut": {
+    "emoji": "<:SE:1273058098818322492>",
+    "thumbnail": "Ressources/RaidEmotes/SE.webp",
+    "image": "Ressources/RaidImage/SE.webp"
+  }
+}

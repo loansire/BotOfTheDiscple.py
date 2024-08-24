@@ -2,5 +2,10 @@
 *.log
 *.idea
 *.pyc
-
 !alert_channels.json
+!dungeon_data.json
+!maintenance_info.json
+!raid_data.json
+!wishes.json
+!alertls_channels.json
+.vs/

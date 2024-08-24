@@ -2,22 +2,24 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from PIL import Image
 import io
-import time  # Importer la bibliothèque time pour utiliser sleep
+import time
 
 def html_to_png(html_path, output_path):
     # Configurer Selenium pour utiliser Chrome en mode headless
     options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--window-size=1920x1080')  # Vous pouvez ajuster la taille de la fenêtre
+    options.add_argument("start-maximized")
+    options.add_argument('--headless')  # Mode headless pour ne pas afficher le navigateur
 
-    # Initialiser le WebDriver (vous pouvez changer de driver si nécessaire)
+    # Initialiser le WebDriver pour Chrome
     driver = webdriver.Chrome(options=options)
 
     # Charger le fichier HTML
     driver.get(f"file:///{html_path}")
 
-    # Attendre 3 secondes pour laisser toutes les animations CSS se terminer
+    # Définir explicitement la taille de la fenêtre à 1920x1080
+    driver.set_window_size(1936, 1227)
+
+    # Attendre un peu pour s'assurer que le contenu est chargé
     time.sleep(3)
 
     # Prendre une capture d'écran entière de la page
