@@ -1,9 +1,0 @@
-<div class="modifier">
-    <div class="modifier-icon">
-        <img src="ModifierIcon">
-    </div>
-    <div class="modifier-text">
-        <div class="modifier-title">ModifierName</div>
-        <div class="modifier-detail">ModifierDescription</div>
-    </div>
-</div>

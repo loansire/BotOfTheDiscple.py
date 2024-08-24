@@ -18,7 +18,7 @@ from MaintenanceUpdater import *
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../PythonProject/Source')))
-from PythonProject.Source.LostSectorGenerator import *
+from Sources.LostSector import *
 
 intents = discord.Intents.default()
 intents.message_content = True
