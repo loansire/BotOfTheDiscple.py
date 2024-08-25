@@ -59,8 +59,8 @@ async def get_bungie_rss_articles(language, page_token='0'):
 
 async def get_latest_article_by_keyword(language, keyword):
     # Récupérer tous les articles en anglais et en français
-    english_articles = await get_bungie_rss_articles(api_key, language='en', page_token='0')
-    french_articles = await get_bungie_rss_articles(api_key, language='fr', page_token='0')
+    english_articles = await get_bungie_rss_articles(language='en', page_token='0')
+    french_articles = await get_bungie_rss_articles(language='fr', page_token='0')
 
     if english_articles and 'Response' in english_articles and 'NewsArticles' in english_articles['Response']:
         for item in english_articles['Response']['NewsArticles']:
@@ -104,13 +104,12 @@ async def get_latest_article_by_keyword(language, keyword):
 
 # Exemple d'utilisation
 async def main():
-    API_KEY = '95d66cb52e4d443ea72e729779de4263'
     LANGUAGE = 'en'  # Langue souhaitée (par exemple 'fr' pour français, 'en' pour anglais)
     keyword_twid = 'twid'
     keyword_destiny_2_update = 'destiny_2_update'
 
-    twid, is_french_available = await get_latest_article_by_keyword(API_KEY, language=LANGUAGE, keyword=keyword_twid)
-    destiny_2_update, is_french_available = await get_latest_article_by_keyword(API_KEY, language=LANGUAGE, keyword=keyword_destiny_2_update)
+    twid, is_french_available = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_twid)
+    destiny_2_update, is_french_available = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_destiny_2_update)
 
     if twid:
         if is_french_available:

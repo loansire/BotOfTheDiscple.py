@@ -1,22 +1,16 @@
 from discord.app_commands import default_permissions
-from discord.ext import commands, tasks
-from datetime import timedelta
+from discord.ext import tasks
 
 
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
 from Sources.Bot.RivenWishes import *
 from Sources.Bot.NewsBuilder import *
+from Sources.Bot.LostSectorBuilder import *
+from Sources.Bot.Common import *
 
 
 from Sources.LostSector.LostSectorGenerator import *
-
-
-intents = discord.Intents.default()
-intents.message_content = True
-
-bot = commands.Bot(command_prefix='/', intents=intents)
-
 
 @bot.event
 async def on_ready():
@@ -113,7 +107,6 @@ async def deletmaintenance(interaction: discord.Interaction):
 
 
 # region CatGifGenerator
-# Giphy cat generator
 GIPHY_API_KEY = "xfn2RLhVSMwCP3uQombbvz1r0muPPpDp"
 GIPHY_ENDPOINT = "https://api.giphy.com/v1/gifs/search"
 
@@ -144,150 +137,14 @@ async def chatgif(interaction: discord.Interaction):
 
 
 # region LostSectorPublication
-# Chemin vers le fichier JSON pour stocker les salons d'alerte
-JSON_FILE_PATH = 'Ressources/alert_channels.json'
-# Constants
-FOOTER_ICON_PATH = "Ressources/footer_icon.png"
-LOST_SECTOR_IMAGE_PATH = "Output/Output.png"
-TARGET_HOUR = 19
-TARGET_MINUTE = 00
-
-# Mapping dictionaries
-EMOJI_MAP = {
-    "Cryo": "<:Cryo:1270715011781627904>",
-    "Abyssale": "<:Abyssale:1270715025660711023>",
-    "Solaire": "<:Solaire:1270714993553178624>",
-    "Solaires": "<:Solaire:1270714993553178624>",
-    "Abyssaux": "<:Abyssale:1270715025660711023>",
-    "Cryo-électriques": "<:Cryo:1270715011781627904>",
-    "Brise-bouclier": "<:Bloqueur:1270042102033678388>",
-    "Perturbation": "<:Surcharge:1270042140944236619>",
-    "Chancellement": "<:Implacable:1270042120857849877>"
-}
-
-def load_alert_channels():
-    """Charger les salons d'alerte depuis le fichier JSON"""
-    try:
-        with open(JSON_FILE_PATH, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-def save_alert_channels(alert_channels):
-    """Sauvegarder les salons d'alerte dans le fichier JSON"""
-    with open(JSON_FILE_PATH, 'w') as f:
-        json.dump(alert_channels, f, indent=4)
-
-def format_field(data, title):
-    if not data:
-        return ""
-    lines = [title]
-    for item, count in data.items():
-        lines.append(f"> {EMOJI_MAP.get(item, item)} {count}")
-    return "\n".join(lines)
-
-def create_embed() -> discord.Embed:
-    # Gestion des surcharges
-    surcharges = [EMOJI_MAP.get(surcharge, surcharge) for surcharge in GetSurcharges()]
-
-    # Boucliers et Champions Expert
-    expert_shields = GetShields(True)
-    expert_champs = GetChamps(True)
-
-    # Boucliers et Champions Maitrise
-    maitrise_shields = GetShields(False)
-    maitrise_champs = GetChamps(False)
-
-    # Création de l'embed
-    embed = discord.Embed(
-        description="## " + GetActivityName() + "\n**Récompenses**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
-        colour=0xff7300,
-        timestamp=datetime.now()
-    )
-
-    embed.set_author(
-        name="Secteur oublié du jour",
-        icon_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png"
-    )
-
-    # Ajout des champs pour Expert et Maitrise
-    expert_field_value = format_field(expert_shields, "Boucliers") + "\n" + format_field(expert_champs, "Champions")
-    maitrise_field_value = format_field(maitrise_shields, "Boucliers") + "\n" + format_field(maitrise_champs, "Champions")
-
-    if expert_field_value.strip():
-        embed.add_field(name=f"Expert ({GetPower(True)})", value=expert_field_value.strip(), inline=True)
-
-    if maitrise_field_value.strip():
-        embed.add_field(name=f"Maitrise ({GetPower(False)})", value=maitrise_field_value.strip(), inline=True)
-
-    embed.add_field(name="Surcharges", value=" | ".join(surcharges) if surcharges else "Aucune surcharge définie", inline=False)
-
-    embed.set_image(url="attachment://Output.jpeg")
-    embed.set_thumbnail(url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png")
-    embed.set_footer(text="BotOfTheDisciple", icon_url="attachment://footer_icon.png")
-
-    return embed
-
-async def wait_until_target():
-    # Obtenir l'heure actuelle en fuseau horaire de Paris
-    paris_tz = pytz.timezone('Europe/Paris')
-    now = datetime.now(paris_tz)
-
-    # Définir la date et l'heure spécifiques
-    target_datetime = now.replace(hour=TARGET_HOUR, minute=TARGET_MINUTE, second=0, microsecond=0)
-
-    # Si l'heure actuelle est après l'heure cible, ajuster pour le jour suivant
-    if now > target_datetime:
-        target_datetime += timedelta(days=1)
-
-    # Calculer le nombre de secondes à attendre
-    wait_seconds = (target_datetime - now).total_seconds()
-
-    # Affichage des informations pour débogage
-    print(f"Heure actuelle à Paris : {now.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Heure cible : {target_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Différence brute (jours, heures, minutes, secondes) : {target_datetime - now}")
-    print(f"Différence en secondes : {wait_seconds:.2f} secondes")
-    print(f"Différence en minutes : {(wait_seconds / 60):.2f} minutes")
-    print(f"Différence en heures : {(wait_seconds / 3600):.2f} heures")
-
-    # Attendre jusqu'à l'heure cible
-    await asyncio.sleep(max(wait_seconds, 0))
-
-async def publish_alerts():
-    """Publier les alertes dans tous les salons configurés"""
-    alert_channels = load_alert_channels()
-    for guild_id, channels in alert_channels.items():
-        guild = bot.get_guild(int(guild_id))
-        if guild:
-            for channel_id in channels:
-                channel = guild.get_channel(int(channel_id))
-                if channel and isinstance(channel, discord.TextChannel):
-                    try:
-                        embed = create_embed()
-
-                        # Créer les objets discord.File pour les images
-                        footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
-                        lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
-
-                        # Envoyer le message avec l'embed et les fichiers d'icône et d'image
-                        await channel.send(embed=embed, files=[footer_icon_file, lost_sector_image_file])
-                    except Exception as e:
-                        print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
-
 @bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
     try:
         embed = create_embed()
-
-        # Créer les objets discord.File pour les images
         footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
         lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
-
-        # Envoyer le message avec l'embed et les fichiers d'icône et d'image
         await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
-
-    except Exception as e:
+    except discord.DiscordException as e:
         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: {e}", ephemeral=True)
         print(f"Erreur: {e}")
 
@@ -299,7 +156,6 @@ async def today_lost_sector(interaction: discord.Interaction):
 ])
 @default_permissions(administrator=True)
 async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choice[str]):
-    """Commandes pour ajouter ou retirer des salons de la liste d'alertes"""
     alert_channels = load_alert_channels()
     guild_id = str(interaction.guild.id)
 
@@ -315,7 +171,7 @@ async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choic
     elif action.value == 'retirer':
         if guild_id in alert_channels and str(interaction.channel.id) in alert_channels[guild_id]:
             alert_channels[guild_id].remove(str(interaction.channel.id))
-            if not alert_channels[guild_id]:  # Supprimer l'entrée si la liste est vide
+            if not alert_channels[guild_id]:
                 del alert_channels[guild_id]
             save_alert_channels(alert_channels)
             await interaction.response.send_message(f":wastebasket: Ce salon ({interaction.channel.name}) a été retiré des alertes.")
@@ -324,14 +180,13 @@ async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choic
     else:
         await interaction.response.send_message(":x: Action invalide. Utilisez 'ajouter' ou 'retirer'.")
 
-@bot.tree.command(name="ls-updade", description="Force la publication des alertes pour tous les salons configurés.")
+@bot.tree.command(name="ls-update", description="Force la publication des alertes pour tous les salons configurés.")
 @default_permissions(administrator=True)
 async def force_update_ls(interaction: discord.Interaction):
-    """Force la mise à jour et la publication des alertes des Secteurs Oubliés."""
     try:
         await publish_alerts()
         await interaction.response.send_message("Les alertes ont été publiées avec succès.", ephemeral=True)
-    except Exception as e:
+    except discord.DiscordException as e:
         await interaction.response.send_message(f"Erreur lors de la publication des alertes: {e}", ephemeral=True)
         print(f"Erreur lors de la commande /forceupdate-ls: {e}")
 
@@ -339,7 +194,6 @@ async def force_update_ls(interaction: discord.Interaction):
 async def daily_update():
     await wait_until_target()
     print("Début de la mise à jour quotidienne.")
-
     try:
         GenerateActivity()
         print("L'activité a été mise à jour.")
@@ -348,7 +202,6 @@ async def daily_update():
         print("Alerte quotidienne publiée !")
     except Exception as e:
         print(f"Erreur lors de la mise à jour quotidienne : {e}")
-
     print("Fin de la mise à jour quotidienne.")
 # endregion
 

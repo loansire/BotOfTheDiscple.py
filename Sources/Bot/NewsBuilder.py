@@ -1,4 +1,4 @@
-from discord.ui import Button
+from discord.ui import Button, View
 import discord
 
 from Sources.Bot.BungieNewsRequest import *
@@ -104,6 +104,7 @@ class ArticleLanguageView(View):
             self.selected_language = 'fr'
             self.is_both_language = is_both_language
             await self.update_embed(interaction, 'fr')
+
 
 async def news_article_command(interaction: discord.Interaction, language: str, keyword: str, no_article_message: str):
     # Utilisation de la fonction générique avec le mot-clé
