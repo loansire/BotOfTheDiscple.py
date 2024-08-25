@@ -1,6 +1,6 @@
 import json
 
-from Utils import Config
+from Sources.Utils import Config
 
 
 def main(destination_hash):

@@ -15,3 +15,7 @@ CELL_SHIELD_M = {"Solaires" : "N2", "Abyssaux" : "O2", "Cryo-électriques" : "P2
 
 #Cell Shields Maitrise
 CELL_CHAMP_M = {"Brise-bouclier" : "S2", "Perturbation" : "T2","Chancellement" : "U2"} 
+
+CELL_HOUR = "G1"
+
+CELL_UPDATE = "Z1"

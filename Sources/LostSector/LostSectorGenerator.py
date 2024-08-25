@@ -4,12 +4,12 @@ import os
 from turtle import down
 
 #import intern
-from Utils import Config
-from Utils import Download
-from Utils import GgdocAPI
-from Utils import Result
-from Utils import ModifierModif
-from Utils import ActivityInfos
+from Sources.Utils import Config
+from Sources.Utils import Download
+from Sources.Utils import GgdocAPI
+from Sources.Utils import Result
+from Sources.Utils import ModifierModif
+from Sources.Utils import ActivityInfos
 
 from .Manifests import JsonReader
 from .Manifests import ActivityDefinition

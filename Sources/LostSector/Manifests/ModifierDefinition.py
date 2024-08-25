@@ -1,6 +1,6 @@
 import json
 
-from Utils import Config
+from Sources.Utils import Config
 
 def main(modif_hashes_expert, modif_hashes_maitrise):
 	with open(Config.MF_MODIFIER_FILENAME, "r", encoding='utf-8') as file:

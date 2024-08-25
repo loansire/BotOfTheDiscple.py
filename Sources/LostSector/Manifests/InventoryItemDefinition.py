@@ -1,6 +1,6 @@
 import json
 
-from Utils import Config
+from Sources.Utils import Config
 
 def main(ii_hashes):
 	with open(Config.MF_II_FILENAME, "r", encoding='utf-8') as file:

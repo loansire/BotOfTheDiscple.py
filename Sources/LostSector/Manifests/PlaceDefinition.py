@@ -1,6 +1,6 @@
 import json
 
-from Utils import Config
+from Sources.Utils import Config
 
 def main(place_hash):
 	with open(Config.MF_PLACE_FILENAME, "r", encoding='utf-8') as file:

@@ -2,9 +2,9 @@ import html
 from bs4 import BeautifulSoup
 
 from . import HtmlDefines
-from Utils import Dictionnary
-from Utils import Config
-from Utils import HTMLToPNG
+from Sources.Utils import Dictionnary
+from Sources.Utils import Config
+from Sources.Utils import HTMLToPNG
 
 
 

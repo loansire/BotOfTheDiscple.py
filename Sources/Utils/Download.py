@@ -2,7 +2,7 @@ import requests
 import json
 import time
 import logging
-from Utils import Config
+from Sources.Utils import Config
 
 # Fonction pour télécharger le manifeste complet
 def download_manifest(url_to_download, output_file, max_retries=3, backoff_factor=1):

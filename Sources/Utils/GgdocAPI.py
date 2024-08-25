@@ -8,24 +8,17 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import gspread
 
-from Utils import Config
-from Utils import CellDefines
+from Sources.Utils import Config
+from Sources.Utils import CellDefines
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 def main():
     
-    creds = token()
-    
-    client = gspread.authorize(creds)
-    
-    spreadsheet = client.open("LostSectorDatabase")
+    spreadsheet = ConnectGgdoc()
     sheet = spreadsheet.get_worksheet(2)
-    
-    #Just for update
-    sheet.update_acell('C10', 'trigger')
-    sheet.update_acell('C10', '')
+    UpdateGgDoc(sheet)
     
     #Get infos
     activity_name = sheet.acell(CellDefines.CELL_NAME).value
@@ -74,6 +67,20 @@ def main():
 
     return activity_name, surcharge1, surcharge2, power_E, power_M, shields_E, shields_M, champs_E, champs_M 
 
+def ConnectGgdoc():
+    creds = token()
+    
+    client = gspread.authorize(creds)
+    
+    spreadsheet = client.open("LostSectorDatabase")
+    
+    return spreadsheet
+
+def UpdateGgDoc(sheet):
+    #Just for update
+    sheet.update_acell(CellDefines.CELL_UPDATE, 'trigger')
+    sheet.update_acell(CellDefines.CELL_UPDATE, '')
+
 def token():
     creds = None
     if(os.path.exists(Config.TOKEN_GGDOC)):
@@ -89,4 +96,13 @@ def token():
             token.write(creds.to_json())
             
     return creds
+
+def GetResetHour():
+    spreadsheet = ConnectGgdoc()
+    sheet = spreadsheet.get_worksheet(0  )
+    UpdateGgDoc(sheet)
+    
+    hour = (sheet.acell(CellDefines.CELL_HOUR).value).split(":")
+    
+    return hour
     

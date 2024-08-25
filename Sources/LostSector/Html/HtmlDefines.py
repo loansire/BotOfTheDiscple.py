@@ -1,4 +1,4 @@
-﻿from Utils import Config
+﻿from Sources.Utils import Config
 
 TEMPLATE_PATH = Config.RessourcePath(r"Template.html")
 OUTPUT_PATH = Config.OutputPath(r'Output.html')

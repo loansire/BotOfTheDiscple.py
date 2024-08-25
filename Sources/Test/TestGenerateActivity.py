@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
-import os
-
 from Sources.LostSector.LostSectorGenerator import GenerateActivity, GetActivityName, GetPower, GetShields, GetChamps, GetSurcharges
 
 def main():

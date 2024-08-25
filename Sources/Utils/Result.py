@@ -1,7 +1,7 @@
 import json
 import os
 
-from Utils import Config
+from Sources.Utils import Config
 
 def WriteResult(filename, activity_name, activity_description, activity_place, activity_destination, pgcr_image, rewards, modifiers):
 
