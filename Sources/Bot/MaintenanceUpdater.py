@@ -85,7 +85,7 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
 
         except ValueError as e:
             await interaction.response.send_message(
-                f"Erreur dans la conversion des dates et heures: *{e}*",
+                f"Erreur dans la conversion des dates et heures: `{e}`",
                 ephemeral=True
             )
 

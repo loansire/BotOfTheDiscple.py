@@ -12,14 +12,15 @@ from Sources.Bot.Common import *
 
 from Sources.LostSector.LostSectorGenerator import *
 
+
 @bot.event
 async def on_ready():
     # Synchronisation des commandes
     await bot.tree.sync()
 
     # Configuration de la présence du bot
-    ##activity = discord.Game(name="Tapez /help pour commencer!")
-    ##await bot.change_presence(status=discord.Status.online, activity=activity)
+    #activity = discord.Game(name="Tapez /help pour commencer!")
+    #await bot.change_presence(status=discord.Status.online, activity=activity)
 
     print(f'Bot is ready. Logged in as {bot.user}')
 
@@ -80,6 +81,7 @@ async def on_message(message):
     if message.channel.id == target_channel_id:
         await process_message(message)
 
+
 @bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
 async def maintenance(interaction: discord.Interaction):
     try:
@@ -90,10 +92,12 @@ async def maintenance(interaction: discord.Interaction):
             "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
             ephemeral=True)
 
+
 @bot.tree.command(name="maintenance-update", description="Met à jour les informations de maintenance")
 @default_permissions(administrator=True)
 async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
+
 
 @bot.tree.command(name="maintenance-delete", description="Supprime les informations de maintenance configurées")
 @default_permissions(administrator=True)
@@ -109,6 +113,7 @@ async def deletmaintenance(interaction: discord.Interaction):
 # region CatGifGenerator
 GIPHY_API_KEY = "xfn2RLhVSMwCP3uQombbvz1r0muPPpDp"
 GIPHY_ENDPOINT = "https://api.giphy.com/v1/gifs/search"
+
 
 @bot.tree.command(name="cat", description="Envoie un GIF de chat aléatoire")
 async def chatgif(interaction: discord.Interaction):
@@ -129,15 +134,15 @@ async def chatgif(interaction: discord.Interaction):
             gif_url = random.choice(data["data"])["url"]
             await interaction.response.send_message(gif_url)
         else:
-            await interaction.response.send_message("Je n'ai pas pu trouver de GIF de chat 😿")
+            await interaction.response.send_message("Je n'ai pas pu trouver de GIF de chat 😿", ephemeral=True)
     except Exception as e:
-        await interaction.response.send_message("Une erreur est survenue 😿")
+        await interaction.response.send_message("Une erreur est survenue: `{e}` 😿", ephemeral=True)
         print(f"Erreur lors de l'exécution de la commande /cat : {e}")
 # endregion
 
 
 # region LostSectorPublication
-@bot.tree.command(name="ls", description="Obtenez les informations du Secteur Oublié du jour")
+@bot.tree.command(name="lost-sector", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
     try:
         embed = create_embed()
@@ -145,64 +150,8 @@ async def today_lost_sector(interaction: discord.Interaction):
         lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
         await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
     except discord.DiscordException as e:
-        await interaction.response.send_message(f"Erreur lors de la génération de l'activité: {e}", ephemeral=True)
+        await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
         print(f"Erreur: {e}")
-
-@bot.tree.command(name="ls-alert", description="Configure les alertes pour ce salon")
-@app_commands.describe(action="Ajouter ou retirer ce salon des alertes")
-@app_commands.choices(action=[
-    app_commands.Choice(name="Ajouter", value="ajouter"),
-    app_commands.Choice(name="Retirer", value="retirer")
-])
-@default_permissions(administrator=True)
-async def alerte_ls(interaction: discord.Interaction, action: app_commands.Choice[str]):
-    alert_channels = load_alert_channels()
-    guild_id = str(interaction.guild.id)
-
-    if action.value == 'ajouter':
-        if guild_id not in alert_channels:
-            alert_channels[guild_id] = []
-        if str(interaction.channel.id) not in alert_channels[guild_id]:
-            alert_channels[guild_id].append(str(interaction.channel.id))
-            save_alert_channels(alert_channels)
-            await interaction.response.send_message(f":white_check_mark: Ce salon ({interaction.channel.name}) a été ajouté aux alertes.")
-        else:
-            await interaction.response.send_message(":x: Ce salon est déjà configuré pour les alertes.")
-    elif action.value == 'retirer':
-        if guild_id in alert_channels and str(interaction.channel.id) in alert_channels[guild_id]:
-            alert_channels[guild_id].remove(str(interaction.channel.id))
-            if not alert_channels[guild_id]:
-                del alert_channels[guild_id]
-            save_alert_channels(alert_channels)
-            await interaction.response.send_message(f":wastebasket: Ce salon ({interaction.channel.name}) a été retiré des alertes.")
-        else:
-            await interaction.response.send_message(":x: Ce salon n'est pas configuré pour les alertes.")
-    else:
-        await interaction.response.send_message(":x: Action invalide. Utilisez 'ajouter' ou 'retirer'.")
-
-@bot.tree.command(name="ls-update", description="Force la publication des alertes pour tous les salons configurés.")
-@default_permissions(administrator=True)
-async def force_update_ls(interaction: discord.Interaction):
-    try:
-        await publish_alerts()
-        await interaction.response.send_message("Les alertes ont été publiées avec succès.", ephemeral=True)
-    except discord.DiscordException as e:
-        await interaction.response.send_message(f"Erreur lors de la publication des alertes: {e}", ephemeral=True)
-        print(f"Erreur lors de la commande /forceupdate-ls: {e}")
-
-@tasks.loop(hours=24)
-async def daily_update():
-    await wait_until_target()
-    print("Début de la mise à jour quotidienne.")
-    try:
-        GenerateActivity()
-        print("L'activité a été mise à jour.")
-        print("Publication en cours ...")
-        await publish_alerts()
-        print("Alerte quotidienne publiée !")
-    except Exception as e:
-        print(f"Erreur lors de la mise à jour quotidienne : {e}")
-    print("Fin de la mise à jour quotidienne.")
 # endregion
 
 
@@ -222,6 +171,7 @@ async def random_raidpick(interaction: discord.Interaction, raid1: str = None, r
                           raid4: str = None, raid5: str = None, raid6: str = None):
     # Appeler la fonction générique pour traiter la commande de raid
     await random_pick(interaction, [raid1, raid2, raid3, raid4, raid5, raid6], raid_data, "Raid", "Raid")
+
 
 @bot.tree.command(name="randomizer-dungeon", description="Choisir aléatoirement un donjon")
 @app_commands.describe(
@@ -273,6 +223,7 @@ async def classe_autocomplete(interaction: discord.Interaction, current: str):
         discord.app_commands.Choice(name=classe, value=classe)
         for classe in classes_valides if current.lower() in classe.lower()
     ]
+
 
 # Définir la commande /randomize-prismatic
 @bot.tree.command(name="randomize-prismatic", description="Génère un setup de Prismatique aléatoire pour une classe donnée.")
@@ -333,6 +284,7 @@ async def twid(interaction: discord.Interaction, language: str):
         no_article_message="Aucun article TWID/TWAB trouvé."
     )
 
+
 @bot.tree.command(name='twab', description="Affiche la TWAB la plus récente. Rien que pour Nexus o7")
 @app_commands.describe(language="Langue de l'article")
 @app_commands.choices(language=[
@@ -347,6 +299,7 @@ async def twab(interaction: discord.Interaction, language: str):
         no_article_message="Aucun article TWID/TWAB trouvé."
     )
 
+
 @bot.tree.command(name='patch-note', description="Affiche le dernier patch note Destiny 2.")
 @app_commands.describe(language="Langue de l'article")
 @app_commands.choices(language=[
@@ -360,6 +313,100 @@ async def patch_note(interaction: discord.Interaction, language: str):
         keyword='destiny_2_update',
         no_article_message="Aucun article de patch note trouvé."
     )
+# endregion
+
+
+# region AlertCommand
+@bot.tree.command(name="alert", description="Configure des alertes de contenu du jeu.")
+@app_commands.describe(alert_type="Type d'alerte (Twid, Patch Note, Maintenance, Secteur Oublié)", action="Ajouter ou retirer ce salon des alertes")
+@app_commands.choices(alert_type=[
+    app_commands.Choice(name="Twid", value="Twid"),
+    app_commands.Choice(name="Secteur Oublié", value="Secteur_Oublie"),
+    app_commands.Choice(name="Patch Note", value="Patch_Note"),
+    app_commands.Choice(name="Maintenance", value="Maintenance")
+])
+@app_commands.choices(action=[
+    app_commands.Choice(name="Ajouter", value="ajouter"),
+    app_commands.Choice(name="Retirer", value="retirer")
+])
+@default_permissions(administrator=True)
+async def alert(interaction: discord.Interaction, alert_type: app_commands.Choice[str], action: app_commands.Choice[str]):
+    alert_channels = load_alert_channels(alert_type.value)
+    guild_id = str(interaction.guild.id)
+
+    if action.value == 'ajouter':
+        if guild_id not in alert_channels:
+            alert_channels[guild_id] = []
+        if str(interaction.channel.id) not in alert_channels[guild_id]:
+            alert_channels[guild_id].append(str(interaction.channel.id))
+            save_alert_channels(alert_type.value, alert_channels)
+            await interaction.response.send_message(f":white_check_mark: <#{interaction.channel.id}> a été ajouté aux alertes de `{alert_type.name}`.")
+        else:
+            await interaction.response.send_message(f":x: <#{interaction.channel.id}> est déjà configuré pour les alertes.", ephemeral=True)
+    elif action.value == 'retirer':
+        if guild_id in alert_channels and str(interaction.channel.id) in alert_channels[guild_id]:
+            alert_channels[guild_id].remove(str(interaction.channel.id))
+            if not alert_channels[guild_id]:
+                del alert_channels[guild_id]
+            save_alert_channels(alert_type.value, alert_channels)
+            await interaction.response.send_message(f":wastebasket: <#{interaction.channel.id}> a été retiré des alertes de `{alert_type.name}`.")
+        else:
+            await interaction.response.send_message(f":x: <#{interaction.channel.id}> n'est pas configuré pour les alertes `{alert_type.name}`.", ephemeral=True)
+    else:
+        await interaction.response.send_message(":x: Action invalide. Utilisez 'ajouter' ou 'retirer'.", ephemeral=True)
+
+
+@bot.tree.command(name="force-update",
+                  description="Force la publication des alertes pour un type donné ou tous les types.")
+@app_commands.describe(alert_type="Type d'alerte")
+@app_commands.choices(alert_type=[
+    app_commands.Choice(name="Secteur Oublié", value="Secteur_Oublie"),
+    app_commands.Choice(name="Twid", value="Twid"),
+    app_commands.Choice(name="Patch Note", value="Patch_Note"),
+    app_commands.Choice(name="Maintenance", value="Maintenance"),
+    app_commands.Choice(name="Tous", value="All")
+])
+@default_permissions(administrator=True)
+async def force_update_alert(interaction: discord.Interaction, alert_type: app_commands.Choice[str]):
+
+    allowed_user_id = 222465158075777035
+
+    if interaction.user.id != allowed_user_id:
+        print(f"{interaction.user.id} is trying to use the forbidden command")
+        await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.",
+                                                ephemeral=True)
+        return
+
+    try:
+        if alert_type.value == "All":
+            alert_types = ["Secteur_Oublie", "Twid", "Patch_Note", "Maintenance"]
+            for alert_type in alert_types:
+                await publish_alerts(alert_type)
+            await interaction.response.send_message(":white_check_mark: Les alertes pour tous les types ont été publiées avec succès.",
+                                                    ephemeral=True)
+        else:
+            await publish_alerts(alert_type.value)
+            await interaction.response.send_message(f":white_check_mark: Les alertes pour `{alert_type.name}` ont été publiées avec succès.",
+                                                    ephemeral=True)
+    except discord.DiscordException as e:
+        await interaction.response.send_message(
+            f":x: Erreur lors de la publication des alertes pour `{alert_type.name}`: `{e}`", ephemeral=True)
+        print(f":x: Erreur lors de la commande /force-update pour {alert_type.name}: {e}")
+
+
+@tasks.loop(hours=24)
+async def daily_update():
+    await wait_until_target()
+    print("Début de la mise à jour quotidienne.")
+    try:
+        GenerateActivity()
+        print("L'activité a été mise à jour.")
+        print("Publication en cours ...")
+        await publish_alerts("Secteur_Oublie")
+        print("Alerte quotidienne publiée !")
+    except Exception as e:
+        print(f"Erreur lors de la mise à jour quotidienne : {e}")
+    print("Fin de la mise à jour quotidienne.")
 # endregion
 
 

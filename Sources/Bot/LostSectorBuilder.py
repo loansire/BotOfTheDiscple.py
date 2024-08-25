@@ -4,6 +4,7 @@ import pytz
 from datetime import datetime, timedelta
 
 from Sources.Bot.Common import *
+from Sources.Bot.AlertMessageBuilder import *
 from Sources.LostSector.LostSectorGenerator import *
 
 
@@ -26,20 +27,6 @@ EMOJI_MAP = {
     "Perturbation": "<:Surcharge:1270042140944236619>",
     "Chancellement": "<:Implacable:1270042120857849877>"
 }
-
-
-def load_alert_channels() -> dict:
-    """Charger les salons d'alerte depuis le fichier JSON"""
-    if not os.path.exists(JSON_FILE_PATH):
-        return {}
-    with open(JSON_FILE_PATH, 'r') as f:
-        return json.load(f)
-
-
-def save_alert_channels(alert_channels: dict):
-    """Sauvegarder les salons d'alerte dans le fichier JSON"""
-    with open(JSON_FILE_PATH, 'w') as f:
-        json.dump(alert_channels, f, indent=4)
 
 
 def format_field(data: dict, title: str) -> str:
@@ -97,11 +84,13 @@ async def wait_until_target():
     print(f"Heure cible : {target_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Différence brute (jours, heures, minutes, secondes) : {target_datetime - now}")
     print(f"Différence en secondes : {wait_seconds:.2f} secondes")
+    print(f"Différence en minutes : {(wait_seconds / 60):.2f} minutes")
+    print(f"Différence en heures : {(wait_seconds / 3600):.2f} heures")
     await asyncio.sleep(max(wait_seconds, 0))
 
 
-async def publish_alerts():
-    alert_channels = load_alert_channels()
+async def publish_alerts(alert_type):
+    alert_channels = load_alert_channels(alert_type)
     for guild_id, channels in alert_channels.items():
         guild = bot.get_guild(int(guild_id))
         if guild:
