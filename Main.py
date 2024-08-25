@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from Sources.Bot import TestGenerateActivity
+from Sources.Bot import BotOfTheDiciple
 
 
 def main():
-    TestGenerateActivity.main()
+    BotOfTheDiciple.main()
 
 if __name__ == "__main__":
     main()

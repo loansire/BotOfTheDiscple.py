@@ -5,6 +5,9 @@ import json
 import asyncio
 
 
+api_key = '95d66cb52e4d443ea72e729779de4263'
+
+
 async def extract_version_from_title(title):
     # Expression régulière pour extraire la version du titre
     match = re.search(r"Mise à jour (\d+\.\d+\.\d+\.\d+) de Destiny 2", title)
@@ -35,7 +38,7 @@ async def reformat_pubdate(item):
 async def pretty_print_json(data):
     print(json.dumps(data, indent=4, ensure_ascii=False))
 
-async def get_bungie_rss_articles(api_key, language, page_token='0'):
+async def get_bungie_rss_articles(language, page_token='0'):
     url = f"https://www.bungie.net/Platform/Content/Rss/NewsArticles/{page_token}/"
 
     headers = {
@@ -54,7 +57,7 @@ async def get_bungie_rss_articles(api_key, language, page_token='0'):
                 return None
 
 
-async def get_latest_article_by_keyword(api_key, language, keyword):
+async def get_latest_article_by_keyword(language, keyword):
     # Récupérer tous les articles en anglais et en français
     english_articles = await get_bungie_rss_articles(api_key, language='en', page_token='0')
     french_articles = await get_bungie_rss_articles(api_key, language='fr', page_token='0')
