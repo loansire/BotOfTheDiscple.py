@@ -22,7 +22,7 @@ def format_field(data: dict, title: str) -> str:
     return "\n".join(lines)
 
 
-def secteur_oublie_embed() -> discord.Embed:
+def secteur_oublie_embed():
     surcharges = [EMOJI_MAP.get(surcharge, surcharge) for surcharge in GetSurcharges()]
     expert_shields = GetShields(True)
     expert_champs = GetChamps(True)
@@ -35,24 +35,47 @@ def secteur_oublie_embed() -> discord.Embed:
     fields = []
 
     if expert_field_value.strip():
-        fields.append({"name": f"Expert ({GetPower(True)})", "value": expert_field_value.strip(), "inline": True})
+        fields.append({
+            "name": f"Expert ({GetPower(True)})",
+            "value": expert_field_value.strip(),
+            "inline": True
+        })
 
     if maitrise_field_value.strip():
-        fields.append({"name": f"Maitrise ({GetPower(False)})", "value": maitrise_field_value.strip(), "inline": True})
+        fields.append({
+            "name": f"Maitrise ({GetPower(False)})",
+            "value": maitrise_field_value.strip(),
+            "inline": True
+        })
 
-    fields.append({"name": "Surcharges", "value": " | ".join(surcharges) if surcharges else "Aucune surcharge définie", "inline": False})
+    fields.append({
+        "name": "Surcharges",
+        "value": " | ".join(surcharges) if surcharges else "Aucune surcharge définie",
+        "inline": False
+    })
 
-    embed = create_custom_embed(
+    image_path = "Output/Output.png"  # Assurez-vous que le chemin et l'extension correspondent
+    footer_icon_path = "Ressources/footer_icon.png"
+
+    image_file = discord.File(image_path, filename="Output.png")  # Assurez-vous que le nom du fichier correspond
+    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+
+    files = [image_file, footer_icon_file]
+
+    # Création de l'embed avec la fonction générique
+    embed, components, _ = create_embed_with_components(
         description="## " + GetActivityName() + "\n**Récompenses**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
         color=0xff7300,
         author="Secteur oublié du jour",
         author_icon_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png",
         thumbnail_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png",
-        image_url="attachment://Output.jpeg",
+        image_url="attachment://Output.png",
         fields=fields,
         footer_text="BotOfTheDisciple",
         footer_icon_url="attachment://footer_icon.png",
-        add_date_to_footer=True
+        add_date_to_footer=True,
+        buttons=None,
+        files=files
     )
 
-    return embed
+    return embed, files

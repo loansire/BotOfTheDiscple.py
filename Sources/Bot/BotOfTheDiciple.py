@@ -1,8 +1,7 @@
 from discord.app_commands import default_permissions
 from discord.ext import tasks
 
-from Sources.Bot.AlertMessageBuilder import FOOTER_ICON_PATH, LOST_SECTOR_IMAGE_PATH, load_alert_channels, \
-    save_alert_channels, publish_alerts, wait_until_target
+from Sources.Bot.AlertMessageBuilder import load_alert_channels, save_alert_channels, publish_alerts, wait_until_target
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
 from Sources.Bot.RivenWishes import *
@@ -86,11 +85,12 @@ async def on_message(message):
 @bot.tree.command(name="maintenance", description="Publie un message contenant les dernières informations de maintenance")
 async def maintenance(interaction: discord.Interaction):
     try:
-        embed, files, view = create_maintenance_embed_view()
+        embed, files, view = maintenance_embed()
         await interaction.response.send_message(embed=embed, files=files, view=view)
     except ValueError:
-        await interaction.response.send_message(
-            ":x: Il n'y a pas de maintenance de Destiny 2 prévue pour le moment.")
+        await interaction.response.send_message(":x: Il n'y a pas de maintenance de Destiny 2 prévue pour le moment.")
+    except discord.DiscordException as e:
+        await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
 
 
 @bot.tree.command(name="maintenance-update", description="Met à jour les informations de maintenance")
@@ -145,10 +145,8 @@ async def chatgif(interaction: discord.Interaction):
 @bot.tree.command(name="lost-sector", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
     try:
-        embed = secteur_oublie_embed()
-        footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
-        lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
-        await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
+        embed, files = secteur_oublie_embed()
+        await interaction.response.send_message(embed=embed, files=files)
     except discord.DiscordException as e:
         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
         print(f"Erreur: {e}")
