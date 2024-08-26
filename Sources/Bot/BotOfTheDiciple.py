@@ -1,7 +1,8 @@
 from discord.app_commands import default_permissions
 from discord.ext import tasks
 
-
+from Sources.Bot.AlertMessageBuilder import FOOTER_ICON_PATH, LOST_SECTOR_IMAGE_PATH, load_alert_channels, \
+    save_alert_channels, publish_alerts, wait_until_target
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
 from Sources.Bot.RivenWishes import *
@@ -145,7 +146,7 @@ async def chatgif(interaction: discord.Interaction):
 @bot.tree.command(name="lost-sector", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
     try:
-        embed = create_embed()
+        embed = secteur_oublie_embed()
         footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
         lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
         await interaction.response.send_message(embed=embed, files=[footer_icon_file, lost_sector_image_file])
