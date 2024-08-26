@@ -90,8 +90,7 @@ async def maintenance(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed, files=files, view=view)
     except ValueError:
         await interaction.response.send_message(
-            "Les informations de maintenance n'ont pas été configurées. Utilisez la commande /updatemaintenance pour les configurer.",
-            ephemeral=True)
+            ":x: Il n'y a pas de maintenance de Destiny 2 prévue pour le moment.")
 
 
 @bot.tree.command(name="maintenance-update", description="Met à jour les informations de maintenance")
