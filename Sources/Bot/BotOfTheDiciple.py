@@ -32,7 +32,7 @@ async def on_ready():
     # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    GenerateActivity()
+    GenerateActivity(False)
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
     daily_update.start()
@@ -258,7 +258,7 @@ async def randomize_prismatic(interaction: discord.Interaction, classe: str):
     )
 
     # Chemins des images
-    bg_image_path = f"Ressources/PrismaticRandomizer/{classe}_BG.png"
+    bg_image_path = f"Ressources/PrismaticRandomizer/{classe}Result.png"
     thumbnail_image_path = f"Ressources/PrismaticRandomizer/{classe}_prismatique.jpg"
 
     # Vérification de l'existence des fichiers
