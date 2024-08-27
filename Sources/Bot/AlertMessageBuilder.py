@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from Sources.Bot.Common import *
 from Sources.Bot.LostSectorBuilder import secteur_oublie_embed
+from Sources.Bot.MaintenanceUpdater import maintenance_embed
 from Sources.Utils.GgdocAPI import GetResetHour
 
 ALERTS_DIR = 'Ressources/AlertDatabase'
@@ -25,25 +26,41 @@ def save_alert_channels(alert_type, data):
         json.dump(data, file, indent=4)
 
 
-FOOTER_ICON_PATH = "Ressources/footer_icon.png"
-LOST_SECTOR_IMAGE_PATH = "Output/Output.png"
-
-
 async def publish_alerts(alert_type):
     alert_channels = load_alert_channels(alert_type)
+    any_success = False  # Variable pour vérifier si au moins une publication a réussi
+
     for guild_id, channels in alert_channels.items():
         guild = bot.get_guild(int(guild_id))
+
         if guild:
             for channel_id in channels:
                 channel = guild.get_channel(int(channel_id))
+
                 if channel and isinstance(channel, discord.TextChannel):
                     try:
-                        embed = secteur_oublie_embed()
-                        footer_icon_file = discord.File(FOOTER_ICON_PATH, filename="footer_icon.png")
-                        lost_sector_image_file = discord.File(LOST_SECTOR_IMAGE_PATH, filename="Output.jpeg")
-                        await channel.send(embed=embed, files=[footer_icon_file, lost_sector_image_file])
+                        # Choisissez la fonction d'embed en fonction du type d'alerte
+                        if alert_type == "secteur_oublie":
+                            embed, files = secteur_oublie_embed()
+                            view = None
+                        elif alert_type == "maintenance":
+                            embed, files, view = maintenance_embed()
+                        else:
+                            print(f"Type d'alerte inconnu : {alert_type}")
+                            continue
+
+                        # Envoyer le message avec ou sans vue
+                        if view:
+                            await channel.send(embed=embed, files=files, view=view)
+                        else:
+                            await channel.send(embed=embed, files=files)
+
+                        any_success = True  # Marquer comme réussi si l'envoi est effectué
+
                     except discord.DiscordException as e:
                         print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
+
+    return any_success
 
 
 target_time = GetResetHour()

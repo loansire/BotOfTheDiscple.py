@@ -96,17 +96,32 @@ async def maintenance(interaction: discord.Interaction):
 @bot.tree.command(name="maintenance-update", description="Met à jour les informations de maintenance")
 @default_permissions(administrator=True)
 async def updatemaintenance(interaction: discord.Interaction):
+    allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
+
+    if interaction.user.id != allowed_user_id:
+        print(f"{interaction.user.id} is trying to use the forbidden command")
+        await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
+
     await interaction.response.send_modal(UpdateMaintenanceModal())
 
 
 @bot.tree.command(name="maintenance-delete", description="Supprime les informations de maintenance configurées")
 @default_permissions(administrator=True)
 async def deletmaintenance(interaction: discord.Interaction):
+    allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
+
+    if interaction.user.id != allowed_user_id:
+        print(f"{interaction.user.id} is trying to use the forbidden command")
+        await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
+
     if os.path.exists("Ressources/Maintenance/maintenance_info.json"):
         os.remove("Ressources/Maintenance/maintenance_info.json")
         await interaction.response.send_message(":wastebasket: Les informations de maintenance ont été supprimées.")
     else:
         await interaction.response.send_message(":x: Aucune information de maintenance trouvée.", ephemeral=True)
+
 # endregion
 
 
@@ -358,10 +373,10 @@ async def alert(interaction: discord.Interaction, alert_type: app_commands.Choic
                   description="Force la publication des alertes pour un type donné ou tous les types.")
 @app_commands.describe(alert_type="Type d'alerte")
 @app_commands.choices(alert_type=[
-    app_commands.Choice(name="Secteur Oublié", value="Secteur_Oublie"),
-    app_commands.Choice(name="Twid", value="Twid"),
-    app_commands.Choice(name="Patch Note", value="Patch_Note"),
-    app_commands.Choice(name="Maintenance", value="Maintenance"),
+    app_commands.Choice(name="Secteur Oublié", value="secteur_oublie"),
+    app_commands.Choice(name="Twid", value="twid"),
+    app_commands.Choice(name="Patch Note", value="patch_note"),
+    app_commands.Choice(name="Maintenance", value="maintenance"),
     app_commands.Choice(name="Tous", value="All")
 ])
 @default_permissions(administrator=True)
@@ -371,25 +386,39 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
 
     if interaction.user.id != allowed_user_id:
         print(f"{interaction.user.id} is trying to use the forbidden command")
-        await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.",
-                                                ephemeral=True)
+        await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
 
     try:
         if alert_type.value == "All":
-            alert_types = ["Secteur_Oublie", "Twid", "Patch_Note", "Maintenance"]
+            alert_types = ["secteur_oublie", "twid", "patch_note", "maintenance"]
+            all_success = True
+
             for alert_type in alert_types:
-                await publish_alerts(alert_type)
-            await interaction.response.send_message(":white_check_mark: Les alertes pour tous les types ont été publiées avec succès.",
-                                                    ephemeral=True)
+                success = await publish_alerts(alert_type)
+                if not success:
+                    all_success = False
+
+            if all_success:
+                await interaction.response.send_message(":white_check_mark: Les alertes pour tous les types ont été publiées avec succès.",
+                                                        ephemeral=True)
+            else:
+                await interaction.response.send_message(":warning: Les alertes pour certains types n'ont pas pu être publiées.",
+                                                        ephemeral=True)
         else:
-            await publish_alerts(alert_type.value)
-            await interaction.response.send_message(f":white_check_mark: Les alertes pour `{alert_type.name}` ont été publiées avec succès.",
-                                                    ephemeral=True)
+            success = await publish_alerts(alert_type.value)
+            if success:
+                await interaction.response.send_message(f":white_check_mark: Les alertes pour `{alert_type.name}` ont été publiées avec succès.",
+                                                        ephemeral=True)
+            else:
+                await interaction.response.send_message(f":warning: Les alertes pour `{alert_type.name}` n'ont pas pu être publiées.",
+                                                        ephemeral=True)
+
     except discord.DiscordException as e:
         await interaction.response.send_message(
             f":x: Erreur lors de la publication des alertes pour `{alert_type.name}`: `{e}`", ephemeral=True)
         print(f":x: Erreur lors de la commande /force-update pour {alert_type.name}: {e}")
+
 
 
 @tasks.loop(hours=24)

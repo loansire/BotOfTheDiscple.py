@@ -7,8 +7,11 @@ import pytz
 import requests
 import json
 
+from Sources.Bot.EmbedGenerator import create_embed_with_components
+
 # Define Pacific Daylight Time timezone
 pdt_tz = pytz.timezone('America/Los_Angeles')
+
 
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
     comment = discord.ui.TextInput(
@@ -80,7 +83,7 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
             # Sauvegarder les informations dans un fichier JSON
             self.save_maintenance_info(stop_timestamp, return_timestamp, maintenance_comment)
 
-            embed, files, view = create_maintenance_embed_view()
+            embed, files, view = maintenance_embed()
             await interaction.response.send_message(embed=embed, files=files, view=view)
 
         except ValueError as e:
@@ -88,6 +91,7 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
                 f"Erreur dans la conversion des dates et heures: `{e}`",
                 ephemeral=True
             )
+
 
     def save_maintenance_info(self, stop_timestamp, return_timestamp, maintenance_comment):
         maintenance_info = {
@@ -101,27 +105,6 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
             json.dump(maintenance_info, file)
 
 
-class MaintenanceView(discord.ui.View):
-    def __init__(self, stop_timestamp, return_timestamp):
-        super().__init__(timeout=None)
-        self.stop_timestamp = stop_timestamp
-        self.return_timestamp = return_timestamp
-
-    @discord.ui.button(label="Copier les infos", style=discord.ButtonStyle.primary, emoji="💾")
-    async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        message_content = (
-            f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
-            f"- :x: Stop serveurs <t:{self.stop_timestamp}:t>\n"
-            f"- :white_check_mark: Retour serveurs <t:{self.return_timestamp}:t>\n\n"
-            f":repeat: Début : __**<t:{self.stop_timestamp}:R>**__"
-        )
-
-        await interaction.response.send_message(
-            f"Voici le texte formaté, prêt à être copié:\n```\n{message_content}\n```",
-            ephemeral=True
-        )
-
-
 def load_maintenance_info():
     try:
         with open("Ressources/Maintenance/maintenance_info.json", "r", encoding='utf-8') as file:
@@ -129,62 +112,6 @@ def load_maintenance_info():
         return maintenance_info
     except FileNotFoundError:
         return None
-
-def create_maintenance_embed_view():
-    maintenance_info = load_maintenance_info()
-    if not maintenance_info:
-        raise ValueError("Les informations de maintenance n'ont pas été trouvées.")
-
-    stop_timestamp = maintenance_info["stop_timestamp"]
-    return_timestamp = maintenance_info["return_timestamp"]
-    maintenance_comment = maintenance_info.get("comment")
-
-    embed = discord.Embed(
-        description="## [Infos de Maintenance et Mise à jour](https://x.com/BungieHelp)\n*Voici les dernières informations concernant la maintenance.*",
-        colour=0xff0000,
-        timestamp=datetime.now()
-    )
-
-    if maintenance_comment:
-        embed.add_field(
-            name="📝 __Commentaire__",
-            value="```\n" + maintenance_comment + "\n```",
-            inline=False
-        )
-
-    embed.add_field(
-        name=":x: __Stop serveurs__",
-        value=f"<t:{stop_timestamp}:F>",
-        inline=True
-    )
-    embed.add_field(
-        name=":white_check_mark: __Retour serveurs__",
-        value=f"<t:{return_timestamp}:F>",
-        inline=True
-    )
-    embed.add_field(
-        name=":repeat: __Débute__",
-        value=f"**<t:{stop_timestamp}:R>**",
-        inline=False
-    )
-
-    random_thumbnail_number = random.randint(1, 11)
-    thumbnail_path = f"Ressources/Maintenance/thumbnail_maintenance_{random_thumbnail_number}.png"
-    footer_icon_path = "Ressources/footer_icon.png"
-
-    thumbnail_file = discord.File(thumbnail_path, filename=f"thumbnail_maintenance_{random_thumbnail_number}.png")
-    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
-
-    embed.set_thumbnail(url=f"attachment://thumbnail_maintenance_{random_thumbnail_number}.png")
-    embed.set_footer(
-        text="BotOfTheDisciple",
-        icon_url="attachment://footer_icon.png"
-    )
-
-    # Ajouter le bouton pour copier dans le presse-papiers
-    view = MaintenanceView(stop_timestamp, return_timestamp)
-
-    return embed, [thumbnail_file, footer_icon_file], view
 
 
 def convert_pdt_to_unix(date_str, time_str):
@@ -405,3 +332,79 @@ async def process_message(message):
     else:
         print("== Ce message provient d'un utilisateur, pas d'un bot ==")
         print("-------------------------")
+
+
+# Vue personnalisée pour les composants interactifs
+class MaintenanceView(discord.ui.View):
+    def __init__(self, stop_timestamp, return_timestamp):
+        super().__init__(timeout=None)
+        self.stop_timestamp = stop_timestamp
+        self.return_timestamp = return_timestamp
+
+    @discord.ui.button(label="Copier les infos", style=discord.ButtonStyle.primary, emoji="💾")
+    async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        message_content = (
+            f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
+            f"- :x: Stop serveurs <t:{self.stop_timestamp}:t>\n"
+            f"- :white_check_mark: Retour serveurs <t:{self.return_timestamp}:t>\n\n"
+            f":repeat: Début : __**<t:{self.stop_timestamp}:R>**__"
+        )
+
+        await interaction.response.send_message(
+            f"Voici le texte formaté, prêt à être copié:\n```\n{message_content}\n```",
+            ephemeral=True
+        )
+
+
+# Fonction pour créer l'embed de maintenance avec vue et fichiers
+def maintenance_embed():
+    maintenance_info = load_maintenance_info()
+    if not maintenance_info:
+        raise ValueError("Les informations de maintenance n'ont pas été trouvées.")
+
+    stop_timestamp = maintenance_info["stop_timestamp"]
+    return_timestamp = maintenance_info["return_timestamp"]
+    maintenance_comment = maintenance_info.get("comment")
+
+    fields = []
+    if maintenance_comment:
+        fields.append({
+            "name": "📝 __Commentaire__",
+            "value": "```\n" + maintenance_comment + "\n```",
+            "inline": False
+        })
+
+    fields.extend([
+        {"name": ":x: __Stop serveurs__", "value": f"<t:{stop_timestamp}:t>", "inline": True},
+        {"name": ":white_check_mark: __Retour serveurs__", "value": f"<t:{return_timestamp}:t>", "inline": True},
+        {"name": ":repeat: __Débute__", "value": f"**<t:{stop_timestamp}:R>**", "inline": False}
+    ])
+
+    random_thumbnail_number = random.randint(1, 11)
+    thumbnail_path = f"Ressources/Maintenance/thumbnail_maintenance_{random_thumbnail_number}.png"
+    footer_icon_path = "Ressources/footer_icon.png"
+
+    thumbnail_file = discord.File(thumbnail_path, filename=f"thumbnail_maintenance_{random_thumbnail_number}.png")
+    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+
+    files = [thumbnail_file, footer_icon_file]
+
+    # Création de l'embed avec la fonction générique
+    embed, components, _ = create_embed_with_components(
+        description=f"## [Infos de Maintenance Destiny 2](https://x.com/BungieHelp)\n*Voici les dernières informations concernant la maintenance de Destiny 2 du <t:{stop_timestamp}:D>.*\n",
+        color=0xff0000,
+        author="@BungieHelp | Généré par BotOfTheDisciple",
+        author_icon_url="https://pbs.twimg.com/profile_images/1362463058132492289/vNe1WM28_400x400.jpg",
+        thumbnail_url=f"attachment://thumbnail_maintenance_{random_thumbnail_number}.png",
+        image_url=None,
+        fields=fields,
+        footer_text="BotOfTheDisciple",
+        footer_icon_url="attachment://footer_icon.png",
+        add_date_to_footer=True,
+        buttons=None,
+        files=files,
+    )
+
+    view = MaintenanceView(stop_timestamp, return_timestamp)
+
+    return embed, files, view
