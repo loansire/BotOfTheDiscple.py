@@ -336,15 +336,17 @@ async def process_message(message):
 
 # Vue personnalisée pour les composants interactifs
 class MaintenanceView(discord.ui.View):
-    def __init__(self, stop_timestamp, return_timestamp):
+    def __init__(self, stop_timestamp, return_timestamp, maintenance_comment):
         super().__init__(timeout=None)
         self.stop_timestamp = stop_timestamp
         self.return_timestamp = return_timestamp
+        self.maintenance_comment = maintenance_comment
 
     @discord.ui.button(label="Copier les infos", style=discord.ButtonStyle.primary, emoji="💾")
     async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         message_content = (
             f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
+            f"{f'- 📝 Commentaire(s):\n{self.maintenance_comment}\n' if self.maintenance_comment else ''}"
             f"- :x: Stop serveurs <t:{self.stop_timestamp}:t>\n"
             f"- :white_check_mark: Retour serveurs <t:{self.return_timestamp}:t>\n\n"
             f":repeat: Début : __**<t:{self.stop_timestamp}:R>**__"
@@ -369,7 +371,7 @@ def maintenance_embed():
     fields = []
     if maintenance_comment:
         fields.append({
-            "name": "📝 __Commentaire__",
+            "name": "📝 __Commentaire(s)__",
             "value": "```\n" + maintenance_comment + "\n```",
             "inline": False
         })
@@ -405,6 +407,6 @@ def maintenance_embed():
         files=files,
     )
 
-    view = MaintenanceView(stop_timestamp, return_timestamp)
+    view = MaintenanceView(stop_timestamp, return_timestamp, maintenance_comment)
 
     return embed, files, view
