@@ -263,6 +263,9 @@ async def process_message(message):
                                 with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
                                     json.dump(maintenance_info, file, indent=4)
                                 print("Update des informations de maintenance effectuée")
+
+                                # Publier les alertes de maintenance
+                                await publish_alerts("maintenance")
                             else:
                                 print("== Failed to convert dates and times to Unix timestamps ==")
                         else:
@@ -282,6 +285,9 @@ async def process_message(message):
                         if os.path.exists(maintenance_file):
                             os.remove(maintenance_file)
                             print("== maintenance_info.json a été supprimé ==")
+
+                            # Publier les alertes de maintenance
+                            await publish_alerts("maintenance")
                         else:
                             print("== maintenance_info.json n'existe pas ==")
                     else:
@@ -319,6 +325,9 @@ async def process_message(message):
                                     json.dump(maintenance_info, file, indent=4)
 
                                 print("== maintenance_info.json a été mis à jour ==")
+
+                                # Publier les alertes de maintenance
+                                await publish_alerts("maintenance")
                             else:
                                 print("== maintenance_info.json n'existe pas ==")
                         else:
