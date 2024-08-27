@@ -1,15 +1,16 @@
+# Define Pacific Daylight Time timezone
+import json
 import os
-import discord
-from bs4 import BeautifulSoup
-from datetime import datetime
 import random
+from datetime import datetime
+
+import discord
 import pytz
 import requests
-import json
+from bs4 import BeautifulSoup
 
 from Sources.Bot.EmbedGenerator import create_embed_with_components
 
-# Define Pacific Daylight Time timezone
 pdt_tz = pytz.timezone('America/Los_Angeles')
 
 
@@ -199,6 +200,7 @@ def translate_text_deepl(text, target_lang="FR"):
 
 
 async def process_message(message):
+    from Sources.Bot.AlertMessageBuilder import publish_alerts
     # Identifiez l'auteur du message
     author = message.author
     author_name = author.name

@@ -1,7 +1,7 @@
 from discord.app_commands import default_permissions
 from discord.ext import tasks
 
-from Sources.Bot.AlertMessageBuilder import load_alert_channels, save_alert_channels, publish_alerts, wait_until_target
+from Sources.Bot.AlertMessageBuilder import load_alert_channels, save_alert_channels, wait_until_target, publish_alerts
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
 from Sources.Bot.RivenWishes import *
