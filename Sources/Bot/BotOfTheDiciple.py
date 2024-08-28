@@ -429,7 +429,7 @@ async def daily_update():
         GenerateActivity()
         print("L'activité a été mise à jour.")
         print("Publication en cours ...")
-        await publish_alerts("Secteur_Oublie")
+        await publish_alerts("secteur_oublie")
         print("Alerte quotidienne publiée !")
     except Exception as e:
         print(f"Erreur lors de la mise à jour quotidienne : {e}")
