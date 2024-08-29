@@ -2,6 +2,7 @@
 
 from Sources.Utils import Config
 from ..Exceptions import WrongNameException
+from Sources.Utils import RequestAPI
 
 
 def main(sector_name):

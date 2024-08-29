@@ -12,10 +12,10 @@ from Sources.Utils import ModifierModif
 from Sources.Utils import ActivityInfos
 
 from .Manifests import JsonReader
-from .Manifests import ActivityDefinition
-from .Manifests import DestinationDefinition
-from .Manifests import PlaceDefinition
-from .Manifests import InventoryItemDefinition
+from .Requests import ActivityDefinition
+from .Requests import DestinationDefinition
+from .Requests import PlaceDefinition
+from .Requests import InventoryItemDefinition
 from .Manifests import ModifierDefinition
 from .Manifests import BreakerDamageType
 
@@ -59,24 +59,19 @@ def main(download_all = True):
     C_activity_name, C_surcharge1, C_surcharge2,E_power, M_power, E_Shields, M_Shields, E_Champs, M_Champs = GgdocAPI.main()
 
     #################################### Main MF ######################################
-    print("Main MF")
-    print(os.getcwd())
-    if(os.path.exists( Config.MAIN_MF_OUTPUT_FILE) and not download_all):
-        DownloadManifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, download_all)
-        print("Main Manifest already downloaded")
-    else:
-        Download.download_manifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, 3, 1);
-        print("Main Manifest downloaded")
+    #print("Main MF")
+    #print(os.getcwd())
+    #if(os.path.exists( Config.MAIN_MF_OUTPUT_FILE) and not download_all):
+    #    DownloadManifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, download_all)
+    #    print("Main Manifest already downloaded")
+    #else:
+    #    Download.download_manifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, 3, 1);
+    #    print("Main Manifest downloaded")
 
     #################################### Activity Definition ######################################
     print("Activition Definition")
-    DownloadManifest(Config.MF_ACTIVITY_DEFINITION, Config.MF_ACTIVITY_FILENAME, download_all)
     #Make Acitivty definition Treatment
-    try:
-        ActivityDefinition.main(C_activity_name)
-    except WrongNameException.WrongNameException:
-        print("!!!!!!!!!!!!!!! Lost sector name " + C_activity_name + " is unknown. Generation cannot be done !!!!!!!!!!!!")
-        return 0
+    ActivityDefinition.main(C_activity_name)
 
     C_destination_hash, C_place_hash = ActivityDefinition.get_activity_destination_and_place_hash()
     C_pgcr_image_link = Config.BASE_URL + ActivityDefinition.get_activity_pgcr_image()
@@ -90,27 +85,21 @@ def main(download_all = True):
 
     #################################### Destination Definition ######################################
     print("Destination Definition")
-    DownloadManifest(Config.MF_DESTINATION_DEFINITION, Config.MF_DESTINATION_FILENAME, download_all)
     DestinationDefinition.main(C_destination_hash)
     C_destination_name, C_destination_description = DestinationDefinition.get_destination_name_and_description()
 
     ################################### Place Definition #############################################
     print("Place Definition")
-    DownloadManifest(Config.MF_PLACE_DEFINITION, Config.MF_PLACE_FILENAME, download_all)
     PlaceDefinition.main(C_place_hash)
-    C_place_name = PlaceDefinition.get_destination_name()
+    C_place_name = PlaceDefinition.get_place_name()
 
     ################################## Item Definition #############################################
     print("Item Definition")
-    DownloadManifest(Config.MF_II_DEFINITION, Config.MF_II_FILENAME, download_all)
-    InventoryItemDefinition.main(C_rewards)
     for i in range(0, len(C_rewards)):
         C_rewards[i] = (C_rewards[i],) + InventoryItemDefinition.get_ii_name_and_icon(C_rewards[i])
 
     ################################## Modifier Definition #############################################
     print("Modifier Definition")
-    DownloadManifest(Config.MF_MODIFIER_DEFINITION, Config.MF_MODIFIER_FILENAME, download_all)
-    ModifierDefinition.main(E_modifier, M_modifier)
     for i in range(0, len(E_modifier)):
         E_modifier[i] = (E_modifier[i],) + ModifierDefinition.get_modifier_name_description_and_icon(E_modifier[i])
     for i in range(0, len(M_modifier)):

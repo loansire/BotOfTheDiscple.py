@@ -29,7 +29,7 @@ BASE_URL = "https://www.bungie.net"
 
 # URL de l'endpoint pour télécharger le manifeste complet
 MAIN_MF_URL = "https://www.bungie.net/Platform/Destiny2/Manifest/"
-MAIN_MF_OUTPUT_FILE = RessourcePath("Manifests\MainManifest.json")
+MAIN_MF_OUTPUT_FILE = TempPath("Manifests\MainManifest.json")
 
 #Destiny Activity Namings
 MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"

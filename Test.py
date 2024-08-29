@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from Sources.Test import TestGenerateActivity, TestHour
+from Sources.Test import TestNewApi, TestLostSector
 
 
 def main():
-    TestGenerateActivity.main()
+    TestLostSector.main()
 
 
 

@@ -19,7 +19,7 @@ def filter_place_by_hash(data, place_hash_searched):
 			filtered_place[place_hash] = place_details
 	return filtered_place
 
-def get_destination_name():
+def get_place_name():
 	with open(Config.MF_PLACE_FILTERED_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
