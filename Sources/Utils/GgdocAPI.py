@@ -91,7 +91,7 @@ def token():
             
         else:
             flow = InstalledAppFlow.from_client_secrets_file(Config.CREDENTIALS_GGDOC, SCOPES)
-            creds = flow.run_console()
+            creds = flow.run_local_server(port=0)
         with open(Config.TOKEN_GGDOC, "w") as token:
             token.write(creds.to_json())
             
