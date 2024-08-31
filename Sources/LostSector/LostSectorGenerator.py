@@ -1,7 +1,6 @@
 ﻿# -*- coding: utf-8 -*-
 #import extern
 import os
-from turtle import down
 
 #import intern
 from Sources.Utils import Config
