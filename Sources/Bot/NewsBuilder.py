@@ -2,6 +2,8 @@ from discord.ui import Button, View
 import discord
 
 from Sources.Bot.BungieNewsRequest import *
+from Sources.Bot.EmbedGenerator import create_embed_with_components
+
 
 class ArticleLanguageView(View):
     def __init__(self, initial_article: dict, selected_language: str, is_both_language: bool, keyword: str):
@@ -60,18 +62,38 @@ class ArticleLanguageView(View):
             self.add_item(reload_button)
 
     async def update_embed(self, interaction: discord.Interaction, language: str):
-        # Utilisation de la fonction générique avec le mot-clé
+        # Utilisation de la fonction générique avec le mot-clé pour obtenir l'article
         article, is_both_language = await get_latest_article_by_keyword(language, self.keyword)
 
         if article:
-            embed = discord.Embed(
-                title=article.get('Title', 'Sans titre'),
-                description=article.get('Description', 'Pas de description disponible'),
-                url=f"https://www.bungie.net{article.get('Link', '#')}",
-                color=discord.Color.dark_red()
+            # Préparation des données pour l'embed comme dans news_article_embed
+            title = article.get('Title', 'Sans titre')
+            description = article.get('Description', 'Pas de description disponible')
+            url = f"https://www.bungie.net{article.get('Link', '#')}"
+            image_path = article.get('ImagePath', '')
+
+            # Préparation des fichiers, si nécessaire
+            files = []
+            footer_icon_path = "Ressources/footer_icon.png"
+            if footer_icon_path:
+                footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+                files.append(footer_icon_file)
+
+            # Création de l'embed avec la fonction générique
+            embed, components, _ = create_embed_with_components(
+                description=f"## [{title}]({url})\n{description}",
+                color=discord.Color.dark_red(),
+                author=None,
+                author_icon_url=None,
+                thumbnail_url=None,
+                image_url=image_path,
+                fields=[],  # Ajoutez des champs si nécessaire
+                footer_text=article.get('PubDate', 'Date inconnue'),
+                footer_icon_url="attachment://footer_icon.png",
+                add_date_to_footer=False,
+                buttons=None,
+                files=files,
             )
-            embed.set_image(url=article.get('ImagePath', ''))
-            embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
 
             # Mettre à jour la langue et la disponibilité des langues
             self.selected_language = language
@@ -82,6 +104,7 @@ class ArticleLanguageView(View):
             self.add_buttons()
 
             await interaction.response.edit_message(embed=embed, view=self)
+
         else:
             await interaction.response.edit_message(content="Aucun article trouvé.", embed=None, view=self)
 
@@ -106,31 +129,52 @@ class ArticleLanguageView(View):
             await self.update_embed(interaction, 'fr')
 
 
-async def news_article_command(interaction: discord.Interaction, language: str, keyword: str, no_article_message: str):
+async def news_article_embed(interaction: discord.Interaction, language: str, keyword: str, no_article_message: str):
     # Utilisation de la fonction générique avec le mot-clé
     article, is_both_language = await get_latest_article_by_keyword(language=language, keyword=keyword)
 
     if article:
-        embed = discord.Embed(
-            title=article.get('Title', 'Sans titre'),
-            description=article.get('Description', 'Pas de description disponible'),
-            url=f"https://www.bungie.net{article.get('Link', '#')}",
-            color=discord.Color.dark_red()
+        # Préparation des données pour l'embed
+        title = article.get('Title', 'Sans titre')
+        description = article.get('Description', 'Pas de description disponible')
+        url = f"https://www.bungie.net{article.get('Link', '#')}"
+        image_path = article.get('ImagePath', '')
+
+        # Préparation des fichiers, si nécessaire
+        files = []
+        footer_icon_path = "Ressources/footer_icon.png"
+        if footer_icon_path:
+            footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+            files.append(footer_icon_file)
+
+        # Création de l'embed avec la fonction générique
+        embed, components, _ = create_embed_with_components(
+            description=f"## [{title}]({url})\n{description}",
+            color=discord.Color.dark_red(),
+            author=None,
+            author_icon_url=None,
+            thumbnail_url=None,
+            image_url=image_path,
+            fields=[],  # Ajoutez des champs si nécessaire
+            footer_text=article.get('PubDate', 'Date inconnue'),
+            footer_icon_url="attachment://footer_icon.png",  # Assurez-vous d'avoir cette ressource si nécessaire
+            add_date_to_footer=False,
+            buttons=None,  # Ajoutez des boutons si nécessaire
+            files=files,  # Ajoutez les fichiers préparés
         )
-        embed.set_image(url=article.get('ImagePath', ''))
-        embed.set_footer(text=f"{article.get('PubDate', 'Date inconnue')}")
 
         # Initialiser la vue avec la langue sélectionnée et la disponibilité des langues
         view = ArticleLanguageView(article, language, is_both_language, keyword)
 
-        # Si on demande la version française mais qu'elle n'existe pas encore
+        # Gestion de l'affichage selon la disponibilité de la version française
+        message_content = None
         if language == 'fr' and not is_both_language:
-            await interaction.response.send_message(embed=embed, view=view)
-            await interaction.followup.send(
-                content="⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*",
-                ephemeral=True
-            )
-        else:
-            await interaction.response.send_message(embed=embed, view=view)
+            message_content = "⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*"
+
+        # Retourner l'embed, la vue, et un message additionnel si nécessaire
+        return embed, view, message_content
+
     else:
-        await interaction.response.send_message(no_article_message)
+        # Retourner None pour embed et view, et le message pour les articles non trouvés
+        return None, None, no_article_message
+
