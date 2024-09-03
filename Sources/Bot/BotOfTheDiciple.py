@@ -34,10 +34,10 @@ async def on_ready():
     # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    # GenerateActivity(False)
+    #GenerateActivity(False)
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
-    # daily_update.start()
+    #daily_update.start()
 
 
 # Enregistrement des commandes slash
@@ -51,14 +51,19 @@ async def help(interaction: discord.Interaction):
     )
     embed.set_thumbnail(url="https://cdn.icon-icons.com/icons2/272/PNG/512/Settings_30027.png")
 
+    # Liste des commandes à exclure
+    excluded_commands = {"maintenance-update", "maintenance-delete", "force-update"}
+
     commands_list = ""
     for command in bot.tree.get_commands():
-        commands_list += f"**__/{command.name}__**\n> {command.description}\n\n"
+        if command.name not in excluded_commands:
+            commands_list += f"**__/{command.name}__**\n> {command.description}\n\n"
 
     embed.description = commands_list
-    total_commands = len(bot.tree.get_commands())
+    total_commands = len([cmd for cmd in bot.tree.get_commands() if cmd.name not in excluded_commands])
     embed.set_footer(text=f"{total_commands} commande(s) disponibles")
     await interaction.response.send_message(embed=embed)
+
 
 
 # region MaintenanceCommands
@@ -95,7 +100,7 @@ async def maintenance(interaction: discord.Interaction):
         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
 
 
-@bot.tree.command(name="maintenance-update", description="Met à jour les informations de maintenance")
+@bot.tree.command(name="maintenance-update", description="[DEVTOOL]")
 @default_permissions(administrator=True)
 async def updatemaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
@@ -108,7 +113,7 @@ async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
 
 
-@bot.tree.command(name="maintenance-delete", description="Supprime les informations de maintenance configurées")
+@bot.tree.command(name="maintenance-delete", description="[DEVTOOL]")
 @default_permissions(administrator=True)
 async def deletmaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
@@ -229,18 +234,6 @@ async def wishwall(interaction: discord.Interaction):
 
 
 # region PrismaticRandomizer
-# Liste des classes valides
-classes_valides = ["Arcaniste", "Chasseur", "Titan"]
-
-# Auto-complétion pour la classe
-async def classe_autocomplete(interaction: discord.Interaction, current: str):
-    return [
-        discord.app_commands.Choice(name=classe, value=classe)
-        for classe in classes_valides if current.lower() in classe.lower()
-    ]
-
-
-# Définir la commande /randomize-prismatic
 
 # endregion
 
@@ -381,7 +374,7 @@ async def alert(interaction: discord.Interaction, alert_type: app_commands.Choic
 
 
 @bot.tree.command(name="force-update",
-                  description="Force la publication des alertes pour un type donné ou tous les types.")
+                  description="[DEVTOOL]")
 @app_commands.describe(alert_type="Type d'alerte")
 @app_commands.choices(alert_type=[
     app_commands.Choice(name="Secteur Oublié", value="secteur_oublie"),
