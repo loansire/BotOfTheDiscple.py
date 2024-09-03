@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from Sources.Bot.Common import *
 from Sources.Bot.LostSectorBuilder import secteur_oublie_embed
 from Sources.Bot.MaintenanceUpdater import maintenance_embed
+from Sources.Bot.NewsBuilder import news_article_embed
 from Sources.Utils.GgdocAPI import GetResetHour
 
 ALERTS_DIR = 'Ressources/AlertDatabase'
@@ -45,6 +46,24 @@ async def publish_alerts(alert_type):
                             view = None
                         elif alert_type == "maintenance":
                             embed, files, view = maintenance_embed()
+                        elif alert_type == "twid" or alert_type == "patch_note":
+                            # Utiliser la même logique pour "twid" et "patch_note"
+                            keyword = 'twid' if alert_type == "twid" else 'destiny_2_update'
+                            embed, view, message_content = await news_article_embed(
+                                interaction=None,  # Pas d'interaction dans ce contexte
+                                language='en',  # Langue par défaut, ajustez si nécessaire
+                                keyword=keyword,
+                                no_article_message="Aucun article trouvé pour ce type."
+                            )
+
+                            files = []  # Pas de fichiers à envoyer par défaut pour "twid" ou "patch_note"
+
+                            if message_content:
+                                await channel.send(content=message_content)
+
+                            # Continue si aucun article n'est trouvé
+                            if not embed:
+                                continue
                         else:
                             print(f"Type d'alerte inconnu : {alert_type}")
                             continue

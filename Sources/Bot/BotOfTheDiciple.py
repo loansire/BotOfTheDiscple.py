@@ -1,3 +1,5 @@
+import asyncio
+
 from discord.app_commands import default_permissions
 from discord.ext import tasks
 
@@ -5,7 +7,7 @@ from Sources.Bot.AlertMessageBuilder import load_alert_channels, save_alert_chan
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
 from Sources.Bot.RivenWishes import *
-from Sources.Bot.NewsBuilder import *
+from Sources.Bot.NewsBuilder import news_article_embed
 from Sources.Bot.LostSectorBuilder import *
 from Sources.Bot.Common import *
 
@@ -51,7 +53,7 @@ async def help(interaction: discord.Interaction):
 
     commands_list = ""
     for command in bot.tree.get_commands():
-        commands_list += f"**/{command.name}** ```{command.description}```\n"
+        commands_list += f"**__/{command.name}__**\n> {command.description}\n\n"
 
     embed.description = commands_list
     total_commands = len(bot.tree.get_commands())
@@ -239,46 +241,7 @@ async def classe_autocomplete(interaction: discord.Interaction, current: str):
 
 
 # Définir la commande /randomize-prismatic
-@bot.tree.command(name="randomize-prismatic", description="Génère un setup de Prismatique aléatoire pour une classe donnée.")
-@discord.app_commands.autocomplete(classe=classe_autocomplete)
-async def randomize_prismatic(interaction: discord.Interaction, classe: str):
-    # Vérification de la classe
-    if classe not in classes_valides:
-        await interaction.response.send_message("Classe invalide. Choisissez parmi Arcaniste, Chasseur ou Titan.", ephemeral=True)
-        return
 
-    # Récupérer l'utilisateur qui a exécuté la commande
-    user = interaction.user
-
-    # Créer l'embed
-    embed = discord.Embed(
-        description=f"## {classe} Prismatique Aléatoire\n{user.mention}, voici ton prochain build aléatoire en Doctrine prismatique !\n\n*Clic sur l'image ci-dessous pour visualiser ton roll.*",
-        color=0xf500d8,
-        timestamp=datetime.now()
-    )
-
-    # Chemins des images
-    bg_image_path = f"Ressources/PrismaticRandomizer/{classe}Result.png"
-    thumbnail_image_path = f"Ressources/PrismaticRandomizer/{classe}_prismatique.jpg"
-
-    # Vérification de l'existence des fichiers
-    if not os.path.exists(bg_image_path):
-        await interaction.response.send_message(f"Erreur: L'image de fond n'existe pas pour la classe {classe}.", ephemeral=True)
-        return
-
-    if not os.path.exists(thumbnail_image_path):
-        await interaction.response.send_message(f"Erreur: Le thumbnail n'existe pas pour la classe {classe}.", ephemeral=True)
-        return
-
-    # Ajouter l'image en tant que thumbnail et l'image principale
-    file = discord.File(bg_image_path, filename="bg.png")
-    embed.set_image(url="attachment://bg.png")
-
-    thumb_file = discord.File(thumbnail_image_path, filename="thumb.jpg")
-    embed.set_thumbnail(url="attachment://thumb.jpg")
-
-    # Envoyer l'embed avec les images
-    await interaction.response.send_message(files=[file, thumb_file], embed=embed)
 # endregion
 
 
@@ -290,12 +253,28 @@ async def randomize_prismatic(interaction: discord.Interaction, classe: str):
     app_commands.Choice(name="Fr", value="fr")
 ])
 async def twid(interaction: discord.Interaction, language: str):
-    await news_article_command(
-        interaction=interaction,
-        language=language,
-        keyword='twid',
-        no_article_message="Aucun article TWID/TWAB trouvé."
-    )
+    try:
+        # Appel à la fonction news_article_command pour obtenir l'embed, la vue et le message additionnel
+        embed, view, message_content = await news_article_embed(
+            interaction=interaction,
+            language=language,
+            keyword='twid',
+            no_article_message="Aucun article TWID/TWAB trouvé."
+        )
+
+        if embed is None and view is None:
+            # Cas où aucun article n'a été trouvé
+            await interaction.response.send_message(message_content, ephemeral=True)
+        else:
+            # Cas où un article est trouvé
+            await interaction.response.send_message(embed=embed, view=view)
+            if message_content:
+                # Envoie le message additionnel si nécessaire (par exemple, pour un article en français non encore publié)
+                await interaction.followup.send(content=message_content, ephemeral=True)
+
+    except discord.DiscordException as e:
+        # Gestion des exceptions Discord
+        await interaction.response.send_message(f"Erreur lors de la génération de l'article: `{e}`", ephemeral=True)
 
 
 @bot.tree.command(name='twab', description="Affiche la TWAB la plus récente. Rien que pour Nexus o7")
@@ -305,12 +284,28 @@ async def twid(interaction: discord.Interaction, language: str):
     app_commands.Choice(name="Fr", value="fr")
 ])
 async def twab(interaction: discord.Interaction, language: str):
-    await news_article_command(
-        interaction=interaction,
-        language=language,
-        keyword='twid',  # Utiliser le même mot-clé 'twid' pour la recherche
-        no_article_message="Aucun article TWID/TWAB trouvé."
-    )
+    try:
+        # Appel à la fonction news_article_command pour obtenir l'embed, la vue et le message additionnel
+        embed, view, message_content = await news_article_embed(
+            interaction=interaction,
+            language=language,
+            keyword='twid',
+            no_article_message="Aucun article TWID/TWAB trouvé."
+        )
+
+        if embed is None and view is None:
+            # Cas où aucun article n'a été trouvé
+            await interaction.response.send_message(message_content, ephemeral=True)
+        else:
+            # Cas où un article est trouvé
+            await interaction.response.send_message(embed=embed, view=view)
+            if message_content:
+                # Envoie le message additionnel si nécessaire (par exemple, pour un article en français non encore publié)
+                await interaction.followup.send(content=message_content, ephemeral=True)
+
+    except discord.DiscordException as e:
+        # Gestion des exceptions Discord
+        await interaction.response.send_message(f"Erreur lors de la génération de l'article: `{e}`", ephemeral=True)
 
 
 @bot.tree.command(name='patch-note', description="Affiche le dernier patch note Destiny 2.")
@@ -320,12 +315,28 @@ async def twab(interaction: discord.Interaction, language: str):
     app_commands.Choice(name="Fr", value="fr")
 ])
 async def patch_note(interaction: discord.Interaction, language: str):
-    await news_article_command(
-        interaction=interaction,
-        language=language,
-        keyword='destiny_2_update',
-        no_article_message="Aucun article de patch note trouvé."
-    )
+    try:
+        # Appel à la fonction news_article_command pour obtenir l'embed, la vue et le message additionnel
+        embed, view, message_content = await news_article_embed(
+            interaction=interaction,
+            language=language,
+            keyword='destiny_2_update',
+            no_article_message="Aucun article de patch note trouvé."
+        )
+
+        if embed is None and view is None:
+            # Cas où aucun article n'a été trouvé
+            await interaction.response.send_message(message_content, ephemeral=True)
+        else:
+            # Cas où un article est trouvé
+            await interaction.response.send_message(embed=embed, view=view)
+            if message_content:
+                # Envoie le message additionnel si nécessaire (par exemple, pour un article en français non encore publié)
+                await interaction.followup.send(content=message_content, ephemeral=True)
+
+    except discord.DiscordException as e:
+        # Gestion des exceptions Discord
+        await interaction.response.send_message(f"Erreur lors de la génération de l'article: `{e}`", ephemeral=True)
 # endregion
 
 

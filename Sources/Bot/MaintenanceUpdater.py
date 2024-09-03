@@ -357,7 +357,7 @@ class MaintenanceView(discord.ui.View):
     async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         message_content = (
             f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
-            f"{f'- 📝 Commentaire(s):{self.maintenance_comment}' if self.maintenance_comment else ''}"
+            f"{f'- 📝 Commentaire(s):\n{self.maintenance_comment}\n' if self.maintenance_comment else ''}"
             f"- :x: Stop serveurs <t:{self.stop_timestamp}:t>\n"
             f"- :white_check_mark: Retour serveurs <t:{self.return_timestamp}:t>\n\n"
             f":repeat: Début : __**<t:{self.stop_timestamp}:R>**__"
