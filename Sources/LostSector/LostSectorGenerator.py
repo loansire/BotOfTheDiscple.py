@@ -16,7 +16,7 @@ from .Requests import ActivityDefinition
 from .Requests import DestinationDefinition
 from .Requests import PlaceDefinition
 from .Requests import InventoryItemDefinition
-from .Manifests import ModifierDefinition
+from .Requests import ModifierDefinition
 from .Manifests import BreakerDamageType
 
 from .Exceptions import WrongNameException
