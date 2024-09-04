@@ -18,7 +18,6 @@ def html_to_png(html_path, output_path, css_path):
         "css": css_content,
         "viewport_width": 1880,
         "viewport_height": 960,
-        "device_scale": 1,
         "ms_delay": 3000,
     }
 
