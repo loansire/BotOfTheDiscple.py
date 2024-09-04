@@ -19,7 +19,7 @@ async def load_news_alerts():
 
 # Sauvegarder les alertes mises à jour
 async def save_news_alerts(news_alerts):
-    with open('Ressources/AlertDatabase/News_Alert.json', 'w') as file:
+    with open('Ressources/AlertDatabase/news_alert.json', 'w') as file:
         json.dump(news_alerts, file, indent=4)
 
 
