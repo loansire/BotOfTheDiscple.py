@@ -341,7 +341,7 @@ async def patch_note(interaction: discord.Interaction, language: str):
 @bot.tree.command(name="alert", description="Configure des alertes de contenu du jeu.")
 @app_commands.describe(alert_type="Type d'alerte (Twid, Patch Note, Maintenance, Secteur Oublié)", action="Ajouter ou retirer ce salon des alertes")
 @app_commands.choices(alert_type=[
-    app_commands.Choice(name="Twid", value="Twid"),
+    app_commands.Choice(name="Twid", value="twid"),
     app_commands.Choice(name="Secteur Oublié", value="secteur_Oublie"),
     app_commands.Choice(name="Patch Note", value="patch_note"),
     app_commands.Choice(name="Maintenance", value="maintenance")
