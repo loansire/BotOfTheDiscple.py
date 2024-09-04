@@ -10,6 +10,7 @@ from Sources.Bot.RivenWishes import *
 from Sources.Bot.NewsBuilder import news_article_embed
 from Sources.Bot.LostSectorBuilder import *
 from Sources.Bot.Common import *
+from Sources.Bot.NewArticleNotification import recurring_update
 
 
 from Sources.LostSector.LostSectorGenerator import *
@@ -38,6 +39,9 @@ async def on_ready():
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
     daily_update.start()
+
+    # Tester toutes les 10 minutes si de nouveaux articles sont sortis
+    recurring_update.start()
 
 
 # Enregistrement des commandes slash
