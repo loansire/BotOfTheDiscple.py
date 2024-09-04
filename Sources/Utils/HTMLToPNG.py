@@ -10,8 +10,8 @@ def html_to_png(html_path, output_path, css_path):
 
     # Informations sur l'API
     api_endpoint = "https://hcti.io/v1/image"
-    api_user = "3b28f166-11d3-48c1-bf53-8ea33d688dac"
-    api_key = "aec9b06a-ab3a-4224-8c82-fb64bc26feb7"
+    api_user = "aadb32cf-e14c-47ea-8b0d-63ef95c0a546"
+    api_key = "415c4e2b-5faf-489e-a607-e72c5fdaecef"
 
     data = {
         "html": html_content,
