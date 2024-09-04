@@ -4,7 +4,7 @@
 .vs/
 Temp/
 
-
-Ressources/Manifests/
 Ressources/Results/
 Ressources/token.json
+
+Output/

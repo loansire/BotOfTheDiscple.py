@@ -165,4 +165,4 @@ def TreatRewardText(reward_text):
     return [name, rarity]
 
 def ConvertToJpeg():
-    HTMLToPNG.html_to_png(HtmlDefines.OUTPUT_PATH, HtmlDefines.OUTPUT_JPEG_PATH)
+    HTMLToPNG.html_to_png(HtmlDefines.OUTPUT_PATH, HtmlDefines.OUTPUT_JPEG_PATH, HtmlDefines.CSS_PATH)

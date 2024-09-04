@@ -3,6 +3,7 @@
 TEMPLATE_PATH = Config.RessourcePath(r"Template.html")
 OUTPUT_PATH = Config.OutputPath(r'Output.html')
 OUTPUT_JPEG_PATH = Config.OutputPath(r"Output.png")
+CSS_PATH = Config.OutputPath(r"styles.css")
 
 
 #Expert
