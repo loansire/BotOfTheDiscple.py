@@ -8,8 +8,8 @@ from Sources.Bot.BungieNewsRequest import get_latest_article_by_keyword
 
 # Charger les alertes existantes
 async def load_news_alerts():
-    if os.path.exists('Ressources/AlertDatabase/News_Alert.json'):
-        with open('Ressources/AlertDatabase/News_Alert.json', 'r') as file:
+    if os.path.exists('Ressources/AlertDatabase/news_alert.json'):
+        with open('Ressources/AlertDatabase/news_alert.json', 'r') as file:
             return json.load(file)
     return {
         "UniqueIdentifier_twid": "",
@@ -53,7 +53,7 @@ async def NewArticleTest():
 
         # Sauvegarder les modifications dans le fichier JSON
         await save_news_alerts(news_alerts)
-        print("Vérification récurrente terminée avec succès.")
+        print("Vérification récurrente terminée avec succès.\n")
 
     except Exception as e:
-        print(f"Erreur lors de la vérification récurrente : {e}")
+        print(f"Erreur lors de la vérification récurrente : {e}\n")

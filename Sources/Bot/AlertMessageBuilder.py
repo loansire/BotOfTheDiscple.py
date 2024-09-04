@@ -17,19 +17,14 @@ ALERTS_DIR = 'Ressources/AlertDatabase'
 
 def load_alert_channels(alert_type):
     file_path = os.path.join(ALERTS_DIR, f"{alert_type}_alert_channels.json")
-    print(f"Chargement des canaux d'alerte pour '{alert_type}' à partir de: {file_path}")
     if os.path.exists(file_path):
-        print(f"Fichier trouvé : {file_path}")
         with open(file_path, 'r') as file:
             return json.load(file)
-    else:
-        print(f"Fichier non trouvé : {file_path}")
     return {}
 
 
 def save_alert_channels(alert_type, data):
     file_path = os.path.join(ALERTS_DIR, f"{alert_type}_alert_channels.json")
-    print(f"Sauvegarde des canaux d'alerte pour '{alert_type}' dans : {file_path}")
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=4)
 
@@ -40,17 +35,13 @@ async def publish_alerts(alert_type):
     any_success = False  # Variable pour vérifier si au moins une publication a réussi
 
     for guild_id, channels in alert_channels.items():
-        print(f"Traitement de la guilde : {guild_id}")
         guild = bot.get_guild(int(guild_id))
 
         if guild:
-            print(f"Guilde trouvée : {guild.name}")
             for channel_id in channels:
-                print(f"Traitement du salon : {channel_id}")
                 channel = guild.get_channel(int(channel_id))
 
                 if channel and isinstance(channel, discord.TextChannel):
-                    print(f"Envoi de l'alerte dans le salon : {channel.name} ({channel.id})")
                     try:
                         # Choisissez la fonction d'embed en fonction du type d'alerte
                         if alert_type == "secteur_oublie":
@@ -87,18 +78,15 @@ async def publish_alerts(alert_type):
                         else:
                             await channel.send(embed=embed, files=files)
 
-                        print(f"Alerte envoyée avec succès dans le salon : {channel.name} ({channel.id})")
                         any_success = True  # Marquer comme réussi si l'envoi est effectué
 
                     except discord.DiscordException as e:
                         print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
-                else:
-                    print(f"Salon non trouvé ou non valide : {channel_id}")
 
     if not any_success:
-        print("Aucune alerte n'a été envoyée avec succès.")
+        print("Aucune alerte n'a été envoyée avec succès.\n")
     else:
-        print("Au moins une alerte a été envoyée avec succès.")
+        print("Au moins une alerte a été envoyée avec succès.\n")
 
     return any_success
 
@@ -119,5 +107,5 @@ async def wait_until_target():
     print(f"Différence brute (jours, heures, minutes, secondes) : {target_datetime - now}")
     print(f"Différence en secondes : {wait_seconds:.2f} secondes")
     print(f"Différence en minutes : {(wait_seconds / 60):.2f} minutes")
-    print(f"Différence en heures : {(wait_seconds / 3600):.2f} heures")
+    print(f"Différence en heures : {(wait_seconds / 3600):.2f} heures\n")
     await asyncio.sleep(max(wait_seconds, 0))

@@ -35,11 +35,11 @@ def html_to_png(html_path, output_path, css_path):
             # Sauvegarder l'image dans output_path
             with open(output_path, 'wb') as image_file:
                 image_file.write(image_response.content)
-            print(f"Image PNG téléchargée et sauvegardée avec succès : {output_path}")
+            print(f"Image PNG téléchargée et sauvegardée avec succès : {output_path}\n")
         else:
-            print(f"Erreur lors du téléchargement de l'image : {image_response.status_code}")
+            print(f"Erreur lors du téléchargement de l'image : {image_response.status_code}\n")
     else:
-        print(f"Erreur lors de la génération de l'image : {response.status_code}, {response.text}")
+        print(f"Erreur lors de la génération de l'image : {response.status_code}, {response.text}\n")
 
 def main():
     html_path = "../../Output/Output.html"

@@ -25,11 +25,12 @@ async def on_ready():
     #activity = discord.Game(name="Tapez /help pour commencer!")
     #await bot.change_presence(status=discord.Status.online, activity=activity)
 
-    print(f'Bot is ready. Logged in as {bot.user}')
+    print(f'Bot is ready. Logged in as {bot.user}\n')
 
     # Debug pour vérifier les commandes enregistrées
     for command in bot.tree.get_commands():
         print(f'Command: {command.name}, Description: {command.description}')
+    print(f'\n')
 
     # Start the task to monitor messages
     # await check_messages()
@@ -110,7 +111,7 @@ async def updatemaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
 
     if interaction.user.id != allowed_user_id:
-        print(f"{interaction.user.id} is trying to use the forbidden command")
+        print(f"{interaction.user.id} is trying to use the forbidden command\n")
         await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
 
@@ -123,7 +124,7 @@ async def deletmaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
 
     if interaction.user.id != allowed_user_id:
-        print(f"{interaction.user.id} is trying to use the forbidden command")
+        print(f"{interaction.user.id} is trying to use the forbidden command\n")
         await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
 
@@ -163,7 +164,7 @@ async def chatgif(interaction: discord.Interaction):
             await interaction.response.send_message("Je n'ai pas pu trouver de GIF de chat 😿", ephemeral=True)
     except Exception as e:
         await interaction.response.send_message("Une erreur est survenue: `{e}` 😿", ephemeral=True)
-        print(f"Erreur lors de l'exécution de la commande /cat : {e}")
+        print(f"Erreur lors de l'exécution de la commande /cat : {e}\n")
 # endregion
 
 
@@ -175,7 +176,7 @@ async def today_lost_sector(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed, files=files)
     except discord.DiscordException as e:
         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
-        print(f"Erreur: {e}")
+        print(f"Erreur lors de l'exécution de la commande /secteur-oublie : {e}\n")
 # endregion
 
 
@@ -393,7 +394,7 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
     allowed_user_id = 222465158075777035
 
     if interaction.user.id != allowed_user_id:
-        print(f"{interaction.user.id} is trying to use the forbidden command")
+        print(f"{interaction.user.id} is trying to use the forbidden command\n")
         await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
 
@@ -425,7 +426,7 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
     except discord.DiscordException as e:
         await interaction.response.send_message(
             f":x: Erreur lors de la publication des alertes pour `{alert_type.name}`: `{e}`", ephemeral=True)
-        print(f":x: Erreur lors de la commande /force-update pour {alert_type.name}: {e}")
+        print(f":x: Erreur lors de la commande /force-update pour {alert_type.name}: {e}\n")
 
 
 @tasks.loop(hours=24)
@@ -439,8 +440,8 @@ async def daily_update():
         await publish_alerts("secteur_oublie")
         print("Alerte quotidienne publiée !")
     except Exception as e:
-        print(f"Erreur lors de la mise à jour quotidienne : {e}")
-    print("Fin de la mise à jour quotidienne.")
+        print(f"Erreur lors de la mise à jour quotidienne : {e}\n")
+    print("Fin de la mise à jour quotidienne.\n")
 # endregion
 
 
