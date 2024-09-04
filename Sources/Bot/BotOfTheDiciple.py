@@ -10,7 +10,7 @@ from Sources.Bot.RivenWishes import *
 from Sources.Bot.NewsBuilder import news_article_embed
 from Sources.Bot.LostSectorBuilder import *
 from Sources.Bot.Common import *
-from Sources.Bot.NewArticleNotification import recurring_update
+from Sources.Bot.NewArticleNotification import NewArticleTest
 
 
 from Sources.LostSector.LostSectorGenerator import *
@@ -35,7 +35,7 @@ async def on_ready():
     # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    GenerateActivity(False)
+    GenerateActivity()
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
     daily_update.start()
@@ -428,7 +428,6 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
         print(f":x: Erreur lors de la commande /force-update pour {alert_type.name}: {e}")
 
 
-
 @tasks.loop(hours=24)
 async def daily_update():
     await wait_until_target()
@@ -444,6 +443,10 @@ async def daily_update():
     print("Fin de la mise à jour quotidienne.")
 # endregion
 
+
+@tasks.loop(minutes=10)
+async def recurring_update():
+    await NewArticleTest()
 
 async def main():
     async with bot:

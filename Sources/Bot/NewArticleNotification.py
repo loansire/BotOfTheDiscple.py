@@ -23,8 +23,7 @@ async def save_news_alerts(news_alerts):
         json.dump(news_alerts, file, indent=4)
 
 
-@tasks.loop(minutes=10)
-async def recurring_update():
+async def NewArticleTest():
     print("Début de la vérification récurrente.")
     try:
         # Récupérer les derniers articles TWID et Destiny 2 Update
@@ -40,6 +39,7 @@ async def recurring_update():
             if latest_twid_id != news_alerts['UniqueIdentifier_twid']:
                 print(f"Nouvel article TWID détecté : {latest_twid_id}")
                 await publish_alerts('twid')
+                print(f"Publié")
                 news_alerts['UniqueIdentifier_twid'] = latest_twid_id
 
         # Vérifier et mettre à jour si nécessaire pour Destiny 2 Update
@@ -47,7 +47,8 @@ async def recurring_update():
             latest_update_id = update_item.get('UniqueIdentifier', '')
             if latest_update_id != news_alerts['UniqueIdentifier_destiny_2_update']:
                 print(f"Nouvel article de mise à jour Destiny 2 détecté : {latest_update_id}")
-                await publish_alerts('destiny_2_update')
+                await publish_alerts('patch_note')
+                print(f"Publié")
                 news_alerts['UniqueIdentifier_destiny_2_update'] = latest_update_id
 
         # Sauvegarder les modifications dans le fichier JSON
