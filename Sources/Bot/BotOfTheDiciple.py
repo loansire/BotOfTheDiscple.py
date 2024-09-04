@@ -34,10 +34,10 @@ async def on_ready():
     # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    #GenerateActivity(False)
+    GenerateActivity(False)
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
-    #daily_update.start()
+    daily_update.start()
 
 
 # Enregistrement des commandes slash
@@ -164,7 +164,7 @@ async def chatgif(interaction: discord.Interaction):
 
 
 # region LostSectorPublication
-@bot.tree.command(name="lost-sector", description="Obtenez les informations du Secteur Oublié du jour")
+@bot.tree.command(name="secteur-oublie", description="Obtenez les informations du Secteur Oublié du jour")
 async def today_lost_sector(interaction: discord.Interaction):
     try:
         embed, files = secteur_oublie_embed()
