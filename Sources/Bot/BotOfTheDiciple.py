@@ -36,10 +36,10 @@ async def on_ready():
     # await check_messages()
 
     # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    GenerateActivity()
+    #GenerateActivity()
 
     # Démarrer la tâche de mise à jour quotidienne à 19h
-    daily_update.start()
+    #daily_update.start()
 
     # Tester toutes les 10 minutes si de nouveaux articles sont sortis
     recurring_update.start()

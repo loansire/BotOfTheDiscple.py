@@ -4,6 +4,7 @@ import aiohttp
 import json
 import asyncio
 
+from langdetect import detect
 
 api_key = '95d66cb52e4d443ea72e729779de4263'
 
@@ -38,7 +39,7 @@ async def reformat_pubdate(item):
 async def pretty_print_json(data):
     print(json.dumps(data, indent=4, ensure_ascii=False))
 
-async def get_bungie_rss_articles(language, page_token='0'):
+async def get_bungie_rss_articles(language, page_token='0', includebody=False):
     url = f"https://www.bungie.net/Platform/Content/Rss/NewsArticles/{page_token}/"
 
     headers = {
@@ -46,7 +47,8 @@ async def get_bungie_rss_articles(language, page_token='0'):
     }
 
     params = {
-        "lc": language
+        "lc": language,
+        "includebody": 'true' if includebody else 'false'
     }
 
     async with aiohttp.ClientSession() as session:
@@ -56,49 +58,34 @@ async def get_bungie_rss_articles(language, page_token='0'):
             else:
                 return None
 
-
 async def get_latest_article_by_keyword(language, keyword):
-    # Récupérer tous les articles en anglais et en français
-    english_articles = await get_bungie_rss_articles(language='en', page_token='0')
-    french_articles = await get_bungie_rss_articles(language='fr', page_token='0')
+    # Récupérer tous les articles
+    articles = await get_bungie_rss_articles(language=language, page_token='0', includebody='true')
 
-    if english_articles and 'Response' in english_articles and 'NewsArticles' in english_articles['Response']:
-        for item in english_articles['Response']['NewsArticles']:
+    french_articles = await get_bungie_rss_articles(language='fr', page_token='0', includebody='true')
+    is_translation_available = False
+
+    # Vérifier si le contenu HTML des articles en français est bien en français
+    if french_articles and 'Response' in french_articles and 'NewsArticles' in french_articles['Response']:
+        for item in french_articles['Response']['NewsArticles']:
+            link = item.get('Link', '')
+            if keyword in link:
+                html_content = item.get('HtmlContent', '')
+                detected_language = detect(html_content)
+                if detected_language == 'fr':
+                    is_translation_available = True
+                break
+
+    if articles and 'Response' in articles and 'NewsArticles' in articles['Response']:
+        for item in articles['Response']['NewsArticles']:
             link = item.get('Link', '')
 
             await reformat_pubdate(item)
 
             # Vérifier la présence du mot-clé dans le lien
             if keyword in link:
-                unique_id = item.get('UniqueIdentifier', None)
+                return item, is_translation_available
 
-                if language == 'en':
-                    # Vérifier si une version française existe
-                    has_french_version = False
-                    if unique_id and french_articles and 'Response' in french_articles and 'NewsArticles' in \
-                            french_articles['Response']:
-                        for french_item in french_articles['Response']['NewsArticles']:
-                            if french_item.get('UniqueIdentifier') == unique_id:
-                                has_french_version = True
-                                break
-                    return item, has_french_version
-
-                elif language == 'fr':
-                    # Essayer de trouver la version française
-                    if unique_id and french_articles and 'Response' in french_articles and 'NewsArticles' in \
-                            french_articles['Response']:
-                        for french_item in french_articles['Response']['NewsArticles']:
-                            if french_item.get('UniqueIdentifier') == unique_id:
-                                await reformat_pubdate(french_item)
-                                return french_item, True
-
-                    # Si la version française n'est pas trouvée, retourner l'article en anglais
-                    return item, False
-
-                # Retourner l'article en anglais si aucune version française n'est trouvée
-                return item
-
-    # Si aucun article trouvé, retourner None
     return None, False
 
 
@@ -108,11 +95,11 @@ async def main():
     keyword_twid = 'twid'
     keyword_destiny_2_update = 'destiny_2_update'
 
-    twid, is_french_available = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_twid)
-    destiny_2_update, is_french_available = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_destiny_2_update)
+    twid, is_french_available_twid = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_twid)
+    destiny_2_update, is_french_available_destiny_2_update = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_destiny_2_update)
 
     if twid:
-        if is_french_available:
+        if is_french_available_twid:
             print("L'article en français est disponible.")
         else:
             print("L'article en français n'est pas disponible, voici l'article en anglais.")
@@ -121,7 +108,7 @@ async def main():
         print("Aucun article trouvé.")
 
     if destiny_2_update:
-        if is_french_available:
+        if is_french_available_destiny_2_update:
             print("L'article en français est disponible.")
         else:
             print("L'article en français n'est pas disponible, voici l'article en anglais.")
