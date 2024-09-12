@@ -9,5 +9,6 @@
 - pip install selenium
 - pip install Pillow
 - pip install lxml
+- pip install langdetect
 
 
