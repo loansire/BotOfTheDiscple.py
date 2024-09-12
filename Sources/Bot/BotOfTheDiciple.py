@@ -22,8 +22,8 @@ async def on_ready():
     await bot.tree.sync()
 
     # Configuration de la présence du bot
-    #activity = discord.Game(name="Tapez /help pour commencer!")
-    #await bot.change_presence(status=discord.Status.online, activity=activity)
+    # activity = discord.Game(name="Tapez /help pour commencer!")
+    # await bot.change_presence(status=discord.Status.online, activity=activity)
 
     print(f'Bot is ready. Logged in as {bot.user}\n')
 
@@ -35,11 +35,13 @@ async def on_ready():
     # Start the task to monitor messages
     # await check_messages()
 
-    # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-    #GenerateActivity()
-
-    # Démarrer la tâche de mise à jour quotidienne à 19h
-    #daily_update.start()
+    try:
+        # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
+        GenerateActivity()
+        # Démarrer la tâche de mise à jour quotidienne à 19h si GenerateActivity() réussit
+        daily_update.start()
+    except Exception as e:
+        print(f'Une erreur est survenue lors de l\'exécution de GenerateActivity: {e}')
 
     # Tester toutes les 10 minutes si de nouveaux articles sont sortis
     recurring_update.start()
