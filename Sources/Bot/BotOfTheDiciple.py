@@ -107,7 +107,7 @@ async def maintenance(interaction: discord.Interaction):
         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
 
 
-@bot.tree.command(name="maintenance-update", description="[DEVTOOL]")
+@bot.tree.command(name="maintenance-update", description="🔒 [DEVTOOL]")
 @default_permissions(administrator=True)
 async def updatemaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
@@ -120,7 +120,7 @@ async def updatemaintenance(interaction: discord.Interaction):
     await interaction.response.send_modal(UpdateMaintenanceModal())
 
 
-@bot.tree.command(name="maintenance-delete", description="[DEVTOOL]")
+@bot.tree.command(name="maintenance-delete", description="🔒 [DEVTOOL]")
 @default_permissions(administrator=True)
 async def deletmaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
@@ -381,7 +381,7 @@ async def alert(interaction: discord.Interaction, alert_type: app_commands.Choic
 
 
 @bot.tree.command(name="force-update",
-                  description="[DEVTOOL]")
+                  description="🔒 [DEVTOOL]")
 @app_commands.describe(alert_type="Type d'alerte")
 @app_commands.choices(alert_type=[
     app_commands.Choice(name="Secteur Oublié", value="secteur_oublie"),
