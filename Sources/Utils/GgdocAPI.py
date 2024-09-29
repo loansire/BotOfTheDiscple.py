@@ -6,6 +6,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from google.auth.exceptions import RefreshError
 import gspread
 
 from Sources.Utils import Config
@@ -85,13 +86,17 @@ def token():
     creds = None
     if(os.path.exists(Config.TOKEN_GGDOC)):
         creds = Credentials.from_authorized_user_file(Config.TOKEN_GGDOC, SCOPES)
+        
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
+            # Refresh the token
             creds.refresh(Request())
-            
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(Config.CREDENTIALS_GGDOC, SCOPES)
-            creds = flow.run_local_server(port=0)
+            # Else, if the token doesn't exist, get it.
+            flow = InstalledAppFlow.from_client_secrets_file(
+                Config.CREDENTIALS_GGDOC, SCOPES)
+            creds = flow.run_local_server(port=0, access_type="offline")
+            
         with open(Config.TOKEN_GGDOC, "w") as token:
             token.write(creds.to_json())
             
