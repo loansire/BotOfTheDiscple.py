@@ -11,7 +11,7 @@ from Sources.Utils import ModifierModif
 from Sources.Utils import ActivityInfos
 
 from .Manifests import JsonReader
-from .Requests import ActivityDefinition
+from .Manifests import ActivityDefinition
 from .Requests import DestinationDefinition
 from .Requests import PlaceDefinition
 from .Requests import InventoryItemDefinition
@@ -56,19 +56,29 @@ def main(download_all = True):
     C_activity_name = "Extraction"
 
     C_activity_name, C_surcharge1, C_surcharge2,E_power, M_power, E_Shields, M_Shields, E_Champs, M_Champs = GgdocAPI.main()
+    
+
+    ################################## Generate Folders ##################################"
+    
+    if not os.path.exists(Config.OUTPUT_FOLDER):
+        os.mkdir(Config.OUTPUT_FOLDER)
+        
+    if not os.path.exists(Config.TEMP_FOLDER):
+        os.mkdir(Config.TEMP_FOLDER)
 
     #################################### Main MF ######################################
-    #print("Main MF")
-    #print(os.getcwd())
-    #if(os.path.exists( Config.MAIN_MF_OUTPUT_FILE) and not download_all):
-    #    DownloadManifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, download_all)
-    #    print("Main Manifest already downloaded")
-    #else:
-    #    Download.download_manifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, 3, 1);
-    #    print("Main Manifest downloaded")
+    print("Main MF")
+    print(os.getcwd())
+    if(os.path.exists( Config.MAIN_MF_OUTPUT_FILE) and not download_all):
+        DownloadManifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, download_all)
+        print("Main Manifest already downloaded")
+    else:
+        Download.download_manifest(Config.MAIN_MF_URL, Config.MAIN_MF_OUTPUT_FILE, 3, 1);
+        print("Main Manifest downloaded")
 
     #################################### Activity Definition ######################################
     print("Activition Definition")
+    DownloadManifest(Config.MF_ACTIVITY_DEFINITION, Config.MF_ACTIVITY_FILENAME, download_all)
     #Make Acitivty definition Treatment
     ActivityDefinition.main(C_activity_name)
 

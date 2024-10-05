@@ -40,13 +40,3 @@ def html_to_png(html_path, output_path, css_path):
             print(f"Erreur lors du téléchargement de l'image : {image_response.status_code}\n")
     else:
         print(f"Erreur lors de la génération de l'image : {response.status_code}, {response.text}\n")
-
-def main():
-    html_path = "../../Output/Output.html"
-    output_path = "../../Output/Output.png"
-    css_path = "../../Output/styles.css"
-
-    html_to_png(html_path, output_path, css_path)
-
-if __name__ == "__main__":
-    main()

@@ -1,9 +1,10 @@
 ﻿from Sources.Utils import Config
 
 TEMPLATE_PATH = Config.RessourcePath(r"Template.html")
+OUTPUT_FOLDER = (r'Output')
 OUTPUT_PATH = Config.OutputPath(r'Output.html')
 OUTPUT_JPEG_PATH = Config.OutputPath(r"Output.png")
-CSS_PATH = Config.OutputPath(r"styles.css")
+CSS_PATH = Config.RessourcePath(r"styles.css")
 
 
 #Expert

@@ -26,6 +26,9 @@ def OutputPath(relative_path):
 #Bungie Url 
 BASE_URL = "https://www.bungie.net"
 
+#Folder Temp
+TEMP_FOLDER = "Temp"
+OUTPUT_FOLDER = "Output"
 
 # URL de l'endpoint pour télécharger le manifeste complet
 MAIN_MF_URL = "https://www.bungie.net/Platform/Destiny2/Manifest/"
