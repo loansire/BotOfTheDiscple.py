@@ -4,15 +4,22 @@ from Sources.LostSector.LostSectorGenerator import *
 
 EMOJI_MAP = {
     "Cryo": "<:Cryo:1270715011781627904>",
+    "Cryo-électriques": "<:Cryo:1270715011781627904>",
     "Abyssale": "<:Abyssale:1270715025660711023>",
+    "Abyssales": "<:Abyssale:1270715025660711023>",
+    "Abyssaux": "<:Abyssale:1270715025660711023>",
     "Solaire": "<:Solaire:1270714993553178624>",
     "Solaires": "<:Solaire:1270714993553178624>",
-    "Abyssaux": "<:Abyssale:1270715025660711023>",
     "Stase": "<:Stase:1293381064869285938>",
+    "Stases": "<:Stase:1293381064869285938>",
     "Filobscure": "<:Filobscure:1293381094774931456>",
+    "Filobscures": "<:Filobscure:1293381094774931456>",
     "Brise-bouclier": "<:Bloqueur:1270042102033678388>",
+    "Brise-boucliers": "<:Bloqueur:1270042102033678388>",
     "Perturbation": "<:Surcharge:1270042140944236619>",
-    "Chancellement": "<:Implacable:1270042120857849877>"
+    "Perturbations": "<:Surcharge:1270042140944236619>",
+    "Chancellement": "<:Implacable:1270042120857849877>",
+    "Chancellements": "<:Implacable:1270042120857849877>"
 }
 
 
