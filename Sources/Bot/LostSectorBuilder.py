@@ -8,7 +8,8 @@ EMOJI_MAP = {
     "Solaire": "<:Solaire:1270714993553178624>",
     "Solaires": "<:Solaire:1270714993553178624>",
     "Abyssaux": "<:Abyssale:1270715025660711023>",
-    "Cryo-électriques": "<:Cryo:1270715011781627904>",
+    "Stase": "<:Stase:1293381064869285938>",
+    "Filobscure": "<:Filobscure:1293381094774931456>",
     "Brise-bouclier": "<:Bloqueur:1270042102033678388>",
     "Perturbation": "<:Surcharge:1270042140944236619>",
     "Chancellement": "<:Implacable:1270042120857849877>"
