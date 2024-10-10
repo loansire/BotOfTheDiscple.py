@@ -104,7 +104,7 @@ def token():
 
 def GetResetHour():
     spreadsheet = ConnectGgdoc()
-    sheet = spreadsheet.get_worksheet(0  )
+    sheet = spreadsheet.get_worksheet("GeneralData")
     UpdateGgDoc(sheet)
     
     hour = (sheet.acell(CellDefines.CELL_HOUR).value).split(":")
