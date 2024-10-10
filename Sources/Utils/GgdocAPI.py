@@ -102,12 +102,13 @@ def token():
             
     return creds
 
+
 def GetResetHour():
     spreadsheet = ConnectGgdoc()
-    sheet = spreadsheet.get_worksheet("GeneralData")
+    sheet = spreadsheet.worksheet("GeneralData")
     UpdateGgDoc(sheet)
-    
+
     hour = (sheet.acell(CellDefines.CELL_HOUR).value).split(":")
-    
+
     return hour
     
