@@ -18,7 +18,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 def main():
     
     spreadsheet = ConnectGgdoc()
-    sheet = spreadsheet.get_worksheet(2)
+    sheet = spreadsheet.worksheet("CurrentActivity")
     UpdateGgDoc(sheet)
     
     #Get infos
