@@ -401,29 +401,38 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
         return
 
     try:
-        if alert_type.value == "All":
-            alert_types = ["secteur_oublie", "twid", "patch_note", "maintenance"]
-            all_success = True
+        # Cas spécifique pour "secteur_oublie"
+        if alert_type.value == "secteur_oublie":
+            try:
+                print("secteur_oublie en cours de mise à jour.")
+                GenerateActivity()  # Appel de la fonction pour générer l'activité
+                print("L'activité a été mise à jour.")
+                print("Publication en cours ...")
+                await publish_alerts("secteur_oublie")  # Publier l'alerte
+                print("Alerte quotidienne publiée !")
+            except Exception as e:
+                print(f"Erreur lors de la mise à jour quotidienne : {e}\n")
+            print("Fin de la mise à jour des secteur oublie.\n")
+            await interaction.response.send_message(
+                f":white_check_mark: L'activité 'Secteur Oublié' a été mise à jour et l'alerte a été publiée avec succès.",
+                ephemeral=True)
 
-            for alert_type in alert_types:
-                success = await publish_alerts(alert_type)
-                if not success:
-                    all_success = False
-
-            if all_success:
-                await interaction.response.send_message(":white_check_mark: Les alertes pour tous les types ont été publiées avec succès.",
-                                                        ephemeral=True)
-            else:
-                await interaction.response.send_message(":warning: Les alertes pour certains types n'ont pas pu être publiées.",
-                                                        ephemeral=True)
+        # Pour les autres types d'alertes
         else:
             success = await publish_alerts(alert_type.value)
             if success:
-                await interaction.response.send_message(f":white_check_mark: Les alertes pour `{alert_type.name}` ont été publiées avec succès.",
-                                                        ephemeral=True)
+                await interaction.response.send_message(
+                    f":white_check_mark: Les alertes pour `{alert_type.name}` ont été publiées avec succès.",
+                    ephemeral=True)
             else:
-                await interaction.response.send_message(f":warning: Les alertes pour `{alert_type.name}` n'ont pas pu être publiées.",
-                                                        ephemeral=True)
+                await interaction.response.send_message(
+                    f":warning: Les alertes pour `{alert_type.name}` n'ont pas pu être publiées.",
+                    ephemeral=True)
+
+    except discord.DiscordException as e:
+        await interaction.response.send_message(
+            f":x: Erreur lors de la publication des alertes pour `{alert_type.name}`: `{e}`", ephemeral=True)
+        print(f":x: Erreur lors de la commande /force-update pour {alert_type.name}: {e}\n")
 
     except discord.DiscordException as e:
         await interaction.response.send_message(
