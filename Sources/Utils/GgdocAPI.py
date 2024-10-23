@@ -73,7 +73,7 @@ def ConnectGgdoc():
     
     client = gspread.authorize(creds)
     
-    spreadsheet = client.open("[Database] LostSector")
+    spreadsheet = client.open("Aujourd'hui dans Destiny2")
     
     return spreadsheet
 
