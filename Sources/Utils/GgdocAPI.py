@@ -73,7 +73,7 @@ def ConnectGgdoc():
     
     client = gspread.authorize(creds)
     
-    spreadsheet = client.open("LostSectorDatabase")
+    spreadsheet = client.open("[Database] LostSector")
     
     return spreadsheet
 
@@ -105,7 +105,7 @@ def token():
 
 def GetResetHour():
     spreadsheet = ConnectGgdoc()
-    sheet = spreadsheet.worksheet("GeneralData")
+    sheet = spreadsheet.worksheet("General Data")
     UpdateGgDoc(sheet)
 
     hour = (sheet.acell(CellDefines.CELL_HOUR).value).split(":")
