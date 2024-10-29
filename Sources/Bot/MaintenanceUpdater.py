@@ -358,7 +358,7 @@ class MaintenanceView(discord.ui.View):
         message_content = (
             f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
             f"{f'- 📝: {self.maintenance_comment}\n' if self.maintenance_comment else ''}"
-            f"- :x: Stop serv <t:{self.stop_timestamp}:t> | :white_check_mark: Retour serv <t:{self.return_timestamp}:t> | Débute __**<t:{self.stop_timestamp}:R>**__"
+            f"- :x: Stop serv <t:{self.stop_timestamp}:t> | :white_check_mark: Retour serv <t:{self.return_timestamp}:t> | :repeat: Débute __**<t:{self.stop_timestamp}:R>**__"
         )
 
         await interaction.response.send_message(
