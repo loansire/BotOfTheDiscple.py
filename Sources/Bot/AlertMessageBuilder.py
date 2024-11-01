@@ -23,10 +23,10 @@ def load_alert_channels(alert_type):
     return {}
 
 
-def save_alert_channels(alert_type, data):
+def save_alert_channels(alert_type, channels):
     file_path = os.path.join(ALERTS_DIR, f"{alert_type}_alert_channels.json")
     with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
+        json.dump(channels, file, indent=2)
 
 
 async def publish_alerts(alert_type):
@@ -38,9 +38,13 @@ async def publish_alerts(alert_type):
         guild = bot.get_guild(int(guild_id))
 
         if guild:
-            for channel_id in channels:
-                channel = guild.get_channel(int(channel_id))
+            # Vérifiez si un channel ou un thread est configuré
+            channel_id = channels.get("channel_ID")
+            thread_id = channels.get("thread_ID")
 
+            # Publication pour un canal normal
+            if channel_id:
+                channel = guild.get_channel(int(channel_id))
                 if channel and isinstance(channel, discord.TextChannel):
                     try:
                         # Choisissez la fonction d'embed en fonction du type d'alerte
@@ -68,9 +72,6 @@ async def publish_alerts(alert_type):
                             if not embed:
                                 print(f"Aucun embed trouvé pour {alert_type}.")
                                 continue
-                        else:
-                            print(f"Type d'alerte inconnu : {alert_type}")
-                            continue
 
                         # Envoyer le message avec ou sans vue
                         if view:
@@ -82,6 +83,48 @@ async def publish_alerts(alert_type):
 
                     except discord.DiscordException as e:
                         print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
+
+            # Publication pour un thread
+            if thread_id:
+                thread = guild.get_thread(int(thread_id))
+                if thread and isinstance(thread, discord.Thread):
+                    try:
+                        # Choisissez la fonction d'embed en fonction du type d'alerte
+                        if alert_type == "secteur_oublie":
+                            embed, files = secteur_oublie_embed()
+                            view = None
+                        elif alert_type == "maintenance":
+                            embed, files, view = maintenance_embed()
+                        elif alert_type == "twid" or alert_type == "patch_note":
+                            # Utiliser la même logique pour "twid" et "patch_note"
+                            keyword = 'twid' if alert_type == "twid" else 'destiny_update'
+                            embed, view, message_content = await news_article_embed(
+                                interaction=None,  # Pas d'interaction dans ce contexte
+                                language='en',  # Langue par défaut, ajustez si nécessaire
+                                keyword=keyword,
+                                no_article_message="Aucun article trouvé pour ce type."
+                            )
+
+                            files = []  # Pas de fichiers à envoyer par défaut pour "twid" ou "patch_note"
+
+                            if message_content:
+                                await thread.send(content=message_content)
+
+                            # Continue si aucun article n'est trouvé
+                            if not embed:
+                                print(f"Aucun embed trouvé pour {alert_type}.")
+                                continue
+
+                        # Envoyer le message avec ou sans vue
+                        if view:
+                            await thread.send(embed=embed, files=files, view=view)
+                        else:
+                            await thread.send(embed=embed, files=files)
+
+                        any_success = True  # Marquer comme réussi si l'envoi est effectué
+
+                    except discord.DiscordException as e:
+                        print(f"Erreur lors de l'envoi de l'alerte dans le thread {thread_id} : {e}")
 
     if not any_success:
         print("Aucune alerte n'a été envoyée avec succès.\n")

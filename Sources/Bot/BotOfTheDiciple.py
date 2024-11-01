@@ -240,11 +240,6 @@ async def wishwall(interaction: discord.Interaction):
 # endregion
 
 
-# region PrismaticRandomizer
-
-# endregion
-
-
 # region News-info
 @bot.tree.command(name='twid', description="Affiche la TWID la plus récente.")
 @app_commands.describe(language="Langue de l'article")
@@ -342,7 +337,8 @@ async def patch_note(interaction: discord.Interaction, language: str):
 
 # region AlertCommand
 @bot.tree.command(name="alert", description="Configure des alertes de contenu du jeu.")
-@app_commands.describe(alert_type="Type d'alerte (Twid, Patch Note, Maintenance, Secteur Oublié)", action="Ajouter ou retirer ce salon des alertes")
+@app_commands.describe(alert_type="Type d'alerte (Twid, Patch Note, Maintenance, Secteur Oublié)",
+                       action="Ajouter ou retirer ce salon des alertes")
 @app_commands.choices(alert_type=[
     app_commands.Choice(name="Twid", value="twid"),
     app_commands.Choice(name="Secteur Oublié", value="secteur_oublie"),
@@ -354,28 +350,51 @@ async def patch_note(interaction: discord.Interaction, language: str):
     app_commands.Choice(name="Retirer", value="retirer")
 ])
 @default_permissions(administrator=True)
-async def alert(interaction: discord.Interaction, alert_type: app_commands.Choice[str], action: app_commands.Choice[str]):
+async def alert(interaction: discord.Interaction, alert_type: app_commands.Choice[str],
+                action: app_commands.Choice[str]):
     alert_channels = load_alert_channels(alert_type.value)
     guild_id = str(interaction.guild.id)
 
+    # Détection du type de canal
+    channel_id = str(interaction.channel.id)
+    is_thread = isinstance(interaction.channel, discord.Thread)
+
     if action.value == 'ajouter':
         if guild_id not in alert_channels:
-            alert_channels[guild_id] = []
-        if str(interaction.channel.id) not in alert_channels[guild_id]:
-            alert_channels[guild_id].append(str(interaction.channel.id))
-            save_alert_channels(alert_type.value, alert_channels)
-            await interaction.response.send_message(f":white_check_mark: <#{interaction.channel.id}> a été ajouté aux alertes de `{alert_type.name}`.")
+            alert_channels[guild_id] = {}
+
+        # Stockage en fonction du type de canal
+        if is_thread:
+            alert_channels[guild_id]["thread_ID"] = channel_id
         else:
-            await interaction.response.send_message(f":x: <#{interaction.channel.id}> est déjà configuré pour les alertes.", ephemeral=True)
+            alert_channels[guild_id]["channel_ID"] = channel_id
+
+        save_alert_channels(alert_type.value, alert_channels)
+        await interaction.response.send_message(
+            f":white_check_mark: <#{channel_id}> a été ajouté aux alertes de `{alert_type.name}`.", ephemeral=True)
+
     elif action.value == 'retirer':
-        if guild_id in alert_channels and str(interaction.channel.id) in alert_channels[guild_id]:
-            alert_channels[guild_id].remove(str(interaction.channel.id))
+        if guild_id in alert_channels:
+            if is_thread and "thread_ID" in alert_channels[guild_id]:
+                del alert_channels[guild_id]["thread_ID"]
+                await interaction.response.send_message(
+                    f":wastebasket: <#{channel_id}> a été retiré des alertes de `{alert_type.name}`.", ephemeral=True)
+            elif not is_thread and "channel_ID" in alert_channels[guild_id]:
+                del alert_channels[guild_id]["channel_ID"]
+                await interaction.response.send_message(
+                    f":wastebasket: <#{channel_id}> a été retiré des alertes de `{alert_type.name}`.", ephemeral=True)
+            else:
+                await interaction.response.send_message(f":x: Aucunes alertes configurées pour `{alert_type.name}`.",
+                                                        ephemeral=True)
+
+            # Supprime le guild_id si vide après suppression
             if not alert_channels[guild_id]:
                 del alert_channels[guild_id]
+
             save_alert_channels(alert_type.value, alert_channels)
-            await interaction.response.send_message(f":wastebasket: <#{interaction.channel.id}> a été retiré des alertes de `{alert_type.name}`.")
         else:
-            await interaction.response.send_message(f":x: <#{interaction.channel.id}> n'est pas configuré pour les alertes `{alert_type.name}`.", ephemeral=True)
+            await interaction.response.send_message(f":x: Aucunes alertes configurées pour `{alert_type.name}`.",
+                                                    ephemeral=True)
     else:
         await interaction.response.send_message(":x: Action invalide. Utilisez 'ajouter' ou 'retirer'.", ephemeral=True)
 
@@ -405,6 +424,8 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
         if alert_type.value == "secteur_oublie":
             try:
                 print("secteur_oublie en cours de mise à jour.")
+                await interaction.response.send_message(
+                    f":repeat: L'activité 'Secteur Oublié' est en cours de mise à jour et l'alerte sera publiée.", ephemeral=True)
                 GenerateActivity()  # Appel de la fonction pour générer l'activité
                 print("L'activité a été mise à jour.")
                 print("Publication en cours ...")
@@ -413,9 +434,6 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
             except Exception as e:
                 print(f"Erreur lors de la mise à jour quotidienne : {e}\n")
             print("Fin de la mise à jour des secteur oublie.\n")
-            await interaction.response.send_message(
-                f":white_check_mark: L'activité 'Secteur Oublié' a été mise à jour et l'alerte a été publiée avec succès.",
-                ephemeral=True)
 
         # Pour les autres types d'alertes
         else:
@@ -454,7 +472,6 @@ async def daily_update():
         print(f"Erreur lors de la mise à jour quotidienne : {e}\n")
     print("Fin de la mise à jour quotidienne.\n")
 # endregion
-
 
 @tasks.loop(minutes=10)
 async def recurring_update():
