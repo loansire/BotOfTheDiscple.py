@@ -39,4 +39,9 @@
         "thumbnail": "Ressources/DDungeonRandomizer/DungeonEmotes/Ruine.webp",
         "image": "Ressources/DungeonRandomizer/DungeonImage/Ruine.webp"
     }
+    "Hôte Vesper": {
+        "emoji": "<:Vesper:1295144736964870214>",
+        "thumbnail": "Ressources/DDungeonRandomizer/DungeonEmotes/Vesper.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Vesper.webp"
+    }
 }
