@@ -406,8 +406,7 @@ async def alert(interaction: discord.Interaction, alert_type: app_commands.Choic
     app_commands.Choice(name="Secteur Oublié", value="secteur_oublie"),
     app_commands.Choice(name="Twid", value="twid"),
     app_commands.Choice(name="Patch Note", value="patch_note"),
-    app_commands.Choice(name="Maintenance", value="maintenance"),
-    app_commands.Choice(name="Tous", value="All")
+    app_commands.Choice(name="Maintenance", value="maintenance")
 ])
 @default_permissions(administrator=True)
 async def force_update_alert(interaction: discord.Interaction, alert_type: app_commands.Choice[str]):
