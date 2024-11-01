@@ -59,6 +59,7 @@ async def get_bungie_rss_articles(language, page_token='0', includebody=False):
                 return None
 
 async def get_latest_article_by_keyword(language, keyword):
+    print(f"Le keyword est {keyword}")
     # Récupérer tous les articles
     articles = await get_bungie_rss_articles(language=language, page_token='0', includebody='true')
 
@@ -93,7 +94,7 @@ async def get_latest_article_by_keyword(language, keyword):
 async def main():
     LANGUAGE = 'en'  # Langue souhaitée (par exemple 'fr' pour français, 'en' pour anglais)
     keyword_twid = 'twid'
-    keyword_destiny_2_update = 'destiny_2_update'
+    keyword_destiny_2_update = 'destiny_update'
 
     twid, is_french_available_twid = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_twid)
     destiny_2_update, is_french_available_destiny_2_update = await get_latest_article_by_keyword(language=LANGUAGE, keyword=keyword_destiny_2_update)
