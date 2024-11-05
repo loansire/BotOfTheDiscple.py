@@ -36,7 +36,12 @@
     },
     "Ruine de la Guerrière": {
         "emoji": "<:Ruine:1275104356387000450>",
-        "thumbnail": "Ressources/DDungeonRandomizer/DungeonEmotes/Ruine.webp",
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Ruine.webp",
         "image": "Ressources/DungeonRandomizer/DungeonImage/Ruine.webp"
+    },
+    "Hôte Vesper": {
+        "emoji": "<:Vesper:1295144736964870214>",
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Vesper.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Vesper.webp"
     }
 }

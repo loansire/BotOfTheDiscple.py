@@ -20,7 +20,7 @@ async def load_news_alerts():
 # Sauvegarder les alertes mises à jour
 async def save_news_alerts(news_alerts):
     with open('Ressources/AlertDatabase/news_alert.json', 'w') as file:
-        json.dump(news_alerts, file, indent=4)
+        json.dump(news_alerts, file, indent=2)
 
 
 async def NewArticleTest():
@@ -28,11 +28,7 @@ async def NewArticleTest():
     try:
         # Récupérer les derniers articles TWID et Destiny 2 Update
         twid_item, _ = await get_latest_article_by_keyword('en', 'twid')
-        keywords = ['destiny_2_update', 'destiny_update']
-        for keyword in keywords:
-            update_item, _ = await get_latest_article_by_keyword('en', keyword)
-            if update_item:  # Si un article est trouvé, on arrête la boucle
-                break
+        update_item, _ = await get_latest_article_by_keyword('en', 'destiny_update')
 
         # Charger les données actuelles depuis le fichier JSON
         news_alerts = await load_news_alerts()
