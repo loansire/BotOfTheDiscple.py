@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from Sources.Bot.EmbedGenerator import create_embed_with_components
 
 pdt_tz = pytz.timezone('America/Los_Angeles')
+pst_tz = pytz.timezone('America/Los_Angeles')
 
 
 class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informations de maintenance"):
@@ -135,6 +136,25 @@ def convert_pdt_to_unix(date_str, time_str):
         print(f"Error converting PDT to Unix timestamp: {e}")
         return None
 
+def convert_pst_to_unix(date_str, time_str):
+    try:
+        # Obtenir l'année actuelle
+        current_year = datetime.now().year
+
+        # Formater la chaîne de temps
+        time_str = format_time(time_str)
+        # Combiner la date et l'heure dans une chaîne de caractères avec l'année actuelle
+        datetime_str = f"{date_str} {current_year} {time_str}"
+        # Analyser la chaîne pour créer un objet datetime en supposant le fuseau horaire PST
+        dt_pst = datetime.strptime(datetime_str, "%B %d %Y %I:%M %p")
+        # Localiser l'objet datetime au fuseau horaire PST
+        dt_pst = pst_tz.localize(dt_pst)
+        # Convertir l'objet datetime en un timestamp Unix
+        timestamp = int(dt_pst.timestamp())
+        return timestamp
+    except Exception as e:
+        print(f"Erreur lors de la conversion de PST en timestamp Unix : {e}")
+        return None
 
 def format_time(time_str):
     """Format the time string to HH:MM AM/PM format."""
@@ -249,8 +269,12 @@ async def process_message(message):
                             print(f"Retour des serveurs: {formatted_time_restart}")
 
                             # Convert times to Unix timestamps
-                            stop_timestamp = convert_pdt_to_unix(date_line, formatted_time_stop)
-                            return_timestamp = convert_pdt_to_unix(date_line, formatted_time_restart)
+                            if 'PDT' in lines[5]:
+                                stop_timestamp = convert_pdt_to_unix(date_line, formatted_time_stop)
+                                return_timestamp = convert_pdt_to_unix(date_line, formatted_time_restart)
+                            else:
+                                stop_timestamp = convert_pst_to_unix(date_line, formatted_time_stop)
+                                return_timestamp = convert_pst_to_unix(date_line, formatted_time_restart)
 
                             if stop_timestamp and return_timestamp:
                                 # Save the information to a JSON file
