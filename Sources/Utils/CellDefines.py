@@ -1,5 +1,4 @@
-﻿
-#region  Cell SecteurOublié
+﻿#region  Cell SecteurOublié
 CELL_NAME = "A2"
 CELL_HASH_E = "B2"
 CELL_HASH_M = "C2"
@@ -21,28 +20,85 @@ CELL_SHIELD_M = {"Solaires" : "P2", "Abyssaux" : "Q2", "Cryo-électriques" : "R2
 CELL_CHAMP_M = {"Brise-bouclier" : "U2", "Perturbation" : "V2","Chancellement" : "W2"}
 
 #Cell Arme 1
-CELL_WEAPON_NAME_1 = "B4"
-CELL_WEAPON_HASH_1 = "C4"
-CELL_WEAPON_LINK_FR_1 = "D4"
-CELL_WEAPON_LINK_EN_1 = "E4"
+CELL_LS_WEAPON_1 = {"Nom" : "B4", "Hash" : "C4", "LienFR" : "D4", "LienEN" : "E4"}
 
 #Cell Arme 2
-CELL_WEAPON_NAME_2 = "F4"
-CELL_WEAPON_HASH_2 = "G4"
-CELL_WEAPON_LINK_FR_2 = "H4"
-CELL_WEAPON_LINK_EN_2 = "I4"
+CELL_LS_WEAPON_2 = {"Nom" : "F4", "Hash" : "G4", "LienFR" : "H4", "LienEN" : "I4"}
 
 #Cell Arme 3
-CELL_WEAPON_NAME_3 = "J4"
-CELL_WEAPON_HASH_3 = "K4"
-CELL_WEAPON_LINK_FR_3 = "L4"
-CELL_WEAPON_LINK_EN_3 = "M4"
+CELL_LS_WEAPON_3 = {"Nom" : "J4", "Hash" : "K4", "LienFR" : "L4", "LienEN" : "M4"}
 
 #Cell Arme 4
-CELL_WEAPON_NAME_4 = "N4"
-CELL_WEAPON_HASH_4 = "O4"
-CELL_WEAPON_LINK_FR_4 = "P4"
-CELL_WEAPON_LINK_EN_4 = "Q4"
+CELL_LS_WEAPON_4 = {"Nom" : "N4", "Hash" : "O4", "LienFR" : "P4", "LienEN" : "Q4"}
+#endregion
+
+#region  NuitNoire
+CELL_NN_NAME = "A7"
+CELL_NN_HASH_GM = "B7"
+CELL_NN_SURCHARGE_1 = "C7"
+CELL_NN_SURCHARGE_2 = "D7"
+
+#Cell Puissance
+CELL_NN_POWER = {"Avancé" : "E7", "Expert" : "F7", "Master" : "G7", "Grand-Maitre" : "H7"}
+
+#Cell Arme STANDARD
+CELL_NN_WEAPON_1 = {"Nom" : "A9", "Hash" : "B9", "LienFR" : "C9", "LienEN" : "D9"}
+
+#Cell Arme EXPERT
+CELL_NN_WEAPON_2 = {"Nom" : "E9", "Hash" : "F9", "LienFR" : "G9", "LienEN" : "H9"}
+#endregion
+
+#region  Raid1
+CELL_RAID1_NAME = "A12"
+CELL_RAID1_HASH_S = "B12"
+CELL_RAID1_HASH_M = "C12"
+CELL_RAID1_SURCHARGE_1 = "D12"
+CELL_RAID1_SURCHARGE_2 = "E12"
+CELL_RAID1_POWER_S = "F12"
+CELL_RAID1_POWER_M = "G12"
+#endregion
+
+#region  Raid2
+CELL_RAID2_NAME = "A15"
+CELL_RAID2_HASH_S = "B15"
+CELL_RAID2_HASH_M = "C15"
+CELL_RAID2_SURCHARGE_1 = "D15"
+CELL_RAID2_SURCHARGE_2 = "E15"
+CELL_RAID2_POWER_S = "F15"
+CELL_RAID2_POWER_M = "G15"
+#endregion
+
+#region  Donjon1
+CELL_DUNGEON1_NAME = "A18"
+CELL_DUNGEON1_HASH_S = "B18"
+CELL_DUNGEON1_HASH_M = "C18"
+CELL_DUNGEON1_SURCHARGE_1 = "D18"
+CELL_DUNGEON1_SURCHARGE_2 = "E18"
+CELL_DUNGEON1_POWER_S = "F18"
+CELL_DUNGEON1_POWER_M = "G18"
+CELL_DUNGEON1_ISQUEST = "H18"
+#endregion
+
+#region  Donjon2
+CELL_DUNGEON2_NAME = "A21"
+CELL_DUNGEON2_HASH_S = "B21"
+CELL_DUNGEON2_HASH_M = "C21"
+CELL_DUNGEON2_SURCHARGE_1 = "D21"
+CELL_DUNGEON2_SURCHARGE_2 = "E21"
+CELL_DUNGEON2_POWER_S = "F21"
+CELL_DUNGEON2_POWER_M = "G21"
+CELL_DUNGEON2_ISQUEST = "H21"
+#endregion
+
+#region  Mission Exotique
+CELL_EXOMISSION_NAME = "A24"
+CELL_EXOMISSION_HASH_S = "B24"
+CELL_EXOMISSION_HASH_M = "C24"
+CELL_EXOMISSION_SURCHARGE_1 = "D24"
+CELL_EXOMISSION_SURCHARGE_2 = "E24"
+CELL_EXOMISSION_POWER_S = "F24"
+CELL_EXOMISSION_POWER_M = "G24"
+CELL_EXOMISSION_WEAPON = {"Nom" : "H24", "Hash" : "I24", "LienFR" : "J24", "LienEN" : "K24"}
 #endregion
 
 CELL_HOUR = "B7"
