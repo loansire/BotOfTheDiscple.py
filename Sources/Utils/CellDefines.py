@@ -20,16 +20,19 @@ CELL_SHIELD_M = {"Solaires" : "P2", "Abyssaux" : "Q2", "Cryo-électriques" : "R2
 CELL_CHAMP_M = {"Brise-bouclier" : "U2", "Perturbation" : "V2","Chancellement" : "W2"}
 
 #Cell Arme 1
-CELL_LS_WEAPON_1 = {"Nom" : "B4", "Hash" : "C4", "LienFR" : "D4", "LienEN" : "E4"}
+CELL_LS_WEAPON_1 = {"Nom" : "C4", "Hash" : "D4", "LienFR" : "E4", "LienEN" : "F4"}
 
 #Cell Arme 2
-CELL_LS_WEAPON_2 = {"Nom" : "F4", "Hash" : "G4", "LienFR" : "H4", "LienEN" : "I4"}
+CELL_LS_WEAPON_2 = {"Nom" : "G4", "Hash" : "H4", "LienFR" : "I4", "LienEN" : "J4"}
 
 #Cell Arme 3
-CELL_LS_WEAPON_3 = {"Nom" : "J4", "Hash" : "K4", "LienFR" : "L4", "LienEN" : "M4"}
+CELL_LS_WEAPON_3 = {"Nom" : "K4", "Hash" : "L4", "LienFR" : "M4", "LienEN" : "N4"}
 
 #Cell Arme 4
-CELL_LS_WEAPON_4 = {"Nom" : "N4", "Hash" : "O4", "LienFR" : "P4", "LienEN" : "Q4"}
+CELL_LS_WEAPON_4 = {"Nom" : "O4", "Hash" : "P4", "LienFR" : "Q4", "LienEN" : "R4"}
+
+#Cell Armure Focus
+CELL_LS_ARMOR = "A4"
 #endregion
 
 #region  NuitNoire
