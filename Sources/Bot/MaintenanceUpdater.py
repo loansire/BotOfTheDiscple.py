@@ -233,7 +233,7 @@ async def process_message(message):
     print(f"ID: {author_id}")
     print(f"Type: {author_type}")
 
-    if message.author.bot:
+    if author_type == "bot":
         if "twitter.com/BungieHelp" in message.content:
             print("== Contient un tweet de BungieHelp ==")
             for embed in message.embeds:
@@ -252,7 +252,7 @@ async def process_message(message):
                     if "TIMELINE" in lines[3]:
                         if len(lines) >= 7:
                             # Extract comment
-                            comment_line = lines[1].strip()
+                            comment_line = lines[1].strip().replace('\\', '')
                             print(f"\nCommentaire: {comment_line}")
 
                             # Extract date, time_stop, and time_restart
@@ -289,13 +289,16 @@ async def process_message(message):
                                 with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
                                     json.dump(maintenance_info, file, indent=4)
                                 print("Update des informations de maintenance effectuée")
+                                print("-------------------------")
 
                                 # Publier les alertes de maintenance
                                 await publish_alerts("maintenance")
                             else:
                                 print("== Failed to convert dates and times to Unix timestamps ==")
+                                print("-------------------------")
                         else:
                             print("== Pas assez de lignes pour extraire les informations ==")
+                            print("-------------------------")
                     else:
                         print("== Ne contient pas 'TIMELINE' ==")
                     print("-------------------------")
@@ -303,61 +306,20 @@ async def process_message(message):
                         "DESTINY 2 MAINTENANCE"):
                     print("\n--- Maintenance Update trouvée ---")
                     # Vérifiez si le texte contient "Maintenance is complete."
-                    if "Maintenance is complete." in description:
+                    if "Maintenance is complete." in description.replace('\\', ''):
                         print("== Maintenance is complete ==")
-
                         # Supprimez le fichier maintenance_info.json s'il existe
                         maintenance_file = "Ressources/Maintenance/maintenance_info.json"
                         if os.path.exists(maintenance_file):
                             os.remove(maintenance_file)
                             print("== maintenance_info.json a été supprimé ==")
-
-                            # Publier les alertes de maintenance
-                            await publish_alerts("maintenance")
+                            print("-------------------------")
                         else:
-                            print("== maintenance_info.json n'existe pas ==")
+                            print("== Il n'y a pas de fichier Maintenance à supprimer ==")
+                            print("-------------------------")
                     else:
-                        # Actualisez le commentaire du JSON avec le contenu du texte sauf les 3 premières et 2 dernières lignes
-                        lines = description.split('\n')
-
-                        # Filtrer les lignes pour retirer celles qui contiennent des liens
-                        filtered_lines = [line for line in lines if not ("http://" in line or "https://" in line)]
-
-                        # Vérifier s'il reste suffisamment de lignes après filtrage
-                        if len(filtered_lines) > 5:
-                            # Extraire les lignes du milieu (en retirant les 3 premières lignes et les 2 dernières)
-                            updated_comment = '\n'.join(filtered_lines[3:-2]).strip()
-                        else:
-                            # Si après filtrage, il reste moins de lignes que prévu, on retire simplement les 3 premières lignes
-                            updated_comment = '\n'.join(filtered_lines[3:]).strip()
-
-                        print(f"== Commentaire à traduire: {updated_comment} ==")
-
-                        # Traduire le commentaire en français
-                        translated_comment = translate_text_deepl(updated_comment)
-                        if translated_comment:
-                            print(f"== Commentaire traduit: {translated_comment} ==")
-                            maintenance_file = "Ressources/Maintenance/maintenance_info.json"
-                            if os.path.exists(maintenance_file):
-                                # Charger l'ancien contenu JSON
-                                with open(maintenance_file, "r") as file:
-                                    maintenance_info = json.load(file)
-
-                                # Mettre à jour le champ 'comment'
-                                maintenance_info["comment"] = translated_comment
-
-                                # Sauvegarder le JSON mis à jour
-                                with open(maintenance_file, "w") as file:
-                                    json.dump(maintenance_info, file, indent=4)
-
-                                print("== maintenance_info.json a été mis à jour ==")
-
-                                # Publier les alertes de maintenance
-                                await publish_alerts("maintenance")
-                            else:
-                                print("== maintenance_info.json n'existe pas ==")
-                        else:
-                            print("== La traduction a échoué ==")
+                        print("== Ceci n'est pas un tweet de maintenance en préparation ==")
+                        print("-------------------------")
                 else:
                     print("== Ne contient pas d'info de Maintenance ==")
                     print("-------------------------")
