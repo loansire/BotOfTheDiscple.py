@@ -6,7 +6,7 @@ from datetime import datetime
 
 import discord
 import pytz
-import requests
+import re
 from bs4 import BeautifulSoup
 
 from Sources.Bot.EmbedGenerator import create_embed_with_components
@@ -108,6 +108,7 @@ class UpdateMaintenanceModal(discord.ui.Modal, title="Mise à jour des informati
 
 
 def load_maintenance_info():
+    """Charge les informations de maintenance depuis un fichier JSON."""
     try:
         with open("Ressources/Maintenance/maintenance_info.json", "r", encoding='utf-8') as file:
             maintenance_info = json.load(file)
@@ -116,219 +117,163 @@ def load_maintenance_info():
         return None
 
 
-def convert_pdt_to_unix(date_str, time_str):
-    try:
-        # Get the current year
-        current_year = datetime.now().year
+def save_maintenance_info(maintenance_info):
+    """Sauvegarde les informations de maintenance dans un fichier JSON."""
+    os.makedirs("Ressources/Maintenance", exist_ok=True)
+    with open("Ressources/Maintenance/maintenance_info.json", "w", encoding='utf-8') as file:
+        json.dump(maintenance_info, file, indent=4)
 
-        # Format the time string
-        time_str = format_time(time_str)
-        # Combine the date and time strings into a single datetime string, including the current year
-        datetime_str = f"{date_str} {current_year} {time_str}"
-        # Parse the string into a datetime object, assuming PDT timezone
-        dt_pdt = datetime.strptime(datetime_str, "%B %d %Y %I:%M %p")
-        # Localize the datetime to PDT timezone
-        dt_pdt = pdt_tz.localize(dt_pdt)
-        # Convert the datetime to a Unix timestamp
-        timestamp = int(dt_pdt.timestamp())
-        return timestamp
-    except Exception as e:
-        print(f"Error converting PDT to Unix timestamp: {e}")
-        return None
+
+def convert_pdt_to_unix(date_str, time_str):
+    """Convertit une date et une heure en timestamp Unix pour le fuseau horaire PDT."""
+    return convert_to_unix(date_str, time_str, "PDT")
+
 
 def convert_pst_to_unix(date_str, time_str):
-    try:
-        # Obtenir l'année actuelle
-        current_year = datetime.now().year
+    """Convertit une date et une heure en timestamp Unix pour le fuseau horaire PST."""
+    return convert_to_unix(date_str, time_str, "PST")
 
-        # Formater la chaîne de temps
+
+def convert_to_unix(date_str, time_str, timezone_str):
+    """Convertit une date et une heure en timestamp Unix, en fonction du fuseau horaire."""
+    try:
+        current_year = datetime.now().year
         time_str = format_time(time_str)
-        # Combiner la date et l'heure dans une chaîne de caractères avec l'année actuelle
         datetime_str = f"{date_str} {current_year} {time_str}"
-        # Analyser la chaîne pour créer un objet datetime en supposant le fuseau horaire PST
-        dt_pst = datetime.strptime(datetime_str, "%B %d %Y %I:%M %p")
-        # Localiser l'objet datetime au fuseau horaire PST
-        dt_pst = pst_tz.localize(dt_pst)
-        # Convertir l'objet datetime en un timestamp Unix
-        timestamp = int(dt_pst.timestamp())
-        return timestamp
+        dt_obj = datetime.strptime(datetime_str, "%B %d %Y %I:%M %p")
+
+        # Appliquer le fuseau horaire
+        if timezone_str == "PDT":
+            dt_obj = pdt_tz.localize(dt_obj)
+        elif timezone_str == "PST":
+            dt_obj = pst_tz.localize(dt_obj)
+        else:
+            raise ValueError(f"Fuseau horaire inconnu : {timezone_str}")
+
+        return int(dt_obj.timestamp())
     except Exception as e:
-        print(f"Erreur lors de la conversion de PST en timestamp Unix : {e}")
+        print(f"Erreur de conversion en timestamp Unix : {e}")
         return None
 
+
 def format_time(time_str):
-    """Format the time string to HH:MM AM/PM format."""
-    time_str = time_str.strip()  # Remove any leading/trailing whitespace
-    if not time_str:
-        return time_str
-
-    parts = time_str.split()
-
-    if len(parts) == 1:
-        # Only hour is provided (e.g., '10 AM')
-        hour = parts[0]
-        return f"{hour}:00"
-
-    if len(parts) == 2:
-        # Hour and AM/PM (e.g., '6:45 AM')
-        hour_minute = parts[0]
-        am_pm = parts[1]
-
-        if ':' not in hour_minute:
-            # No minutes specified, add ':00'
-            return f"{hour_minute}:00 {am_pm}"
-
-        return f"{hour_minute} {am_pm}"
-
-    return time_str  # Return as-is if the format is unexpected
+    """Formate l'heure pour qu'elle inclue les minutes, si elles manquent."""
+    time_str = time_str.strip()  # Supprime les espaces inutiles
+    if ':' not in time_str:  # Si les minutes sont absentes
+        time_str = time_str.replace(" AM", ":00 AM").replace(" PM", ":00 PM")
+    return time_str
 
 
 def clean_text(text):
-    """Clean text by replacing HTML entities, removing links, and extra spaces, while preserving line breaks."""
+    """Nettoie le texte des entités HTML et des liens."""
     if text is None:
         return ""
-    # Parse the text with BeautifulSoup to handle HTML entities
     soup = BeautifulSoup(text, "html.parser")
-    # Remove all links
     for a in soup.findAll('a'):
-        a.extract()  # Remove the entire link tag
-    # Convert the HTML to plain text, but preserve line breaks
-    cleaned_text = soup.get_text(separator='\n')
-    # Replace multiple spaces with a single space
-    cleaned_text = '\n'.join(' '.join(line.split()) for line in cleaned_text.split('\n'))
-    return cleaned_text
-
-
-def translate_text_deepl(text, target_lang="FR"):
-    """Traduit un texte de l'anglais vers la langue cible en utilisant l'API DeepL."""
-    api_key = "63bf6b23-8b8f-41c6-8ab0-90f3c270f216:fx"  # Remplacez par votre clé API DeepL
-    url = "https://api-free.deepl.com/v2/translate"
-
-    params = {
-        "auth_key": api_key,
-        "text": text,
-        "target_lang": target_lang
-    }
-
-    response = requests.post(url, data=params)
-
-    if response.status_code == 200:
-        return response.json()["translations"][0]["text"]
-    else:
-        print(f"Erreur lors de la traduction: {response.status_code}")
-        return None
+        a.extract()
+    return soup.get_text(separator='\n').strip()
 
 
 async def process_message(message):
     from Sources.Bot.AlertMessageBuilder import publish_alerts
+    """Analyse un message pour déterminer s'il contient des informations de maintenance."""
+    maintenance_file = "Ressources/Maintenance/maintenance_info.json"
+    maintenance_info = load_maintenance_info()
+
     # Identifiez l'auteur du message
     author = message.author
     author_name = author.name
     author_id = author.id
     author_type = "bot" if author.bot else "user"
 
-    # Affichez les informations sur l'auteur
     print("\n*** Un Message a été intercepté ***\n--- Auteur Information ---")
     print(f"Nom: {author_name}")
     print(f"ID: {author_id}")
     print(f"Type: {author_type}")
 
-    if author_type == "bot":
-        if "twitter.com/BungieHelp" in message.content:
-            print("== Contient un tweet de BungieHelp ==")
-            for embed in message.embeds:
-                # Nettoyage et formatage du titre et de la description
-                title = clean_text(embed.title) if embed.title else ""
-                description = clean_text(embed.description) if embed.description else ""
+    # Vérifiez si le message est envoyé par un bot et contient un tweet
+    if author_type == "bot" and "twitter.com/BungieHelp" in message.content:
+        print("== Contient un tweet de BungieHelp ==")
 
-                # Vérifiez si le titre ou la description commence par "UPCOMING DESTINY 2 MAINTENANCE"
-                if title.startswith("UPCOMING DESTINY 2 MAINTENANCE") or description.startswith(
-                        "UPCOMING DESTINY 2 MAINTENANCE"):
-                    print("\n--- UPCOMING Maintenance trouvée ---")
-                    content = description if description else title
-                    lines = content.split('\n')
+        for embed in message.embeds:
+            # Nettoyage et formatage du texte de l'embed
+            title = clean_text(embed.title) if embed.title else ""
+            description = clean_text(embed.description) if embed.description else ""
 
-                    # Vérifiez si la ligne 3 ne contient pas "TIMELINE"
-                    if "TIMELINE" in lines[3]:
-                        if len(lines) >= 7:
-                            # Extract comment
-                            comment_line = lines[1].strip().replace('\\', '')
-                            print(f"\nCommentaire: {comment_line}")
+            content = description if description else title
+            # Normalisation des espaces et les \ dans le contenu
+            content = content.replace('\u00A0', ' ').replace('\\','')  # Remplacer les espaces insécables par des espaces standards et les \ inutiles
+            content = re.sub(r'\s+', ' ', content)  # Remplacer tout type d'espace multiple par un espace unique
 
-                            # Extract date, time_stop, and time_restart
-                            date_line = lines[4].replace('❖ ', '').strip()  # 'August 20'
-                            time_stop_line = lines[6].replace('❖ Downtime begins: ', '').strip()  # '6:45 AM'
-                            time_restart_line = lines[7].replace('❖ Downtime ends: ', '').strip()  # '10 AM'
+            print(f"\n---")
+            print(f"{content}")
+            print(f"---\n")
 
-                            # Format times
-                            formatted_time_stop = format_time(time_stop_line)
-                            formatted_time_restart = format_time(time_restart_line)
+            # Vérifiez si le tweet contient "DESTINY 2" et "MAINTENANCE"
+            if "DESTINY 2" in content.upper() and "MAINTENANCE" in content.upper():
+                if not maintenance_info:
+                    print("== Nouveau tweet de maintenance détecté ==")
 
-                            print(f"Date: {date_line}")
-                            print(f"Arrêt des serveurs: {formatted_time_stop}")
-                            print(f"Retour des serveurs: {formatted_time_restart}")
-
-                            # Convert times to Unix timestamps
-                            if 'PDT' in lines[5]:
-                                stop_timestamp = convert_pdt_to_unix(date_line, formatted_time_stop)
-                                return_timestamp = convert_pdt_to_unix(date_line, formatted_time_restart)
-                            else:
-                                stop_timestamp = convert_pst_to_unix(date_line, formatted_time_stop)
-                                return_timestamp = convert_pst_to_unix(date_line, formatted_time_restart)
-
-                            if stop_timestamp and return_timestamp:
-                                # Save the information to a JSON file
-                                maintenance_info = {
-                                    "stop_timestamp": stop_timestamp,
-                                    "return_timestamp": return_timestamp,
-                                    "comment": comment_line
-                                }
-                                print(f"\nInformations à sauvegarder:")
-                                print(f"{json.dumps(maintenance_info, indent=4)}")
-                                os.makedirs("Ressources/Maintenance", exist_ok=True)
-                                with open("Ressources/Maintenance/maintenance_info.json", "w") as file:
-                                    json.dump(maintenance_info, file, indent=4)
-                                print("Update des informations de maintenance effectuée")
-                                print("-------------------------")
-
-                                # Publier les alertes de maintenance
-                                await publish_alerts("maintenance")
-                            else:
-                                print("== Failed to convert dates and times to Unix timestamps ==")
-                                print("-------------------------")
-                        else:
-                            print("== Pas assez de lignes pour extraire les informations ==")
-                            print("-------------------------")
+                    comment = re.search(r"❖ Update (\d+(?:\.\d+){1,3})", content)
+                    if comment:
+                        comment = comment.group(0)
                     else:
-                        print("== Ne contient pas 'TIMELINE' ==")
-                    print("-------------------------")
-                elif title.startswith("DESTINY 2 MAINTENANCE") or description.startswith(
-                        "DESTINY 2 MAINTENANCE"):
-                    print("\n--- Maintenance Update trouvée ---")
-                    # Vérifiez si le texte contient "Maintenance is complete."
-                    if "Maintenance is complete." in description.replace('\\', ''):
-                        print("== Maintenance is complete ==")
-                        # Supprimez le fichier maintenance_info.json s'il existe
-                        maintenance_file = "Ressources/Maintenance/maintenance_info.json"
-                        if os.path.exists(maintenance_file):
-                            os.remove(maintenance_file)
-                            print("== maintenance_info.json a été supprimé ==")
-                            print("-------------------------")
+                        comment = None
+
+                    # Extraction de la date
+                    date_match = re.search(
+                        r'\b(January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}\b',content)
+                    date_str = date_match.group() if date_match else None
+
+                    # Extraction des heures
+                    downtime_match = re.search(r"❖ Downtime begins: ([\d]{1,2}(?::\d{2})? [APM]{2})", content)
+                    uptime_match = re.search(r"❖ Downtime ends: ([\d]{1,2}(?::\d{2})? [APM]{2})", content)
+
+                    timezone_str = "PDT" if "PDT" in content else "PST" if "PST" in content else None
+                    print(f"---")
+                    print(f"{date_str}")
+                    print(f"{timezone_str}")
+                    print(f"{downtime_match}")
+                    print(f"{uptime_match}")
+                    print(f"---")
+
+                    if date_str and downtime_match and uptime_match and timezone_str:
+                        downtime = downtime_match.group(1).strip()
+                        uptime = uptime_match.group(1).strip()
+
+                        # Conversion en timestamps Unix
+                        stop_timestamp = convert_to_unix(date_str, downtime, timezone_str)
+                        return_timestamp = convert_to_unix(date_str, uptime, timezone_str)
+
+                        if stop_timestamp and return_timestamp:
+                            # Sauvegarde des informations de maintenance
+                            maintenance_info = {
+                                "stop_timestamp": stop_timestamp,
+                                "return_timestamp": return_timestamp,
+                                "comment": comment
+                            }
+                            print(f"\nInformations à sauvegarder:")
+                            print(f"{json.dumps(maintenance_info, indent=4)}")
+                            save_maintenance_info(maintenance_info)
+                            print("== Informations de maintenance sauvegardées ==")
+                            # Publier les alertes de maintenance
+                            await publish_alerts("maintenance")
                         else:
-                            print("== Il n'y a pas de fichier Maintenance à supprimer ==")
-                            print("-------------------------")
+                            print("== Erreur de conversion des dates en timestamps ==")
                     else:
-                        print("== Ceci n'est pas un tweet de maintenance en préparation ==")
-                        print("-------------------------")
+                        print("== Informations insuffisantes dans le tweet ==")
+                elif maintenance_info and "Maintenance is complete" in content:
+                    print("== Fin de la maintenance détectée ==")
+                    # Publier les alertes de maintenance
+                    await publish_alerts("maintenance_end")
+                    os.remove(maintenance_file)
+                    print("== Fichier de maintenance supprimé ==")
                 else:
-                    print("== Ne contient pas d'info de Maintenance ==")
-                    print("-------------------------")
-        else:
-            print("== Ne contient pas de tweet de BungieHelp ==")
-            print("-------------------------")
+                    print("== Des informations de maintenance existent déjà ==")
+            else:
+                print("== Aucun contenu de maintenance détecté ==")
     else:
-        print("== Ce message provient d'un utilisateur, pas d'un bot ==")
-        print("-------------------------")
+        print("== Ce message ne contient pas un tweet pertinent ==")
 
 
 # Vue personnalisée pour les composants interactifs
@@ -405,3 +350,42 @@ def maintenance_embed():
     view = MaintenanceView(stop_timestamp, return_timestamp, maintenance_comment)
 
     return embed, files, view
+
+def maintenance_embed_end():
+    maintenance_info = load_maintenance_info()
+    if not maintenance_info:
+        raise ValueError("Les informations de maintenance n'ont pas été trouvées.")
+
+    stop_timestamp = maintenance_info["stop_timestamp"]
+
+    # Générer un numéro aléatoire pour le thumbnail
+    # Liste des numéros spécifiques
+    thumbnail_numbers = [1, 2, 3, 8, 11]
+    # Choisir un nombre aléatoire dans cette liste
+    random_thumbnail_number = random.choice(thumbnail_numbers)
+    thumbnail_path = f"Ressources/Maintenance/thumbnail_maintenance_{random_thumbnail_number}.png"
+    footer_icon_path = "Ressources/footer_icon.png"
+
+    thumbnail_file = discord.File(thumbnail_path, filename=f"thumbnail_maintenance_{random_thumbnail_number}.png")
+    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+
+    files = [thumbnail_file, footer_icon_file]
+
+    # Création de l'embed sans champs ni boutons
+    embed, _, _ = create_embed_with_components(
+        description=f"## [Infos de Maintenance Destiny 2](https://x.com/BungieHelp)\n"
+                    f":white_check_mark: La Maintenance du <t:{stop_timestamp}:D> est terminée.\n",
+        color=0x00ff00,  # Une couleur verte pour signaler la fin
+        author="@BungieHelp | Généré par BotOfTheDisciple",
+        author_icon_url="https://pbs.twimg.com/profile_images/1362463058132492289/vNe1WM28_400x400.jpg",
+        thumbnail_url=f"attachment://thumbnail_maintenance_{random_thumbnail_number}.png",
+        image_url=None,
+        fields=None,  # Aucun champ
+        footer_text="BotOfTheDisciple",
+        footer_icon_url="attachment://footer_icon.png",
+        add_date_to_footer=True,  # Ajouter une date au footer
+        buttons=None,  # Aucun bouton
+        files=files,
+    )
+
+    return embed, files

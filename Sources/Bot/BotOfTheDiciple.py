@@ -89,7 +89,7 @@ async def help(interaction: discord.Interaction):
 @bot.event
 async def on_message(message):
      #ID du canal spécifique dans lequel vous souhaitez traiter les messages
-    target_channel_id = 1270308084345995345
+    target_channel_id = 1281066094123028574
 
      #Vérifiez si le message provient du canal cible
     if message.channel.id == target_channel_id:
@@ -129,7 +129,7 @@ async def deletmaintenance(interaction: discord.Interaction):
         print(f"{interaction.user.id} is trying to use the forbidden command\n")
         await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
-
+    await publish_alerts("maintenance_end")
     if os.path.exists("Ressources/Maintenance/maintenance_info.json"):
         os.remove("Ressources/Maintenance/maintenance_info.json")
         await interaction.response.send_message(":wastebasket: Les informations de maintenance ont été supprimées.")

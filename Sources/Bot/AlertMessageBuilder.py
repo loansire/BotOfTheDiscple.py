@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from Sources.Bot.Common import *
 from Sources.Bot.LostSectorBuilder import secteur_oublie_embed
 from Sources.Bot.MaintenanceUpdater import maintenance_embed
+from Sources.Bot.MaintenanceUpdater import maintenance_embed_end
 from Sources.Bot.NewsBuilder import news_article_embed
 from Sources.Utils.GgdocAPI import GetResetHour
 
@@ -31,100 +32,71 @@ def save_alert_channels(alert_type, channels):
 
 async def publish_alerts(alert_type):
     print(f"Publication des alertes pour le type : {alert_type}")
-    alert_channels = load_alert_channels(alert_type)
+    if alert_type == "maintenance_end":
+        alert_channel = "maintenance"
+    else:
+        alert_channel = alert_type
+    alert_channels = load_alert_channels(alert_channel)
     any_success = False  # Variable pour vérifier si au moins une publication a réussi
 
     for guild_id, channels in alert_channels.items():
         guild = bot.get_guild(int(guild_id))
 
         if guild:
-            # Vérifiez si un channel ou un thread est configuré
-            channel_id = channels.get("channel_ID")
-            thread_id = channels.get("thread_ID")
+            # Récupérer les IDs des destinations
+            destinations = []
 
-            # Publication pour un canal normal
+            channel_id = channels.get("channel_ID")
             if channel_id:
                 channel = guild.get_channel(int(channel_id))
                 if channel and isinstance(channel, discord.TextChannel):
-                    try:
-                        # Choisissez la fonction d'embed en fonction du type d'alerte
-                        if alert_type == "secteur_oublie":
-                            embed, files = secteur_oublie_embed()
-                            view = None
-                        elif alert_type == "maintenance":
-                            embed, files, view = maintenance_embed()
-                        elif alert_type == "twid" or alert_type == "patch_note":
-                            # Utiliser la même logique pour "twid" et "patch_note"
-                            keyword = 'twid' if alert_type == "twid" else 'destiny_update'
-                            embed, view, message_content = await news_article_embed(
-                                interaction=None,  # Pas d'interaction dans ce contexte
-                                language='en',  # Langue par défaut, ajustez si nécessaire
-                                keyword=keyword,
-                                no_article_message="Aucun article trouvé pour ce type."
-                            )
+                    destinations.append(channel)
 
-                            files = []  # Pas de fichiers à envoyer par défaut pour "twid" ou "patch_note"
-
-                            if message_content:
-                                await channel.send(content=message_content)
-
-                            # Continue si aucun article n'est trouvé
-                            if not embed:
-                                print(f"Aucun embed trouvé pour {alert_type}.")
-                                continue
-
-                        # Envoyer le message avec ou sans vue
-                        if view:
-                            await channel.send(embed=embed, files=files, view=view)
-                        else:
-                            await channel.send(embed=embed, files=files)
-
-                        any_success = True  # Marquer comme réussi si l'envoi est effectué
-
-                    except discord.DiscordException as e:
-                        print(f"Erreur lors de l'envoi de l'alerte dans le salon {channel_id} : {e}")
-
-            # Publication pour un thread
+            thread_id = channels.get("thread_ID")
             if thread_id:
                 thread = guild.get_thread(int(thread_id))
                 if thread and isinstance(thread, discord.Thread):
-                    try:
-                        # Choisissez la fonction d'embed en fonction du type d'alerte
-                        if alert_type == "secteur_oublie":
-                            embed, files = secteur_oublie_embed()
-                            view = None
-                        elif alert_type == "maintenance":
-                            embed, files, view = maintenance_embed()
-                        elif alert_type == "twid" or alert_type == "patch_note":
-                            # Utiliser la même logique pour "twid" et "patch_note"
-                            keyword = 'twid' if alert_type == "twid" else 'destiny_update'
-                            embed, view, message_content = await news_article_embed(
-                                interaction=None,  # Pas d'interaction dans ce contexte
-                                language='en',  # Langue par défaut, ajustez si nécessaire
-                                keyword=keyword,
-                                no_article_message="Aucun article trouvé pour ce type."
-                            )
+                    destinations.append(thread)
 
-                            files = []  # Pas de fichiers à envoyer par défaut pour "twid" ou "patch_note"
+            for destination in destinations:
+                try:
+                    # Générer l'embed et autres paramètres selon le type d'alerte
+                    if alert_type == "secteur_oublie":
+                        embed, files = secteur_oublie_embed()
+                        view = None
+                    elif alert_type == "maintenance":
+                        embed, files, view = maintenance_embed()
+                    elif alert_type == "maintenance_end":
+                        embed, files = maintenance_embed_end()
+                        view = None
+                    elif alert_type in ["twid", "patch_note"]:
+                        keyword = 'twid' if alert_type == "twid" else 'destiny_update'
+                        embed, view, message_content = await news_article_embed(
+                            interaction=None,
+                            language='en',
+                            keyword=keyword,
+                            no_article_message="Aucun article trouvé pour ce type."
+                        )
+                        files = []  # Pas de fichiers par défaut pour ces types
 
-                            if message_content:
-                                await thread.send(content=message_content)
+                        if message_content:
+                            await destination.send(content=message_content)
 
-                            # Continue si aucun article n'est trouvé
-                            if not embed:
-                                print(f"Aucun embed trouvé pour {alert_type}.")
-                                continue
+                        # Sauter si aucun embed n'est trouvé
+                        if not embed:
+                            print(f"Aucun embed trouvé pour {alert_type}.")
+                            continue
 
-                        # Envoyer le message avec ou sans vue
-                        if view:
-                            await thread.send(embed=embed, files=files, view=view)
-                        else:
-                            await thread.send(embed=embed, files=files)
+                    # Envoyer le message avec ou sans vue
+                    if view:
+                        await destination.send(embed=embed, files=files, view=view)
+                    else:
+                        await destination.send(embed=embed, files=files)
 
-                        any_success = True  # Marquer comme réussi si l'envoi est effectué
+                    any_success = True  # Marquer comme réussi si l'envoi est effectué
 
-                    except discord.DiscordException as e:
-                        print(f"Erreur lors de l'envoi de l'alerte dans le thread {thread_id} : {e}")
+                except discord.DiscordException as e:
+                    print(f"Erreur lors de l'envoi de l'alerte dans {destination}: {e}")
 
     if not any_success:
         print("Aucune alerte n'a été envoyée avec succès.\n")
