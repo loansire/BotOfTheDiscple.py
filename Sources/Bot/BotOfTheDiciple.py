@@ -21,19 +21,12 @@ async def on_ready():
     # Synchronisation des commandes
     await bot.tree.sync()
 
-    # Configuration de la présence du bot
-    # activity = discord.Game(name="Tapez /help pour commencer!")
-    # await bot.change_presence(status=discord.Status.online, activity=activity)
-
     print(f'Bot is ready. Logged in as {bot.user}\n')
 
     # Debug pour vérifier les commandes enregistrées
     for command in bot.tree.get_commands():
         print(f'Command: {command.name}, Description: {command.description}')
     print(f'\n')
-
-    # Start the task to monitor messages
-    # await check_messages()
 
     try:
         # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
@@ -70,20 +63,6 @@ async def help(interaction: discord.Interaction):
     total_commands = len([cmd for cmd in bot.tree.get_commands() if cmd.name not in excluded_commands])
     embed.set_footer(text=f"{total_commands} commande(s) disponibles")
     await interaction.response.send_message(embed=embed)
-
-
-
-# region MaintenanceCommands
-# async def check_messages():
-#     channel_id = 1270308084345995345  # Remplacez par l'ID de votre canal
-#     channel = bot.get_channel(channel_id)
-#
-#     if channel is None:
-#         print(f"Channel with ID {channel_id} not found.")
-#         return
-#
-#     async for message in channel.history(limit=1):
-#         await process_message(message)
 
 
 @bot.event
@@ -136,37 +115,6 @@ async def deletmaintenance(interaction: discord.Interaction):
     else:
         await interaction.response.send_message(":x: Aucune information de maintenance trouvée.", ephemeral=True)
 
-# endregion
-
-
-# region CatGifGenerator
-GIPHY_API_KEY = "xfn2RLhVSMwCP3uQombbvz1r0muPPpDp"
-GIPHY_ENDPOINT = "https://api.giphy.com/v1/gifs/search"
-
-
-@bot.tree.command(name="cat", description="Envoie un GIF de chat aléatoire")
-async def chatgif(interaction: discord.Interaction):
-    try:
-        params = {
-            "api_key": GIPHY_API_KEY,
-            "q": "cat",
-            "limit": 20,
-            "offset": random.randint(0, 50),
-            "rating": "G",
-            "lang": "en"
-        }
-
-        response = requests.get(GIPHY_ENDPOINT, params=params)
-        data = response.json()
-
-        if data["data"]:
-            gif_url = random.choice(data["data"])["url"]
-            await interaction.response.send_message(gif_url)
-        else:
-            await interaction.response.send_message("Je n'ai pas pu trouver de GIF de chat 😿", ephemeral=True)
-    except Exception as e:
-        await interaction.response.send_message("Une erreur est survenue: `{e}` 😿", ephemeral=True)
-        print(f"Erreur lors de l'exécution de la commande /cat : {e}\n")
 # endregion
 
 
