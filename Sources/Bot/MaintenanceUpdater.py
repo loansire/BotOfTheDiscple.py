@@ -312,7 +312,7 @@ def maintenance_embed():
     if maintenance_comment:
         fields.append({
             "name": "📝 __Commentaire(s)__",
-            "value": "```\n" + maintenance_comment + "\n```",
+            "value": maintenance_comment,
             "inline": False
         })
 
