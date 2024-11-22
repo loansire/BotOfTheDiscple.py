@@ -36,6 +36,8 @@ MAIN_MF_OUTPUT_FILE = TempPath("Manifests/MainManifest.json")
 
 #Destiny Activity Namings
 MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
+MF_ACTIVITY_LOST_SECTOR_EXPERT = TempPath("Manifests/LostSectorExpert.json")
+MF_ACTIVITY_LOST_SECTOR_MASTER = TempPath("Manifests/LostSectorMaster.json")
 MF_ACTIVITY_FILENAME = TempPath("Manifests/ActivityDefinition.json")
 MF_ACTIVITY_FILTERED_FILENAME = TempPath("Manifests/ActivityDefinitionFiltered.json")
 MF_ACTIVITY_FILTERED_GENERAL_FILENAME = TempPath("Manifests/ActivityDefinitionFilteredGeneral.json")

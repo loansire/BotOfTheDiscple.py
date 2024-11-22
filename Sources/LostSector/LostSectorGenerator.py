@@ -5,10 +5,11 @@ import os
 #import intern
 from Sources.Utils import Config
 from Sources.Utils import Download
-from Sources.Utils import GgdocAPI
 from Sources.Utils import Result
 from Sources.Utils import ModifierModif
 from Sources.Utils import ActivityInfos
+
+from Sources.GoogleDocApi import GgdocAPI
 
 from .Manifests import JsonReader
 from .Manifests import ActivityDefinition
@@ -28,17 +29,18 @@ def GenerateActivity(download_all = True):
 def main(download_all = True):
     #Variables to fill for the Html page
     #Expert
+    E_activity_hash = 0
     E_modifier = []
     E_power = 0
     E_Shields = {}
     E_Champs = {}
     #Maitrise
+    M_activity_hash = 0
     M_modifier = []
     M_power = 0
     M_Shields = {}
     M_Champs = {}
     #Common
-    C_activity_name = ""
     C_activity_description = ""
     C_destination_hash = 0
     C_destination_name = ""
@@ -53,9 +55,8 @@ def main(download_all = True):
     print("Beginning of the programm")
     Config.InitialiseDirs()
     ################################## GGDOC acces PARSING ###################################
-    C_activity_name = "Extraction"
 
-    C_activity_name, C_surcharge1, C_surcharge2,E_power, M_power, E_Shields, M_Shields, E_Champs, M_Champs = GgdocAPI.main()
+    E_activity_hash, M_activity_hash, C_surcharge1, C_surcharge2,E_power, M_power, E_Shields, M_Shields, E_Champs, M_Champs = GgdocAPI.main()
     
 
     ################################## Generate Folders ##################################"
@@ -80,7 +81,8 @@ def main(download_all = True):
     print("Activition Definition")
     DownloadManifest(Config.MF_ACTIVITY_DEFINITION, Config.MF_ACTIVITY_FILENAME, download_all)
     #Make Acitivty definition Treatment
-    ActivityDefinition.main(C_activity_name)
+    ActivityDefinition.main(E_activity_hash, M_activity_hash)
+    return
 
     C_destination_hash, C_place_hash = ActivityDefinition.get_activity_destination_and_place_hash()
     C_pgcr_image_link = Config.BASE_URL + ActivityDefinition.get_activity_pgcr_image()

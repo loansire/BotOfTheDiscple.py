@@ -22,7 +22,8 @@ def main():
     UpdateGgDoc(sheet)
     
     #Get infos
-    activity_name = sheet.acell(CellDefines.CELL_NAME).value
+    activity_hash_expert = sheet.acell(CellDefines.CELL_HASH_E).value
+    activity_hash_master = sheet.acell(CellDefines.CELL_HASH_M).value
     surcharge1 = sheet.acell(CellDefines.CELL_SURCHARGE_1).value
     surcharge2 =  sheet.acell(CellDefines.CELL_SURCHARGE_2).value
     power_E = int(sheet.acell(CellDefines.CELL_POWER_E).value)
@@ -66,7 +67,7 @@ def main():
             shields_M[shield_name] = cell_value
 
 
-    return activity_name, surcharge1, surcharge2, power_E, power_M, shields_E, shields_M, champs_E, champs_M 
+    return activity_hash_expert, activity_hash_master, surcharge1, surcharge2, power_E, power_M, shields_E, shields_M, champs_E, champs_M 
 
 def ConnectGgdoc():
     creds = token()
