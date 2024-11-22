@@ -263,7 +263,7 @@ async def patch_note(interaction: discord.Interaction, language: str):
         embed, view, message_content = await news_article_embed(
             interaction=interaction,
             language=language,
-            keyword='destiny_2_update',
+            keyword='destiny_update',
             no_article_message="Aucun article de patch note trouvé."
         )
 
@@ -284,67 +284,129 @@ async def patch_note(interaction: discord.Interaction, language: str):
 
 
 # region AlertCommand
-@bot.tree.command(name="alert", description="Configure des alertes de contenu du jeu.")
-@app_commands.describe(alert_type="Type d'alerte (Twid, Patch Note, Maintenance, Secteur Oublié)",
-                       action="Ajouter ou retirer ce salon des alertes")
+@bot.tree.command(name="alert", description="Ajouter un salon ou fil aux alertes de contenu du jeu avec un rôle optionnel.")
+@app_commands.describe(
+    alert_type="Type d'alerte (Twid, Patch Note, Maintenance, Secteur Oublié)",
+    role="Rôle optionnel à notifier pour cette alerte"
+)
 @app_commands.choices(alert_type=[
     app_commands.Choice(name="Twid", value="twid"),
     app_commands.Choice(name="Secteur Oublié", value="secteur_oublie"),
     app_commands.Choice(name="Patch Note", value="patch_note"),
     app_commands.Choice(name="Maintenance", value="maintenance")
 ])
-@app_commands.choices(action=[
-    app_commands.Choice(name="Ajouter", value="ajouter"),
-    app_commands.Choice(name="Retirer", value="retirer")
-])
 @default_permissions(administrator=True)
-async def alert(interaction: discord.Interaction, alert_type: app_commands.Choice[str],
-                action: app_commands.Choice[str]):
+async def alert_add(
+    interaction: discord.Interaction,
+    alert_type: app_commands.Choice[str],
+    role: discord.Role = None  # Rôle optionnel
+):
     alert_channels = load_alert_channels(alert_type.value)
     guild_id = str(interaction.guild.id)
-
-    # Détection du type de canal
     channel_id = str(interaction.channel.id)
     is_thread = isinstance(interaction.channel, discord.Thread)
 
-    if action.value == 'ajouter':
-        if guild_id not in alert_channels:
-            alert_channels[guild_id] = {}
+    # Initialisation si nécessaire
+    if guild_id not in alert_channels:
+        alert_channels[guild_id] = {"channels": {}, "roles": None}
 
-        # Stockage en fonction du type de canal
-        if is_thread:
-            alert_channels[guild_id]["thread_ID"] = channel_id
-        else:
-            alert_channels[guild_id]["channel_ID"] = channel_id
+    existing_channel_id = None
+    channel_type_replaced = None
+    existing_role = alert_channels[guild_id].get("roles", None)
 
-        save_alert_channels(alert_type.value, alert_channels)
-        await interaction.response.send_message(
-            f":white_check_mark: <#{channel_id}> a été ajouté aux alertes de `{alert_type.name}`.", ephemeral=True)
+    # Détection d'un canal ou thread existant pour ce type d'alerte
+    channels = alert_channels[guild_id].get("channels", {})
+    if "thread_ID" in channels and is_thread is False:
+        existing_channel_id = channels["thread_ID"]
+        channel_type_replaced = "thread"
+    elif "channel_ID" in channels and is_thread is True:
+        existing_channel_id = channels["channel_ID"]
+        channel_type_replaced = "channel"
 
-    elif action.value == 'retirer':
-        if guild_id in alert_channels:
-            if is_thread and "thread_ID" in alert_channels[guild_id]:
-                del alert_channels[guild_id]["thread_ID"]
-                await interaction.response.send_message(
-                    f":wastebasket: <#{channel_id}> a été retiré des alertes de `{alert_type.name}`.", ephemeral=True)
-            elif not is_thread and "channel_ID" in alert_channels[guild_id]:
-                del alert_channels[guild_id]["channel_ID"]
-                await interaction.response.send_message(
-                    f":wastebasket: <#{channel_id}> a été retiré des alertes de `{alert_type.name}`.", ephemeral=True)
-            else:
-                await interaction.response.send_message(f":x: Aucunes alertes configurées pour `{alert_type.name}`.",
-                                                        ephemeral=True)
-
-            # Supprime le guild_id si vide après suppression
-            if not alert_channels[guild_id]:
-                del alert_channels[guild_id]
-
-            save_alert_channels(alert_type.value, alert_channels)
-        else:
-            await interaction.response.send_message(f":x: Aucunes alertes configurées pour `{alert_type.name}`.",
-                                                    ephemeral=True)
+    # Supprime l'ancien type de canal si nécessaire
+    if is_thread:
+        alert_channels[guild_id]["channels"]["thread_ID"] = channel_id
+        if "channel_ID" in alert_channels[guild_id]["channels"]:
+            del alert_channels[guild_id]["channels"]["channel_ID"]
     else:
-        await interaction.response.send_message(":x: Action invalide. Utilisez 'ajouter' ou 'retirer'.", ephemeral=True)
+        alert_channels[guild_id]["channels"]["channel_ID"] = channel_id
+        if "thread_ID" in alert_channels[guild_id]["channels"]:
+            del alert_channels[guild_id]["channels"]["thread_ID"]
+
+    # Ajout ou remplacement du rôle
+    if role:
+        alert_channels[guild_id]["roles"] = str(role.id)
+
+    save_alert_channels(alert_type.value, alert_channels)
+
+    # Messages de réponse
+    messages = []
+
+    if existing_channel_id:
+        if channel_type_replaced == "thread":
+            messages.append(f":warning: Le thread précédent <#{existing_channel_id}> a été remplacé par le salon <#{channel_id}>.")
+        elif channel_type_replaced == "channel":
+            messages.append(f":warning: Le salon précédent <#{existing_channel_id}> a été remplacé par le thread <#{channel_id}>.")
+    else:
+        messages.append(f":white_check_mark: <#{channel_id}> a été ajouté aux alertes de `{alert_type.name}`.")
+
+    if existing_role:
+        role_msg = f" Un rôle était déjà associé : <@&{existing_role}>."
+        if role and str(role.id) != existing_role:
+            role_msg += f" Le rôle a été remplacé par <@&{role.id}>."
+        messages.append(role_msg)
+    elif role:
+        messages.append(f":white_check_mark: Le rôle <@&{role.id}> a été associé à l'alerte `{alert_type.name}`.")
+
+    # Réponse à l'utilisateur
+    await interaction.response.send_message("\n".join(messages), ephemeral=True)
+
+
+
+@bot.tree.command(name="alert-delet", description="Retirer ce salon ou fil de toutes les alertes, ainsi que le rôle associé si inutilisé.")
+@default_permissions(administrator=True)
+async def alert_remove(interaction: discord.Interaction):
+    alert_types = ["twid", "secteur_oublie", "patch_note", "maintenance"]
+    removed_alerts = []  # Suivi des types d'alertes supprimés
+    guild_id = str(interaction.guild.id)
+    channel_id = str(interaction.channel.id)
+    is_thread = isinstance(interaction.channel, discord.Thread)
+
+    for alert_type in alert_types:
+        alert_channels = load_alert_channels(alert_type)
+
+        if guild_id in alert_channels:
+            # Vérifie et supprime le canal ou le fil
+            channels = alert_channels[guild_id].get("channels", {})
+            roles = alert_channels[guild_id].get("roles", None)
+
+            if is_thread and "thread_ID" in channels and channels["thread_ID"] == channel_id:
+                del channels["thread_ID"]
+                removed_alerts.append(alert_type)
+            elif not is_thread and "channel_ID" in channels and channels["channel_ID"] == channel_id:
+                del channels["channel_ID"]
+                removed_alerts.append(alert_type)
+
+            # Si aucun canal ou fil n'utilise ce rôle, supprime-le
+            if not channels:
+                if roles:  # Si un rôle était assigné, le mentionner dans le nettoyage
+                    del alert_channels[guild_id]["roles"]
+                del alert_channels[guild_id]  # Supprime complètement la guilde si vide
+
+            save_alert_channels(alert_type, alert_channels)
+
+    # Réponse utilisateur
+    if removed_alerts:
+        alert_names = ", ".join(removed_alerts)
+        await interaction.response.send_message(
+            f":wastebasket: <#{channel_id}> a été retiré des alertes suivantes : `{alert_names}`.",
+            ephemeral=True
+        )
+    else:
+        await interaction.response.send_message(
+            f":x: Ce salon ou fil n'est configuré pour aucune alerte.",
+            ephemeral=True
+        )
 
 
 @bot.tree.command(name="force-update",
@@ -426,7 +488,7 @@ async def recurring_update():
 
 async def main():
     async with bot:
-        await bot.start('MTI3MDAyMjIyMTc4MzQ5ODg0NA.GzQ5Zl.MuQAcDfdlTAqifThbcML96gXcwdM9gmFlZ5xfI')
+        await bot.start('MTI3MDM1NzgzMDM3Njg4MjI5OQ.Gq46tf.AIDE8gaTf1WAymorihg_mUh6yTCbWRiB7ylF7Q')
 
 
 # Démarrage de l'événement principal

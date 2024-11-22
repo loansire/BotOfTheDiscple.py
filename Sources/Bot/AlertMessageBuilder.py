@@ -39,13 +39,15 @@ async def publish_alerts(alert_type):
     alert_channels = load_alert_channels(alert_channel)
     any_success = False  # Variable pour vérifier si au moins une publication a réussi
 
-    for guild_id, channels in alert_channels.items():
+    for guild_id, data in alert_channels.items():
         guild = bot.get_guild(int(guild_id))
 
         if guild:
-            # Récupérer les IDs des destinations
+            # Initialiser les destinations
             destinations = []
 
+            # Accéder aux informations des canaux
+            channels = data.get("channels", {})
             channel_id = channels.get("channel_ID")
             if channel_id:
                 channel = guild.get_channel(int(channel_id))
@@ -58,17 +60,24 @@ async def publish_alerts(alert_type):
                 if thread and isinstance(thread, discord.Thread):
                     destinations.append(thread)
 
+            # Récupérer le rôle associé (si défini)
+            role_id = data.get("roles")
+            role_mention = f"<@&{role_id}>" if role_id else ""
+
             for destination in destinations:
                 try:
                     # Générer l'embed et autres paramètres selon le type d'alerte
                     if alert_type == "secteur_oublie":
                         embed, files = secteur_oublie_embed()
                         view = None
+                        message_content = role_mention  # Ajouter la mention du rôle
                     elif alert_type == "maintenance":
                         embed, files, view = maintenance_embed()
+                        message_content = role_mention
                     elif alert_type == "maintenance_end":
                         embed, files = maintenance_embed_end()
                         view = None
+                        message_content = role_mention
                     elif alert_type in ["twid", "patch_note"]:
                         keyword = 'twid' if alert_type == "twid" else 'destiny_update'
                         embed, view, message_content = await news_article_embed(
@@ -78,9 +87,8 @@ async def publish_alerts(alert_type):
                             no_article_message="Aucun article trouvé pour ce type."
                         )
                         files = []  # Pas de fichiers par défaut pour ces types
-
-                        if message_content:
-                            await destination.send(content=message_content)
+                        if role_mention:
+                            message_content = f"{role_mention}\n{message_content or ''}"
 
                         # Sauter si aucun embed n'est trouvé
                         if not embed:
@@ -89,9 +97,9 @@ async def publish_alerts(alert_type):
 
                     # Envoyer le message avec ou sans vue
                     if view:
-                        await destination.send(embed=embed, files=files, view=view)
+                        await destination.send(content=message_content, embed=embed, files=files, view=view)
                     else:
-                        await destination.send(embed=embed, files=files)
+                        await destination.send(content=message_content, embed=embed, files=files)
 
                     any_success = True  # Marquer comme réussi si l'envoi est effectué
 
