@@ -36,8 +36,8 @@ MAIN_MF_OUTPUT_FILE = TempPath("Manifests/MainManifest.json")
 
 #Destiny Activity Namings
 MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
-MF_ACTIVITY_LOST_SECTOR_EXPERT = TempPath("Manifests/LostSectorExpert.json")
-MF_ACTIVITY_LOST_SECTOR_MASTER = TempPath("Manifests/LostSectorMaster.json")
+MF_ACTIVITY_LOST_SECTOR_EXPERT = TempPath("Manifests/LostSector.Expert.json")
+MF_ACTIVITY_LOST_SECTOR_MASTER = TempPath("Manifests/LostSector.Master.json")
 MF_ACTIVITY_FILENAME = TempPath("Manifests/ActivityDefinition.json")
 MF_ACTIVITY_FILTERED_FILENAME = TempPath("Manifests/ActivityDefinitionFiltered.json")
 MF_ACTIVITY_FILTERED_GENERAL_FILENAME = TempPath("Manifests/ActivityDefinitionFilteredGeneral.json")
@@ -71,3 +71,11 @@ MF_BREAKER_TYPE_FILENAME = TempPath("Manifests/BreakerType.json")
 #GGdoc api credentials file
 CREDENTIALS_GGDOC = RessourcePath("credentials.json")
 TOKEN_GGDOC = RessourcePath("token.json")
+
+#Json Database
+JSON_DATABASE = TempPath("JsonDatabase/ActivitiesDatabase.json")
+
+#Activity Types
+LOSTSECTOR = "LostSector"
+ALLACTIVITIES = "AllActivities"
+NOACTIVITY = "NoActivity"

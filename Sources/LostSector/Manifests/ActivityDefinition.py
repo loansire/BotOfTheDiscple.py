@@ -48,44 +48,41 @@ def get_activity_name_description(search_expert):
 	return "", ""
 		
 def get_activity_destination_and_place_hash():
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
-	return json_data[list(json_data.keys())[0]].get("destinationHash"), json_data[list(json_data.keys())[0]].get("placeHash")
+	return json_data.get("destinationHash"), json_data.get("placeHash")
 
 def get_activity_pgcr_image():
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
-	return json_data[list(json_data.keys())[0]].get("pgcrImage")
+	return json_data.get("pgcrImage")
 
 def get_reward_item():
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
 	rewards = []
 
-	id = 0 #Same rewards for expert and mastery
-	rewards_items = json_data[list(json_data.keys())[id]].get("rewards")[0].get("rewardItems")
+	rewards_items = json_data.get("rewards")[0].get("rewardItems")
 
-	for i in range(0, len(rewards_items)):
-		rewards.append(rewards_items[i].get("itemHash"))
+	rewards = [rewards_items[i].get("itemHash") for i in range(len(rewards_items))]
 
 	return rewards
 
 def get_modifiers(search_expert):
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
-		json_data = json.load(file)
 
-	modifiers = []
 	if search_expert:
-		id = 0
+		with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
+			json_data = json.load(file)
 	else:
-		id = 1
-	modifiers_items = json_data[list(json_data.keys())[id]].get("modifiers")
+		with open(Config.MF_ACTIVITY_LOST_SECTOR_MASTER, "r", encoding='utf-8') as file:
+			json_data = json.load(file)
 
-	for i in range(0, len(modifiers_items)):
-		modifiers.append(modifiers_items[i].get("activityModifierHash"))
+	modifiers_items = json_data.get("modifiers")
+
+	modifiers = [modifiers_items[i].get("activityModifierHash") for i in range(len(modifiers_items))]
 
 	return modifiers
 
