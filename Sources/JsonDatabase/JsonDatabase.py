@@ -41,9 +41,9 @@ def GetActivitiesHash():
 		if not jsonDatabase[activity_name][JsonDbDefines.UPDATED]:
 			continue
 
-		if "Expert" in jsonDatabase[activity_name]:
+		if JsonDbDefines.HASH_EXPERT in jsonDatabase[activity_name]:
 			activities_hash[jsonDatabase[activity_name][JsonDbDefines.HASH_EXPERT]] = activity_name + ".Expert"
-		if "Master" in jsonDatabase[activity_name]:
+		if JsonDbDefines.HASH_MASTER in jsonDatabase[activity_name]:
 			activities_hash[jsonDatabase[activity_name][JsonDbDefines.HASH_MASTER]] =  activity_name + ".Master"
 
 	return activities_hash
