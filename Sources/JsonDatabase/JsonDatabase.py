@@ -53,4 +53,4 @@ def HasBeenUpdated(activityName):
 
 
 def GetInformations(activity_name):
-	return jsonDatabase[Config.LOSTSECTOR]	
+	return jsonDatabase[activity_name]	
