@@ -77,7 +77,7 @@ async def publish_alerts(alert_type):
                     elif alert_type == "maintenance_end":
                         embed, files = maintenance_embed_end()
                         view = None
-                        message_content = role_mention
+                        message_content = None
                     elif alert_type in ["twid", "patch_note"]:
                         keyword = 'twid' if alert_type == "twid" else 'destiny_update'
                         embed, view, message_content = await news_article_embed(
