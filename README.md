@@ -12,3 +12,4 @@
 - pip install langdetect
 
 
+- pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client gspread pytz requests discord beautifulsoup4 selenium Pillow lxml langdetect
