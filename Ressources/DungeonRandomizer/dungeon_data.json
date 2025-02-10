@@ -43,5 +43,10 @@
         "emoji": "<:Vesper:1295144736964870214>",
         "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Vesper.webp",
         "image": "Ressources/DungeonRandomizer/DungeonImage/Vesper.webp"
+    },
+    "Dogme fragmenté": {
+        "emoji": "<:Donjon:1338595206706233458>",
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Dogme.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Dogme.webp"
     }
 }
