@@ -3,10 +3,11 @@ import re
 import aiohttp
 import json
 import asyncio
+import Sources.Bot.ApiKey as APIKey
 
 from langdetect import detect
 
-api_key = '95d66cb52e4d443ea72e729779de4263'
+api_key = APIKey.bungie_api
 
 
 async def extract_version_from_title(title):

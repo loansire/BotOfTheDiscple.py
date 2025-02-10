@@ -1,4 +1,5 @@
 import asyncio
+import Sources.Bot.ApiKey as APIKey
 
 from discord.app_commands import default_permissions
 from discord.ext import tasks
@@ -488,7 +489,7 @@ async def recurring_update():
 
 async def main():
     async with bot:
-        await bot.start('MTI3MDAyMjIyMTc4MzQ5ODg0NA.GzQ5Zl.MuQAcDfdlTAqifThbcML96gXcwdM9gmFlZ5xfI')
+        await bot.start(APIKey.discord_api)
 
 
 # Démarrage de l'événement principal

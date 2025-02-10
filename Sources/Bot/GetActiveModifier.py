@@ -1,11 +1,12 @@
 import requests
 import os
 import json
+import Sources.Bot.ApiKey as APIKey
 
 
-API_KEY = '95d66cb52e4d443ea72e729779de4263'
+api_key = APIKey.bungie_api
 HEADERS = {
-    'X-API-Key': API_KEY
+    'X-API-Key': api_key
 }
 
 # Variables Personnage de Loan
