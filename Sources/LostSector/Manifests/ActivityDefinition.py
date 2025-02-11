@@ -2,45 +2,36 @@
 
 from Sources.Utils import Config
 from ..Exceptions import WrongNameException
+from ..Exceptions import WrongHashException
 from Sources.Utils import RequestAPI
 
 
-def main(sector_name):
+def main(hash_expert, hash_mastery):
 	with open(Config.MF_ACTIVITY_FILENAME, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
-
-	filtered_activities = filter_lost_sector(json_data)
-	with open(Config.MF_ACTIVITY_FILTERED_GENERAL_FILENAME, 'w', encoding='utf-8') as file:
-		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
 		
-	filtered_activities = filter_activities_by_name(filtered_activities, sector_name)
+	filtered_activity_expert = filter_activity_by_hash(json_data, hash_expert)
+	filtered_activity_master = filter_activity_by_hash(json_data, hash_mastery)
 
-	if filtered_activities == {}:
-		raise WrongNameException.WrongNameException
+	if filtered_activity_expert == {}:
+		raise WrongHashException.WrongHashException
+	
+	if filtered_activity_master == {}:
+		raise WrongHashException.WrongHashException
 
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, 'w', encoding='utf-8') as file:
-		json.dump(filtered_activities, file, indent=4, ensure_ascii=False)
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, 'w', encoding='utf-8') as file:
+		json.dump(filtered_activity_expert, file, indent=4, ensure_ascii=False)
+		
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_MASTER, 'w', encoding='utf-8') as file:
+		json.dump(filtered_activity_master, file, indent=4, ensure_ascii=False)
+	
 
-def filter_lost_sector(data):
-	filtered_activities = {}
-	description = ""
-	for activity_hash, activity_details in data.items():
-		if activity_details.get("directActivityModeType") == 87:
-			filtered_activities[activity_hash] = activity_details
-	return filtered_activities
-
-def filter_activities_by_name(data, sector_name):
-	filtered_activities = {}
-	description = ""
-	sector_name_rectified = sector_name.replace(" ", " ")
-	for activity_hash, activity_details in data.items():
-		if sector_name in activity_details.get('displayProperties').get("name") or sector_name_rectified in activity_details.get('displayProperties').get("name"):
-			if "Expert" in activity_details.get('displayProperties').get("description") and description == "":
-				description = activity_details.get('displayProperties').get("description")
-				filtered_activities[activity_hash] = activity_details
-			elif  activity_details.get('displayProperties').get("description") == description:
-				filtered_activities[activity_hash] = activity_details
-	return filtered_activities		
+def filter_activity_by_hash(data, hash):
+	filtered_activity = ""
+	for activity_hash, activity_detail in data.items():
+		if(activity_hash == hash):
+			filtered_activity = activity_detail
+	return filtered_activity	
 
 def get_activity_name_description(search_expert):
 	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
@@ -57,44 +48,41 @@ def get_activity_name_description(search_expert):
 	return "", ""
 		
 def get_activity_destination_and_place_hash():
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
-	return json_data[list(json_data.keys())[0]].get("destinationHash"), json_data[list(json_data.keys())[0]].get("placeHash")
+	return json_data.get("destinationHash"), json_data.get("placeHash")
 
 def get_activity_pgcr_image():
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
-	return json_data[list(json_data.keys())[0]].get("pgcrImage")
+	return json_data.get("pgcrImage")
 
 def get_reward_item():
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
+	with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
 		json_data = json.load(file)
 
 	rewards = []
 
-	id = 0 #Same rewards for expert and mastery
-	rewards_items = json_data[list(json_data.keys())[id]].get("rewards")[0].get("rewardItems")
+	rewards_items = json_data.get("rewards")[0].get("rewardItems")
 
-	for i in range(0, len(rewards_items)):
-		rewards.append(rewards_items[i].get("itemHash"))
+	rewards = [rewards_items[i].get("itemHash") for i in range(len(rewards_items))]
 
 	return rewards
 
 def get_modifiers(search_expert):
-	with open(Config.MF_ACTIVITY_FILTERED_FILENAME, "r", encoding='utf-8') as file:
-		json_data = json.load(file)
 
-	modifiers = []
 	if search_expert:
-		id = 0
+		with open(Config.MF_ACTIVITY_LOST_SECTOR_EXPERT, "r", encoding='utf-8') as file:
+			json_data = json.load(file)
 	else:
-		id = 1
-	modifiers_items = json_data[list(json_data.keys())[id]].get("modifiers")
+		with open(Config.MF_ACTIVITY_LOST_SECTOR_MASTER, "r", encoding='utf-8') as file:
+			json_data = json.load(file)
 
-	for i in range(0, len(modifiers_items)):
-		modifiers.append(modifiers_items[i].get("activityModifierHash"))
+	modifiers_items = json_data.get("modifiers")
+
+	modifiers = [modifiers_items[i].get("activityModifierHash") for i in range(len(modifiers_items))]
 
 	return modifiers
 
