@@ -19,17 +19,10 @@ CELL_SHIELD_M = {"Solaires" : "P2", "Abyssaux" : "Q2", "Cryo-électriques" : "R2
 #Cell Shields Maitrise
 CELL_CHAMP_M = {"Brise-bouclier" : "U2", "Perturbation" : "V2","Chancellement" : "W2"}
 
-#Cell Arme 1
-CELL_LS_WEAPON_1 = {"Nom" : "C4", "Hash" : "D4", "LienFR" : "E4", "LienEN" : "F4"}
-
-#Cell Arme 2
-CELL_LS_WEAPON_2 = {"Nom" : "G4", "Hash" : "H4", "LienFR" : "I4", "LienEN" : "J4"}
-
-#Cell Arme 3
-CELL_LS_WEAPON_3 = {"Nom" : "K4", "Hash" : "L4", "LienFR" : "M4", "LienEN" : "N4"}
-
-#Cell Arme 4
-CELL_LS_WEAPON_4 = {"Nom" : "O4", "Hash" : "P4", "LienFR" : "Q4", "LienEN" : "R4"}
+#Weapons Hashes
+CELL_LS_WEAPON_GROUP = "B4"
+CELL_LS_WEAPON_FOCUS = "A4"
+CELL_LS_WEAPONS_HASHES =  {"D4", "H4", "L4", "P4"}
 
 #Cell Armure Focus
 CELL_LS_ARMOR = "A4"
@@ -102,6 +95,16 @@ CELL_EXOMISSION_SURCHARGE_2 = "E24"
 CELL_EXOMISSION_POWER_S = "F24"
 CELL_EXOMISSION_POWER_M = "G24"
 CELL_EXOMISSION_WEAPON = {"Nom" : "H24", "Hash" : "I24", "LienFR" : "J24", "LienEN" : "K24"}
+#endregion
+
+#region Update status
+CELL_UPDATE_LOSTSECTOR = "X2"
+CELL_UPDATE_NN = "I7"
+CELL_UPDATE_RAID1 = "H12"
+CELL_UPDATE_RAID2 = "H15"
+CELL_UPDATE_DUNGEON1 = "I18"
+CELL_UPDATE_DUNGEON2 = "I21"
+CELL_UPDATE_EM = "L24"
 #endregion
 
 CELL_HOUR = "B7"

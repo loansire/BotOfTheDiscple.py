@@ -7,7 +7,7 @@ from Sources.Bot.LostSectorBuilder import secteur_oublie_embed
 from Sources.Bot.MaintenanceUpdater import maintenance_embed
 from Sources.Bot.MaintenanceUpdater import maintenance_embed_end
 from Sources.Bot.NewsBuilder import news_article_embed
-from Sources.Utils.GgdocAPI import GetResetHour
+from Sources.GoogleDocApi.GgdocAPI import GetResetHour
 
 import os
 import json
