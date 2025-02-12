@@ -1,6 +1,6 @@
 import json
 
-from Sources.Bot.CurrentActivity.CharacterActivityRequest import get_bungie_character_data
+from Sources.Bot.CurrentActivity.BungieRequest import get_bungie_character_data
 from Sources.Bot.CurrentActivity.Filter_Library import ChallengesFilter
 
 
@@ -68,9 +68,11 @@ def get_only_challenges_activities(data):
     :param data: Le JSON sous forme de str.
     :return: Le JSON modifié sous forme de str.
     """
+    print("filter 'challenge' weekly")
     # Applique un filtre pour ne garder que les éléments avec 'challenges'
     data = if_challenges_filter(data)
 
+    print("delet miscellaneous atribute")
     # Appliquer un second filtre pour retirer les attributs spécifiques
     data = remove_filtered_attributes(data, ChallengesFilter)
 

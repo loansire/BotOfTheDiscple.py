@@ -16,6 +16,7 @@ def get_bungie_character_data(membership_type=3, membership_id="4611686018487115
     url = BASE_URL.format(membership_type=membership_type, membership_id=membership_id, character_id=character_id)
     headers = {"X-API-Key": API_KEY}
 
+    print("getting current activities")
     response = requests.get(url, headers=headers, params={"components": components})
     if response.status_code == 200:
         return json.dumps(response.json(), indent=2, ensure_ascii=False)
@@ -25,4 +26,6 @@ def get_bungie_character_data(membership_type=3, membership_id="4611686018487115
 
 # Exemple d'utilisation
 if __name__ == "__main__":
+
+    # Requête pour extraire les activités dispo en jeu
     print(get_bungie_character_data())
