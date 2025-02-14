@@ -192,7 +192,7 @@ async def process_message(message):
     print(f"Type: {author_type}")
 
     # Vérifiez si le message est envoyé par un bot et contient un tweet
-    if author_type == "bot" and "twitter.com/BungieHelp" in message.content:
+    if author_type == "bot" and "mastodon.social/@bungiehelp" in message.content:
         print("== Contient un tweet de BungieHelp ==")
 
         for embed in message.embeds:
@@ -333,7 +333,7 @@ def maintenance_embed():
 
     # Création de l'embed avec la fonction générique
     embed, components, _ = create_embed_with_components(
-        description=f"## [Infos de Maintenance Destiny 2](https://x.com/BungieHelp)\n*Voici les dernières informations concernant la maintenance de Destiny 2 du <t:{stop_timestamp}:D>.*\n",
+        description=f"## [Infos de Maintenance Destiny 2](https://mastodon.social/@bungiehelp)\n*Voici les dernières informations concernant la maintenance de Destiny 2 du <t:{stop_timestamp}:D>.*\n",
         color=0xff0000,
         author="@BungieHelp | Généré par BotOfTheDisciple",
         author_icon_url="https://pbs.twimg.com/profile_images/1362463058132492289/vNe1WM28_400x400.jpg",
@@ -373,7 +373,7 @@ def maintenance_embed_end():
 
     # Création de l'embed sans champs ni boutons
     embed, _, _ = create_embed_with_components(
-        description=f"## [Infos de Maintenance Destiny 2](https://x.com/BungieHelp)\n"
+        description=f"## [Infos de Maintenance Destiny 2](https://mastodon.social/@bungiehelp)\n"
                     f":white_check_mark: La Maintenance du <t:{stop_timestamp}:D> est terminée.\n",
         color=0x00ff00,  # Une couleur verte pour signaler la fin
         author="@BungieHelp | Généré par BotOfTheDisciple",
