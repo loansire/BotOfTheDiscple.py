@@ -2,6 +2,7 @@ import requests
 import json
 import Sources.Bot.ApiKey as APIKey
 from Sources.Bot.CurrentWeeklyActivities.BungieRequest import get_bungie_character_data
+from Sources.Bot.CurrentWeeklyActivities.JsonFilter import get_only_challenges_activities
 
 # Clé API Bungie (remplacez par la vôtre)
 API_KEY = APIKey.bungie_api
@@ -67,7 +68,7 @@ def add_activityinfo_data(MainJson):
         return MainJson  # Retourner les données sans modification si le manifest n'est pas récupéré
 
     # Parcours des activités disponibles
-    for item in activities:
+    for i, item in enumerate(activities):
         if isinstance(item, dict):  # Assurer que chaque élément est un dictionnaire
             activity_hash = item.get('activityHash')
             if activity_hash:
@@ -75,19 +76,34 @@ def add_activityinfo_data(MainJson):
                 activity_details = get_activity_details(activity_hash, manifest)
                 if activity_details:
                     name, activity_type_hash, light_level = activity_details
-                    item['activityName'] = name
-                    item['activityTypeHash'] = activity_type_hash
-                    item['activityLightLevel'] = light_level
 
                     # Récupérer les détails du type d'activité
-                    if activity_type_hash:
-                        activity_type_name = get_activity_type_details(activity_type_hash, manifest)
-                        item['activityTypeName'] = activity_type_name
+                    activity_type_name = get_activity_type_details(activity_type_hash,
+                                                                   manifest) if activity_type_hash else None
+
+                    # Construire le dictionnaire avec les clés obligatoires
+                    new_activity = {
+                        'activityName': name,
+                        'activityHash': activity_hash,
+                        'activityTypeName': activity_type_name,
+                        'activityTypeHash': activity_type_hash,
+                    }
+
+                    # Ajouter les clés conditionnelles si elles ne sont pas vides
+                    if item.get('challenges'):
+                        new_activity['challenges'] = item['challenges']
+
+                    if item.get('modifierHashes'):
+                        new_activity['modifierHashes'] = item['modifierHashes']
+
+                    # Remplacer l'activité existante par la nouvelle version ordonnée
+                    activities[i] = new_activity
         else:
-            print(f"Element ignoré car ce n'est pas un dictionnaire : {item}")
+            print(f"Élément ignoré car ce n'est pas un dictionnaire : {item}")
 
     # Retourner le JSON mis à jour
     return MainJson
+
 
 # Exemple d'utilisation avec un JSON MainJson
 if __name__ == "__main__":
@@ -97,6 +113,9 @@ if __name__ == "__main__":
     # Convertir MainJson en dictionnaire si c'est une chaîne JSON
     if isinstance(MainJson, str):
         MainJson = json.loads(MainJson)  # Convertir la chaîne JSON en dictionnaire
+
+    # Récupère uniquement les activitées posédant un challenge + clean le résultat
+    MainJson = get_only_challenges_activities(MainJson)
 
     # Ajouter les informations d'activités au MainJson
     updated_json = add_activityinfo_data(MainJson)
