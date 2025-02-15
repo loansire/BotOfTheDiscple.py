@@ -2,6 +2,7 @@ import requests
 import json
 import Sources.Bot.ApiKey as APIKey
 from Sources.Bot.CurrentWeeklyActivities.BungieRequest import get_bungie_character_data
+from Sources.Bot.CurrentWeeklyActivities import Config
 from Sources.Bot.CurrentWeeklyActivities.JsonFilter import get_only_challenges_activities
 
 # Clé API Bungie (remplacez par la vôtre)
@@ -20,39 +21,43 @@ def get_manifest():
         return None
 
 
-# Fonction pour récupérer les détails de l'activité (DestinyActivityDefinition)
-def get_activity_details(activity_hash, manifest):
-    # Récupérer l'URL du fichier contenant les informations sur les activités
-    destiny_activity_definition_url = manifest.get('Response', {}).get('jsonWorldComponentContentPaths', {}).get('fr', {}).get('DestinyActivityDefinition', None)
-    if destiny_activity_definition_url:
-        # Ajouter le schéma manquant pour former une URL complète
-        full_url = BUNGIE_BASE_URL + destiny_activity_definition_url
-        # Télécharger le fichier JSON contenant les activités
-        response = requests.get(full_url)
-        if response.status_code == 200:
-            activity_data = response.json()
-            # Rechercher l'activité par hash
-            activity_info = activity_data.get(str(activity_hash), {})
-            if activity_info:
-                return activity_info.get('displayProperties', {}).get('name', 'Nom inconnu'), activity_info.get('activityTypeHash', None), activity_info.get('activityLightLevel', None)
-    return None
+# Fonction pour récupérer les détails d'un item à partir de son HASH
+def from_hash_to_text(hash_value, definition, manifest, fields):
+    """
+    Récupère des informations spécifiques à partir d'un hash donné dans le manifest Destiny.
+    Supporte les chemins imbriqués comme 'displayProperties.name'.
 
+    :param hash_value: Le hash de l'élément à rechercher.
+    :param definition: La clé de la définition à utiliser (ex: 'DestinyActivityDefinition').
+    :param manifest: Le manifest contenant les informations de Destiny.
+    :param fields: Liste des clés à extraire des données récupérées (supporte les chemins imbriqués).
+    :return: Un tuple contenant les valeurs demandées, ou None si l'élément n'est pas trouvé.
+    """
+    destiny_manifest_url = manifest.get('Response', {}).get('jsonWorldComponentContentPaths', {}).get('fr', {}).get(
+        definition, None)
 
-# Fonction pour récupérer les détails du type d'activité (DestinyActivityTypeDefinition)
-def get_activity_type_details(activity_type_hash, manifest):
-    # Récupérer l'URL du fichier contenant les informations sur les types d'activités
-    destiny_activity_type_url = manifest.get('Response', {}).get('jsonWorldComponentContentPaths', {}).get('fr', {}).get('DestinyActivityTypeDefinition', None)
-    if destiny_activity_type_url:
-        # Ajouter le schéma manquant pour former une URL complète
-        full_url = BUNGIE_BASE_URL + destiny_activity_type_url
-        # Télécharger le fichier JSON contenant les types d'activités
+    if destiny_manifest_url:
+        full_url = BUNGIE_BASE_URL + destiny_manifest_url
         response = requests.get(full_url)
+
         if response.status_code == 200:
-            activity_type_data = response.json()
-            # Rechercher le type d'activité par hash
-            activity_type_info = activity_type_data.get(str(activity_type_hash), {})
-            if activity_type_info:
-                return activity_type_info.get('displayProperties', {}).get('name', 'Type d\'activité inconnu')
+            data = response.json()
+            info = data.get(str(hash_value), {})
+
+            if info:
+                result = []
+                for field in fields:
+                    # Supporte les chemins imbriqués
+                    keys = field.split('.')  # On découpe les clés par le séparateur '.'
+                    value = info
+                    for key in keys:
+                        value = value.get(key) if isinstance(value, dict) else None
+                        if value is None:
+                            break
+                    result.append(value)
+
+                return tuple(result)
+
     return None
 
 
@@ -73,20 +78,25 @@ def add_activityinfo_data(MainJson):
             activity_hash = item.get('activityHash')
             if activity_hash:
                 # Récupérer les informations sur l'activité
-                activity_details = get_activity_details(activity_hash, manifest)
+                activity_details = from_hash_to_text(activity_hash, Config.MF_ACTIVITY_DEFINITION, manifest, Config.ACTIVITY_FIELDS)
                 if activity_details:
-                    name, activity_type_hash, light_level = activity_details
+                    name, activity_type_hash, originalname, pgcrImage = activity_details
 
                     # Récupérer les détails du type d'activité
-                    activity_type_name = get_activity_type_details(activity_type_hash,
-                                                                   manifest) if activity_type_hash else None
+                    activity_type_data = from_hash_to_text(activity_type_hash, Config.MF_ACTIVITY_TYPE_DEFINITION,
+                                                           manifest,
+                                                           Config.ACTIVITY_TYPE_FIELDS) if activity_type_hash else None
+                    activity_type_name = activity_type_data[0] if isinstance(activity_type_data, tuple) and len(
+                        activity_type_data) == 1 else activity_type_data
 
                     # Construire le dictionnaire avec les clés obligatoires
                     new_activity = {
+                        'originalname': originalname,
                         'activityName': name,
                         'activityHash': activity_hash,
                         'activityTypeName': activity_type_name,
                         'activityTypeHash': activity_type_hash,
+                        'pgcrImage': pgcrImage,
                     }
 
                     # Ajouter les clés conditionnelles si elles ne sont pas vides
