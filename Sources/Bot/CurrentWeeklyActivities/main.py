@@ -19,7 +19,8 @@ if __name__ == "__main__":
     # Ajouter les informations d'activités au MainJson
     updated_json = add_activityinfo_data(MainJson)
 
-    final_json = if_DungeonRaid_filter(updated_json)
+    current_weekly_dungeonraid = if_DungeonRaid_filter(updated_json)
+    print("Type de updated_json:", type(current_weekly_dungeonraid))
 
     # Afficher les résultats de manière jolie
-    print(json.dumps(final_json['Response']['activities']['data']['availableActivities'], ensure_ascii=False, indent=2))
+    print(json.dumps(current_weekly_dungeonraid, ensure_ascii=False, indent=2))

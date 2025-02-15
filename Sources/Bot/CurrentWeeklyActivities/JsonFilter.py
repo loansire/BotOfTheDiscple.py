@@ -1,6 +1,6 @@
 import json
 from Sources.Bot.CurrentWeeklyActivities.BungieRequest import get_bungie_character_data
-from Sources.Bot.CurrentWeeklyActivities.Config import ChallengesFilter, DUNGEON_HASH, RAID_HASH
+from Sources.Bot.CurrentWeeklyActivities.Config import ChallengesFilter, DUNGEON_TYPE_HASH, RAID_TYPE_HASH
 
 
 def if_challenges_filter(data):
@@ -17,24 +17,6 @@ def if_challenges_filter(data):
             filtered_data.append(item)
 
     return filtered_data
-
-def if_DungeonRaid_filter(filtered_data):
-    """
-    Filtre les activités en ne gardant que celles dont le type d'activité est un donjon (DUNGEON_HASH) ou un raid (RAID_HASH).
-    :param filtered_data: La liste des activités à filtrer.
-    :return: La liste des activités filtrées qui sont soit un donjon, soit un raid.
-    """
-    filtered_dungeon_raid = []
-
-    # Parcours des activités filtrées
-    for activity in filtered_data:
-        activity_type_name = activity.get('activityTypeHash')
-
-        # Vérifier si l'activité correspond à un donjon ou un raid
-        if activity_type_name in [DUNGEON_HASH, RAID_HASH]:
-            filtered_dungeon_raid.append(activity)
-
-    return filtered_dungeon_raid
 
 def remove_filtered_attributes(data, ChallengesFilter):
     """
@@ -74,6 +56,23 @@ def get_only_challenges_activities(data):
     final_data = remove_filtered_attributes({"Response": {"activities": {"data": {"availableActivities": filtered_data}}}}, ChallengesFilter)
 
     return final_data
+
+
+def if_DungeonRaid_filter(filtered_data):
+    """
+    Filtre les activités en ne gardant que celles dont le type d'activité est un donjon (DUNGEON_TYPE_HASH) ou un raid (RAID_TYPE_HASH).
+    :param filtered_data: Un dictionnaire contenant les activités.
+    :return: Une liste des activités filtrées qui sont soit un donjon, soit un raid.
+    """
+    filtered_dungeon_raid = []
+
+    # Vérifier si les clés nécessaires sont présentes
+    activities = filtered_data.get('Response', {}).get('activities', {}).get('data', {}).get('availableActivities', [])
+
+    filtered_dungeon_raid = [activity for activity in activities if
+                             str(activity.get('activityTypeHash', '')) in [str(DUNGEON_TYPE_HASH), str(RAID_TYPE_HASH)]]
+
+    return filtered_dungeon_raid
 
 
 if __name__ == "__main__":
