@@ -80,31 +80,63 @@ def add_activityinfo_data(MainJson):
                 # Récupérer les informations sur l'activité
                 activity_details = from_hash_to_text(activity_hash, Config.MF_ACTIVITY_DEFINITION, manifest, Config.ACTIVITY_FIELDS)
                 if activity_details:
-                    name, activity_type_hash, originalname, pgcrImage = activity_details
+                    activity_Name, activity_type_hash, activity_originalname, activity_pgcrImage = activity_details
 
                     # Récupérer les détails du type d'activité
-                    activity_type_data = from_hash_to_text(activity_type_hash, Config.MF_ACTIVITY_TYPE_DEFINITION,
-                                                           manifest,
-                                                           Config.ACTIVITY_TYPE_FIELDS) if activity_type_hash else None
-                    activity_type_name = activity_type_data[0] if isinstance(activity_type_data, tuple) and len(
-                        activity_type_data) == 1 else activity_type_data
+                    activity_type_name = None
+                    if activity_type_hash:
+                        activity_type_data = from_hash_to_text(activity_type_hash, Config.MF_ACTIVITY_TYPE_DEFINITION, manifest, Config.ACTIVITY_TYPE_FIELDS)
+                        if activity_type_data:
+                            activity_type_name = activity_type_data[0] if isinstance(activity_type_data, tuple) else activity_type_data
+
+                    # Récupérer les objectifs (challenges)
+                    objectives = []
+                    for challenge in item.get('challenges', []):
+                        objective_hash = challenge.get('objective', {}).get('objectiveHash')
+                        if objective_hash:
+                            objective_data = from_hash_to_text(objective_hash, Config.MF_OBJECTIVE_DEFINITION, manifest,
+                                                               Config.OBJECTIVE_FIELDS)
+                            if objective_data:
+                                # Créer un dictionnaire pour chaque objectif contenant à la fois le hash et ses détails
+                                objective = {
+                                    'hash': objective_hash,
+                                    'name': objective_data[0] if isinstance(objective_data,
+                                                                               tuple) else objective_data
+                                }
+                                objectives.append(objective)
+
+                    modifier_details = []
+                    if 'modifierHashes' in item:
+                        for modifier_hash in item['modifierHashes']:
+                            modifier_data = from_hash_to_text(modifier_hash, Config.MF_MODIFIER_DEFINITION, manifest,
+                                                              Config.MODIFIER_FIELDS)
+                            if modifier_data:
+                                modifier_name, modifier_icon, modifier_description = modifier_data
+                                # Créer un dictionnaire pour chaque modifier contenant à la fois le hash et ses détails
+                                modifier = {
+                                    'hash': modifier_hash,
+                                    'name': modifier_name[0] if isinstance(modifier_name, tuple) else modifier_name,
+                                    'icon': modifier_icon[0] if isinstance(modifier_icon, tuple) else modifier_icon,
+                                    'description': modifier_description[0] if isinstance(modifier_description, tuple) else modifier_description
+                                }
+                                modifier_details.append(modifier)
 
                     # Construire le dictionnaire avec les clés obligatoires
                     new_activity = {
-                        'originalname': originalname,
-                        'activityName': name,
+                        'originalname': activity_originalname,
+                        'activityName': activity_Name,
                         'activityHash': activity_hash,
                         'activityTypeName': activity_type_name,
                         'activityTypeHash': activity_type_hash,
-                        'pgcrImage': pgcrImage,
+                        'pgcrImage': activity_pgcrImage,
                     }
 
                     # Ajouter les clés conditionnelles si elles ne sont pas vides
-                    if item.get('challenges'):
-                        new_activity['challenges'] = item['challenges']
+                    if objectives:
+                        new_activity['objectives'] = objectives
 
-                    if item.get('modifierHashes'):
-                        new_activity['modifierHashes'] = item['modifierHashes']
+                    if modifier_details:
+                        new_activity['modifierDetails'] = modifier_details
 
                     # Remplacer l'activité existante par la nouvelle version ordonnée
                     activities[i] = new_activity
@@ -115,6 +147,7 @@ def add_activityinfo_data(MainJson):
     return MainJson
 
 
+
 # Exemple d'utilisation avec un JSON MainJson
 if __name__ == "__main__":
     # Exemple de données JSON
@@ -123,9 +156,6 @@ if __name__ == "__main__":
     # Convertir MainJson en dictionnaire si c'est une chaîne JSON
     if isinstance(MainJson, str):
         MainJson = json.loads(MainJson)  # Convertir la chaîne JSON en dictionnaire
-
-    # Récupère uniquement les activitées posédant un challenge + clean le résultat
-    MainJson = get_only_challenges_activities(MainJson)
 
     # Ajouter les informations d'activités au MainJson
     updated_json = add_activityinfo_data(MainJson)

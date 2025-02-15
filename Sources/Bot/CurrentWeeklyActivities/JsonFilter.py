@@ -1,6 +1,6 @@
 import json
 from Sources.Bot.CurrentWeeklyActivities.BungieRequest import get_bungie_character_data
-from Sources.Bot.CurrentWeeklyActivities.Config import FIELDTODELET, DUNGEON_TYPE_HASH, RAID_TYPE_HASH
+from Sources.Bot.CurrentWeeklyActivities import Config
 
 
 def if_challenges_filter(data):
@@ -63,32 +63,53 @@ def get_only_challenges_activities(data):
     :param data: Le dictionnaire contenant les données.
     :return: Le dictionnaire modifié.
     """
-    print("filter 'challenge' weekly")
+    #print("filter 'challenge' weekly")
     # Applique un filtre pour ne garder que les éléments avec 'challenges'
-    filtered_data = if_challenges_filter(data)
+    #filtered_data = if_challenges_filter(data)
 
     print("delete miscellaneous attributes")
     # Appliquer un second filtre pour retirer les attributs spécifiques
-    final_data = remove_filtered_attributes({"Response": {"activities": {"data": {"availableActivities": filtered_data}}}}, FIELDTODELET)
+    final_data = remove_filtered_attributes({"Response": {"activities": {"data": {"availableActivities": data}}}}, Config.FIELDTODELET)
 
     return final_data
 
 
-def if_DungeonRaid_filter(filtered_data):
+def if_weekly_filter(filtered_data):
     """
-    Filtre les activités en ne gardant que celles dont le type d'activité est un donjon (DUNGEON_TYPE_HASH) ou un raid (RAID_TYPE_HASH).
+    Filtre les activités en ne gardant que celles dont le type d'activité est un donjon, un raid, une nuit noire ou une mission exotique.
     :param filtered_data: Un dictionnaire contenant les activités.
-    :return: Une liste des activités filtrées qui sont soit un donjon, soit un raid.
+    :return: Une liste des activités filtrées qui sont un donjon, un raid, une nuit noire ou une mission exotique.
     """
     filtered_dungeon_raid = []
 
     # Vérifier si les clés nécessaires sont présentes
     activities = filtered_data.get('Response', {}).get('activities', {}).get('data', {}).get('availableActivities', [])
 
-    filtered_dungeon_raid = [activity for activity in activities if
-                             str(activity.get('activityTypeHash', '')) in [str(DUNGEON_TYPE_HASH), str(RAID_TYPE_HASH)]]
+    # Set des hash d'activités valides pour une comparaison rapide
+    valid_hashes = {
+        str(Config.OBJECTIVE_DUNGEON_HASH),
+        str(Config.OBJECTIVE_RAID_HASH),
+        str(Config.OBJECTIVE_EXOMISSION_HASH),
+        str(Config.OBJECTIVE_NN_HASH)
+    }
+
+    for activity in activities:
+        challenges = activity.get('challenges', [])
+
+        if isinstance(challenges, list):  # Vérifier que challenges est une liste
+            for challenge in challenges:
+                objective = challenge.get('objective', {})
+
+                if isinstance(objective, dict):  # Vérifier que 'objective' est un dictionnaire
+                    objective_hash = str(objective.get('objectiveHash', ''))
+
+                    # Si objective_hash fait partie d'un des hash valides
+                    if any(objective_hash in hash_list for hash_list in valid_hashes):
+                        filtered_dungeon_raid.append(activity)
+                        break  # Dès qu'un hash valide est trouvé, on garde l'activité
 
     return filtered_dungeon_raid
+
 
 
 if __name__ == "__main__":
@@ -98,7 +119,7 @@ if __name__ == "__main__":
     if isinstance(MainJson, str):
         MainJson = json.loads(MainJson)
 
-    MainJson = get_only_challenges_activities(MainJson)
-    #MainJson = if_challenges_filter(MainJson)
+    #MainJson = get_only_challenges_activities(MainJson)
+    MainJson = if_weekly_filter(MainJson)
 
     print(json.dumps(MainJson, indent=2, ensure_ascii=False))

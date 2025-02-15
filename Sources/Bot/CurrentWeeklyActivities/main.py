@@ -1,7 +1,7 @@
 import json
 
 from Sources.Bot.CurrentWeeklyActivities.BungieRequest import get_bungie_character_data
-from Sources.Bot.CurrentWeeklyActivities.JsonFilter import get_only_challenges_activities, if_DungeonRaid_filter
+from Sources.Bot.CurrentWeeklyActivities.JsonFilter import get_only_challenges_activities, if_weekly_filter
 from Sources.Bot.CurrentWeeklyActivities.enrichJSON import add_activityinfo_data
 
 if __name__ == "__main__":
@@ -13,14 +13,13 @@ if __name__ == "__main__":
     if isinstance(MainJson, str):
         MainJson = json.loads(MainJson)
 
-    # Récupère uniquement les activitées posédant un challenge + clean le résultat
+    MainJson = if_weekly_filter(MainJson)
+
+    # clean le résultat
     MainJson = get_only_challenges_activities(MainJson)
 
     # Ajouter les informations d'activités au MainJson
-    updated_json = add_activityinfo_data(MainJson)
-
-    current_weekly_dungeonraid = if_DungeonRaid_filter(updated_json)
-    print("Type de updated_json:", type(current_weekly_dungeonraid))
+    current_weekly_activity = add_activityinfo_data(MainJson)
 
     # Afficher les résultats de manière jolie
-    print(json.dumps(current_weekly_dungeonraid, ensure_ascii=False, indent=2))
+    print(json.dumps(current_weekly_activity, ensure_ascii=False, indent=2))
