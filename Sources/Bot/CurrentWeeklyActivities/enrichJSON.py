@@ -108,6 +108,9 @@ def add_activityinfo_data(MainJson):
                     modifier_details = []
                     if 'modifierHashes' in item:
                         for modifier_hash in item['modifierHashes']:
+                            if modifier_hash in Config.MODIFIERTODELET:
+                                continue  # Ignorer ce modificateur
+
                             modifier_data = from_hash_to_text(modifier_hash, Config.MF_MODIFIER_DEFINITION, manifest,
                                                               Config.MODIFIER_FIELDS)
                             if modifier_data:
@@ -117,7 +120,8 @@ def add_activityinfo_data(MainJson):
                                     'hash': modifier_hash,
                                     'name': modifier_name[0] if isinstance(modifier_name, tuple) else modifier_name,
                                     'icon': modifier_icon[0] if isinstance(modifier_icon, tuple) else modifier_icon,
-                                    'description': modifier_description[0] if isinstance(modifier_description, tuple) else modifier_description
+                                    'description': modifier_description[0] if isinstance(modifier_description,
+                                                                                         tuple) else modifier_description
                                 }
                                 modifier_details.append(modifier)
 
@@ -130,10 +134,6 @@ def add_activityinfo_data(MainJson):
                         'activityTypeHash': activity_type_hash,
                         'pgcrImage': activity_pgcrImage,
                     }
-
-                    # Ajouter les clés conditionnelles si elles ne sont pas vides
-                    if objectives:
-                        new_activity['objectives'] = objectives
 
                     if modifier_details:
                         new_activity['modifierDetails'] = modifier_details

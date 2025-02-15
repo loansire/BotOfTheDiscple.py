@@ -21,5 +21,8 @@ if __name__ == "__main__":
     # Ajouter les informations d'activités au MainJson
     current_weekly_activity = add_activityinfo_data(MainJson)
 
-    # Afficher les résultats de manière jolie
-    print(json.dumps(current_weekly_activity, ensure_ascii=False, indent=2))
+    # Créer le fichier JSON et y écrire les résultats
+    with open('weekly_activities.json', 'w', encoding='utf-8') as json_file:
+        json.dump(current_weekly_activity, json_file, ensure_ascii=False, indent=2)
+
+    print("Le fichier weekly_activities.json a été créé avec succès.")
