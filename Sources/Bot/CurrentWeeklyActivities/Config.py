@@ -39,6 +39,7 @@ ACTIVITY_FIELDS = [
     "displayProperties.name",
     "activityTypeHash",
     "originalDisplayProperties.name",
+    "displayProperties.description",
     "pgcrImage",
 ]
 ACTIVITY_TYPE_FIELDS = [

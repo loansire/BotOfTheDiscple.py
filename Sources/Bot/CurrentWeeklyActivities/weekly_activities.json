@@ -6,6 +6,7 @@
           {
             "originalname": "Fosse de l'hérésie",
             "activityName": "Fosse de l'hérésie: Standard",
+            "activitydescription": "Sous le Port du malheur, la Ruche garde ses plus sombres secrets.",
             "activityHash": 2582501063,
             "activityTypeName": "Donjon",
             "activityTypeHash": 608898761,
@@ -14,6 +15,7 @@
           {
             "originalname": "Jardin du Salut",
             "activityName": "Jardin du Salut",
+            "activitydescription": "« Le Jardin vous appelle. »",
             "activityHash": 1042180643,
             "activityTypeName": "Raid",
             "activityTypeHash": 2043403989,
@@ -48,6 +50,7 @@
           {
             "originalname": "La Chute du roi",
             "activityName": "La Chute du roi: Standard",
+            "activitydescription": "Longue vie au Roi...",
             "activityHash": 1374392663,
             "activityTypeName": "Raid",
             "activityTypeHash": 2043403989,
@@ -88,6 +91,7 @@
           {
             "originalname": "Fantômes des Profondeurs",
             "activityName": "Fantômes des Profondeurs: Standard",
+            "activitydescription": "Noyez-vous dans les profondeurs ou élevez-vous.",
             "activityHash": 313828469,
             "activityTypeName": "Donjon",
             "activityTypeHash": 608898761,
@@ -96,6 +100,7 @@
           {
             "originalname": "Opération : Bouclier de Séraphin",
             "activityName": "Opération : Bouclier de Séraphin: Standard",
+            "activitydescription": "Infiltrez la station de Séraphin qui orbite autour de la Terre pour implanter un virus dans le réseau des WARSAT.",
             "activityHash": 1221538367,
             "activityTypeName": "Histoire",
             "activityTypeHash": 1686739444,
@@ -130,6 +135,7 @@
           {
             "originalname": "Opération : Bouclier de Séraphin (Expert)",
             "activityName": "Opération : Bouclier de Séraphin (Expert)",
+            "activitydescription": "Découvrez les secrets de la station de Séraphin pour améliorer Révision zéro.",
             "activityHash": 2919809209,
             "activityTypeName": "Histoire",
             "activityTypeHash": 1686739444,
@@ -188,6 +194,7 @@
           {
             "originalname": "La Chute du roi",
             "activityName": "La Chute du roi: Maîtrise",
+            "activitydescription": "Longue vie au Roi...",
             "activityHash": 3257594522,
             "activityTypeName": "Raid",
             "activityTypeHash": 2043403989,
@@ -240,6 +247,7 @@
           {
             "originalname": "Nuit noire",
             "activityName": "Nuit noire: Avancé",
+            "activitydescription": "Champ de bataille Braquage : Mars",
             "activityHash": 507866985,
             "activityTypeName": "Nuit noire",
             "activityTypeHash": 575572995,
@@ -304,6 +312,7 @@
           {
             "originalname": "Nuit noire",
             "activityName": "Nuit noire: Expert",
+            "activitydescription": "Champ de bataille Braquage : Mars",
             "activityHash": 507866984,
             "activityTypeName": "Nuit noire",
             "activityTypeHash": 575572995,
@@ -374,6 +383,7 @@
           {
             "originalname": "Nuit noire",
             "activityName": "Nuit noire: Maîtrise",
+            "activitydescription": "Champ de bataille Braquage : Mars",
             "activityHash": 507866991,
             "activityTypeName": "Nuit noire",
             "activityTypeHash": 575572995,
@@ -444,6 +454,7 @@
           {
             "originalname": "Fantômes des Profondeurs",
             "activityName": "Fantômes des Profondeurs: Maîtrise",
+            "activitydescription": "Noyez-vous dans les profondeurs ou élevez-vous.",
             "activityHash": 2716998124,
             "activityTypeName": "Donjon",
             "activityTypeHash": 608898761,

@@ -80,7 +80,7 @@ def add_activityinfo_data(MainJson):
                 # Récupérer les informations sur l'activité
                 activity_details = from_hash_to_text(activity_hash, Config.MF_ACTIVITY_DEFINITION, manifest, Config.ACTIVITY_FIELDS)
                 if activity_details:
-                    activity_Name, activity_type_hash, activity_originalname, activity_pgcrImage = activity_details
+                    activity_Name, activity_type_hash, activity_originalname, activity_description, activity_pgcrImage = activity_details
 
                     # Récupérer les détails du type d'activité
                     activity_type_name = None
@@ -129,6 +129,7 @@ def add_activityinfo_data(MainJson):
                     new_activity = {
                         'originalname': activity_originalname,
                         'activityName': activity_Name,
+                        'activitydescription': activity_description,
                         'activityHash': activity_hash,
                         'activityTypeName': activity_type_name,
                         'activityTypeHash': activity_type_hash,
