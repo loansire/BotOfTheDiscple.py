@@ -191,89 +191,91 @@ async def process_message(message):
     print(f"ID: {author_id}")
     print(f"Type: {author_type}")
 
-    # Vérifiez si le message est envoyé par un bot et contient un tweet
-    if author_type == "bot" and "mastodon.social/@bungiehelp" in message.content:
-        print("== Contient un tweet de BungieHelp ==")
-
+    # Vérifiez si le message est envoyé par un bot et contient un tweet de BungieHelp
+    if author_type == "bot" and message.embeds:
         for embed in message.embeds:
-            # Nettoyage et formatage du texte de l'embed
-            title = clean_text(embed.title) if embed.title else ""
-            description = clean_text(embed.description) if embed.description else ""
+            # Vérifier si l'embed contient "mastodon.social/@bungiehelp"
+            embed_text = (embed.title or "") + " " + (embed.description or "")
+            if "mastodon.social/@bungiehelp" in embed_text:
+                print("== Contient un tweet de BungieHelp ==")
 
-            content = description if description else title
-            # Normalisation des espaces et les \ dans le contenu
-            content = content.replace('\u00A0', ' ').replace('\\','')  # Remplacer les espaces insécables par des espaces standards et les \ inutiles
-            content = re.sub(r'\s+', ' ', content)  # Remplacer tout type d'espace multiple par un espace unique
+                # Nettoyage et formatage du texte de l'embed
+                title = clean_text(embed.title) if embed.title else ""
+                description = clean_text(embed.description) if embed.description else ""
 
-            print(f"\n---")
-            print(f"{content}")
-            print(f"---\n")
+                content = description if description else title
+                content = content.replace('\u00A0', ' ').replace('\\', '')  # Remplacer les espaces insécables et les \
+                content = re.sub(r'\s+', ' ', content)  # Remplacer les espaces multiples par un seul espace
 
-            # Vérifiez si le tweet contient "DESTINY 2" et "MAINTENANCE"
-            if "DESTINY 2" in content.upper() and "MAINTENANCE" in content.upper():
-                if not maintenance_info:
-                    print("== Nouveau tweet de maintenance détecté ==")
+                print(f"\n---")
+                print(f"{content}")
+                print(f"---\n")
 
-                    comment = re.search(r"❖ Update (\d+(?:\.\d+){1,3})", content)
-                    if comment:
-                        comment = comment.group(0)
-                    else:
-                        comment = None
+                # Vérifiez si le tweet contient "DESTINY 2" et "MAINTENANCE"
+                if "DESTINY 2" in content.upper() and "MAINTENANCE" in content.upper():
+                    if not maintenance_info:
+                        print("== Nouveau tweet de maintenance détecté ==")
 
-                    # Extraction de la date
-                    date_match = re.search(
-                        r'\b(January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}\b',content)
-                    date_str = date_match.group() if date_match else None
+                        comment = re.search(r"❖ Update (\d+(?:\.\d+){1,3})", content)
+                        comment = comment.group(0) if comment else None
 
-                    # Extraction des heures
-                    downtime_match = re.search(r"❖ Downtime begins: ([\d]{1,2}(?::\d{2})? [APM]{2})", content)
-                    uptime_match = re.search(r"❖ Downtime ends: ([\d]{1,2}(?::\d{2})? [APM]{2})", content)
+                        # Extraction de la date
+                        date_match = re.search(
+                            r'\b(January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}\b',
+                            content
+                        )
+                        date_str = date_match.group() if date_match else None
 
-                    timezone_str = "PDT" if "PDT" in content else "PST" if "PST" in content else None
-                    print(f"---")
-                    print(f"{date_str}")
-                    print(f"{timezone_str}")
-                    print(f"{downtime_match}")
-                    print(f"{uptime_match}")
-                    print(f"---")
+                        # Extraction des heures
+                        downtime_match = re.search(r"❖ Downtime begins: ([\d]{1,2}(?::\d{2})? [APM]{2})", content)
+                        uptime_match = re.search(r"❖ Downtime ends: ([\d]{1,2}(?::\d{2})? [APM]{2})", content)
 
-                    if date_str and downtime_match and uptime_match and timezone_str:
-                        downtime = downtime_match.group(1).strip()
-                        uptime = uptime_match.group(1).strip()
+                        timezone_str = "PDT" if "PDT" in content else "PST" if "PST" in content else None
 
-                        # Conversion en timestamps Unix
-                        stop_timestamp = convert_to_unix(date_str, downtime, timezone_str)
-                        return_timestamp = convert_to_unix(date_str, uptime, timezone_str)
+                        print(f"---")
+                        print(f"{date_str}")
+                        print(f"{timezone_str}")
+                        print(f"{downtime_match}")
+                        print(f"{uptime_match}")
+                        print(f"---")
 
-                        if stop_timestamp and return_timestamp:
-                            # Sauvegarde des informations de maintenance
-                            maintenance_info = {
-                                "stop_timestamp": stop_timestamp,
-                                "return_timestamp": return_timestamp,
-                                "comment": comment
-                            }
-                            print(f"\nInformations à sauvegarder:")
-                            print(f"{json.dumps(maintenance_info, indent=4)}")
-                            save_maintenance_info(maintenance_info)
-                            print("== Informations de maintenance sauvegardées ==")
-                            # Publier les alertes de maintenance
-                            await publish_alerts("maintenance")
+                        if date_str and downtime_match and uptime_match and timezone_str:
+                            downtime = downtime_match.group(1).strip()
+                            uptime = uptime_match.group(1).strip()
+
+                            # Conversion en timestamps Unix
+                            stop_timestamp = convert_to_unix(date_str, downtime, timezone_str)
+                            return_timestamp = convert_to_unix(date_str, uptime, timezone_str)
+
+                            if stop_timestamp and return_timestamp:
+                                # Sauvegarde des informations de maintenance
+                                maintenance_info = {
+                                    "stop_timestamp": stop_timestamp,
+                                    "return_timestamp": return_timestamp,
+                                    "comment": comment
+                                }
+                                print(f"\nInformations à sauvegarder:")
+                                print(f"{json.dumps(maintenance_info, indent=4)}")
+                                save_maintenance_info(maintenance_info)
+                                print("== Informations de maintenance sauvegardées ==")
+                                # Publier les alertes de maintenance
+                                await publish_alerts("maintenance")
+                            else:
+                                print("== Erreur de conversion des dates en timestamps ==")
                         else:
-                            print("== Erreur de conversion des dates en timestamps ==")
+                            print("== Informations insuffisantes dans le tweet ==")
+                    elif maintenance_info and "Maintenance is complete" in content:
+                        print("== Fin de la maintenance détectée ==")
+                        # Publier les alertes de maintenance
+                        await publish_alerts("maintenance_end")
+                        os.remove(maintenance_file)
+                        print("== Fichier de maintenance supprimé ==")
                     else:
-                        print("== Informations insuffisantes dans le tweet ==")
-                elif maintenance_info and "Maintenance is complete" in content:
-                    print("== Fin de la maintenance détectée ==")
-                    # Publier les alertes de maintenance
-                    await publish_alerts("maintenance_end")
-                    os.remove(maintenance_file)
-                    print("== Fichier de maintenance supprimé ==")
+                        print("== Des informations de maintenance existent déjà ==")
                 else:
-                    print("== Des informations de maintenance existent déjà ==")
+                    print("== Aucun contenu de maintenance détecté ==")
             else:
-                print("== Aucun contenu de maintenance détecté ==")
-    else:
-        print("== Ce message ne contient pas un tweet pertinent ==")
+                print("== Ce message ne contient pas un tweet pertinent ==")
 
 
 # Vue personnalisée pour les composants interactifs
