@@ -31,11 +31,16 @@ def format_field(data: dict, title: str) -> str:
 
 
 def secteur_oublie_embed():
-    surcharges = [EMOJI_MAP.get(surcharge, surcharge) for surcharge in GetSurcharges()]
-    expert_shields = GetShields(True)
-    expert_champs = GetChamps(True)
-    maitrise_shields = GetShields(False)
-    maitrise_champs = GetChamps(False)
+    infos = JsonDatabase.GetInformations(Config.LOSTSECTOR)
+
+    surcharges = [EMOJI_MAP.get(surcharge, surcharge) for surcharge in [infos[JsonDbDefines.SURCHARGE1], infos[JsonDbDefines.SURCHARGE2]]]
+    expert_shields = infos[JsonDbDefines.SHIELDS_EXPERT]
+    expert_champs = infos[JsonDbDefines.CHAMPS_EXPERT]
+    maitrise_shields = infos[JsonDbDefines.SHIELDS_MASTER]
+    maitrise_champs = infos[JsonDbDefines.CHAMPS_MASTER]
+    activity_name = infos[JsonDbDefines.ACTIVITY_NAME]
+    power_expert = infos[JsonDbDefines.POWER_EXPERT]
+    power_master = infos[JsonDbDefines.POWER_MASTER]
 
     expert_field_value = format_field(expert_shields, "Boucliers") + "\n" + format_field(expert_champs, "Champions")
     maitrise_field_value = format_field(maitrise_shields, "Boucliers") + "\n" + format_field(maitrise_champs, "Champions")
@@ -44,14 +49,14 @@ def secteur_oublie_embed():
 
     if expert_field_value.strip():
         fields.append({
-            "name": f"Expert ({GetPower(True)})",
+            "name": f"Expert ({power_expert})",
             "value": expert_field_value.strip(),
             "inline": True
         })
 
     if maitrise_field_value.strip():
         fields.append({
-            "name": f"Maitrise ({GetPower(False)})",
+            "name": f"Maitrise ({power_master})",
             "value": maitrise_field_value.strip(),
             "inline": True
         })
@@ -72,7 +77,7 @@ def secteur_oublie_embed():
 
     # Création de l'embed avec la fonction générique
     embed, components, _ = create_embed_with_components(
-        description="## " + GetActivityName() + "\n**Récompenses**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
+        description="## " + activity_name + "\n**Récompenses**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
         color=0xff7300,
         author="Secteur oublié du jour",
         author_icon_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png",

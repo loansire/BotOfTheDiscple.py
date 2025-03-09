@@ -4,6 +4,7 @@ import Sources.Bot.ApiKey as APIKey
 from discord.app_commands import default_permissions
 from discord.ext import tasks
 
+from Sources.ActivityManager import ActivityManager
 from Sources.Bot.AlertMessageBuilder import load_alert_channels, save_alert_channels, wait_until_target, publish_alerts
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
@@ -31,7 +32,7 @@ async def on_ready():
 
     try:
         # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-        GenerateActivity()
+        ActivityManager.GetLatestActivities(Config.NOACTIVITY)
         # Démarrer la tâche de mise à jour quotidienne à 19h si GenerateActivity() réussit
         daily_update.start()
     except Exception as e:
@@ -436,7 +437,7 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
                 print("secteur_oublie en cours de mise à jour.")
                 await interaction.response.send_message(
                     f":repeat: L'activité 'Secteur Oublié' est en cours de mise à jour et l'alerte sera publiée.", ephemeral=True)
-                GenerateActivity()  # Appel de la fonction pour générer l'activité
+                ActivityManager.GetLatestActivities(Config.LOSTSECTOR)  # Appel de la fonction pour générer l'activité
                 print("L'activité a été mise à jour.")
                 print("Publication en cours ...")
                 await publish_alerts("secteur_oublie")  # Publier l'alerte
@@ -473,7 +474,7 @@ async def daily_update():
     await wait_until_target()
     print("Début de la mise à jour quotidienne.")
     try:
-        GenerateActivity()
+        ActivityManager.GetLatestActivities(Config.NOACTIVITY)
         print("L'activité a été mise à jour.")
         print("Publication en cours ...")
         await publish_alerts("secteur_oublie")
