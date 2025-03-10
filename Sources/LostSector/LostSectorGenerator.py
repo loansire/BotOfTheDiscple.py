@@ -60,7 +60,7 @@ def Treatment():
 
     activity_informations = JsonDatabase.GetInformations(Config.LOSTSECTOR)
 
-    C_activity_name, C_surcharge1, C_surcharge2, E_power, M_power, E_Shields, M_Shields, E_Champs, M_Champs = activity_informations[JsonDbDefines.ACTIVITY_NAME], activity_informations[JsonDbDefines.SURCHARGE1], activity_informations[JsonDbDefines.SURCHARGE2], activity_informations[JsonDbDefines.POWER_EXPERT], activity_informations[JsonDbDefines.POWER_MASTER], activity_informations[JsonDbDefines.CHAMPS_EXPERT], activity_informations[JsonDbDefines.CHAMPS_MASTER], activity_informations[JsonDbDefines.SHIELDS_EXPERT], activity_informations[JsonDbDefines.SHIELDS_MASTER]
+    C_activity_name, C_surcharge1, C_surcharge2, E_power, M_power, E_Shields, M_Shields, E_Champs, M_Champs = activity_informations[JsonDbDefines.ACTIVITY_NAME], activity_informations[JsonDbDefines.SURCHARGE1], activity_informations[JsonDbDefines.SURCHARGE2], activity_informations[JsonDbDefines.POWER_EXPERT], activity_informations[JsonDbDefines.POWER_MASTER], activity_informations[JsonDbDefines.SHIELDS_EXPERT], activity_informations[JsonDbDefines.SHIELDS_MASTER], activity_informations[JsonDbDefines.CHAMPS_EXPERT], activity_informations[JsonDbDefines.CHAMPS_MASTER]
 
 
     C_destination_hash, C_place_hash = ActivityDefinition.get_activity_destination_and_place_hash()
