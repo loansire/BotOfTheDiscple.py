@@ -7,6 +7,7 @@ import os
 from io import BytesIO
 from Sources.Bot import ApiKey
 
+# Liste des à garder
 MANIFEST_TO_USE = [
     "DestinyActivityDefinition",
     "DestinyActivityTypeDefinition",
@@ -14,13 +15,39 @@ MANIFEST_TO_USE = [
     "DestinyObjectiveDefinition",
     "DestinyDestinationDefinition",
     "DestinyPlaceDefinition",
-    "DestinyInventoryItemDefinition",
-    "DestinyItemCategoryDefinition",
+    #"DestinyInventoryItemDefinition",
+    #"DestinyItemCategoryDefinition",
     "DestinyDamageTypeDefinition",
     "DestinyBreakerTypeDefinition",
-    "DestinyVendorDefinition",
-    "DestinyVendorGroupDefinition",
+    #"DestinyVendorDefinition",
+    #"DestinyVendorGroupDefinition",
 ]
+
+# Configuration des correspondances pour les propriétés du JSON
+BreakerTypeCONFIG = {
+    "displayProperties.name": "name",
+    "displayProperties.description": "description",
+    "displayProperties.icon": "icon"
+}
+
+ActivityCONFIG = {
+    "displayProperties.name": "name",
+    "displayProperties.description": "description",
+    "pgcrImage": "pgcr_image",
+    "activityTypeHash": "activityTypeHash",
+
+
+    "originalDisplayProperties.name": "original_name",
+    "originalDisplayProperties.description": "original_description",
+
+    "destinationHash": "destination_hash",
+    "placeHash": "place_hash",
+
+    # Pour extraire la liste des rewards s'il y en a
+    #"rewards": "rewards_json",
+    #"modifiers": "modifiers_json"  # Optionnel si tu veux garder toute la liste en JSON
+}
+
 
 # Fonction pour télécharger le manifest
 def download_manifest():
@@ -33,6 +60,7 @@ def download_manifest():
     else:
         print(f"Erreur lors du téléchargement du manifest: {response.status_code}")
         return None
+
 
 # Fonction pour télécharger et décompresser le fichier content
 def download_and_extract_content(path):
@@ -106,6 +134,60 @@ def update_id_column_with_converted_value(conn, table_name):
         print(f"Erreur lors de la mise à jour de la colonne 'hash' dans la table {table_name}: {e}")
 
 
+def add_columns_based_on_config(conn, table_name, config):
+    cursor = conn.cursor()
+
+    for json_key, column_name in config.items():
+        try:
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} TEXT;")
+            print(f"Colonne '{column_name}' ajoutée à la table '{table_name}'.")
+        except sqlite3.OperationalError:
+            print(f"Colonne '{column_name}' existe déjà dans la table '{table_name}'.")
+
+
+def extract_value(json_data, key_path):
+    """Extrait une valeur depuis un chemin de clé comme 'displayProperties.description'."""
+    keys = key_path.split('.')
+    for key in keys:
+        if isinstance(json_data, dict):
+            json_data = json_data.get(key, None)
+        else:
+            return None
+    return json_data
+
+def populate_columns_with_json(conn, table_name, config):
+    cursor = conn.cursor()
+
+    # Sélectionner les données JSON existantes
+    cursor.execute(f"SELECT hash, json FROM {table_name};")
+    rows = cursor.fetchall()
+
+    for row in rows:
+        hash_value = row[0]
+        json_data = json.loads(row[1])
+
+        # Construire les données pour chaque colonne basée sur le JSON
+        update_values = {}
+        for json_key, column_name in config.items():
+            value = extract_value(json_data, json_key)
+            update_values[column_name] = value
+
+        # Générer la requête SQL de mise à jour
+        set_clause = ", ".join([f"{column} = ?" for column in update_values.keys()])
+        sql = f"UPDATE {table_name} SET {set_clause} WHERE hash = ?;"
+
+        # Exécuter la requête avec les valeurs extraites
+        cursor.execute(sql, (*update_values.values(), hash_value))
+
+    conn.commit()
+    print(f"Données mises à jour dans la table '{table_name}'.")
+
+
+# Exemple d'utilisation avec la table DestinyBreakerTypeDefinition
+def process_table_with_config(conn, table_name, config):
+    add_columns_based_on_config(conn, table_name, config)
+    populate_columns_with_json(conn, table_name, config)
+
 
 # Exemple d'utilisation
 manifest_data = download_manifest()
@@ -121,9 +203,14 @@ if manifest_data:
         # Supprimer les tables non désirées
         delete_unwanted_tables(conn, MANIFEST_TO_USE)
 
+
         # Ajouter et mettre à jour la colonne 'converted_id' pour chaque table
         for table in MANIFEST_TO_USE:
             update_id_column_with_converted_value(conn, table)
+
+        # Appliquer le traitement pour chaque table souhaitée avec la configuration spécifique
+        print(f"Test de peuplement de la table: 'DestinyActivityDefinition'")
+        process_table_with_config(conn, "DestinyActivityDefinition", ActivityCONFIG)
 
         conn.close()
         print(f"Déconnexion de la base de données: {manifest_file}")
