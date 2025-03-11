@@ -81,6 +81,8 @@ def delete_unwanted_tables(conn, manifest_to_use):
 
     # Valider les changements dans la base de données
     conn.commit()
+
+
 # Fonction pour ajouter une colonne pour le 'converted_id' et mettre à jour avec la conversion
 def update_id_column_with_converted_value(conn, table_name):
     cursor = conn.cursor()
