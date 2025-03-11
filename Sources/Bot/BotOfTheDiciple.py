@@ -32,7 +32,7 @@ async def on_ready():
 
     try:
         # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-        ActivityManager.GetLatestActivities(Config.NOACTIVITY)
+        # ActivityManager.GetLatestActivities(Config.NOACTIVITY)
         # Démarrer la tâche de mise à jour quotidienne à 19h si GenerateActivity() réussit
         daily_update.start()
     except Exception as e:
@@ -83,7 +83,7 @@ async def maintenance(interaction: discord.Interaction):
         embed, files, view = maintenance_embed()
         await interaction.response.send_message(embed=embed, files=files, view=view)
     except ValueError:
-        await interaction.response.send_message(":x: Il n'y a pas de maintenance de Destiny 2 prévue pour le moment.")
+        await interaction.response.send_message(":x: Il n'y a pas de maintenance de Destiny 2 prévue pour le moment.", ephemeral=True)
     except discord.DiscordException as e:
         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
 
@@ -106,17 +106,24 @@ async def updatemaintenance(interaction: discord.Interaction):
 async def deletmaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
 
+    # Vérifier les permissions de l'utilisateur
     if interaction.user.id != allowed_user_id:
         print(f"{interaction.user.id} is trying to use the forbidden command\n")
         await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
+
+    # Différer la réponse pour éviter l'expiration
+    await interaction.response.defer(ephemeral=True)
+
+    # Publier les alertes
     await publish_alerts("maintenance_end")
+
+    # Vérifier si le fichier existe et le supprimer
     if os.path.exists("Ressources/Maintenance/maintenance_info.json"):
         os.remove("Ressources/Maintenance/maintenance_info.json")
-        await interaction.response.send_message(":wastebasket: Les informations de maintenance ont été supprimées.")
+        await interaction.followup.send(":wastebasket: Les informations de maintenance ont été supprimées.")
     else:
-        await interaction.response.send_message(":x: Aucune information de maintenance trouvée.", ephemeral=True)
-
+        await interaction.followup.send(":x: Aucune information de maintenance trouvée.")
 # endregion
 
 
