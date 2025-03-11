@@ -32,7 +32,7 @@ async def on_ready():
 
     try:
         # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-        # ActivityManager.GetLatestActivities(Config.NOACTIVITY)
+        ActivityManager.GetLatestActivities(Config.NOACTIVITY)
         # Démarrer la tâche de mise à jour quotidienne à 19h si GenerateActivity() réussit
         daily_update.start()
     except Exception as e:
