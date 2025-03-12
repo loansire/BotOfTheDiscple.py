@@ -33,7 +33,6 @@ def format_field(data: dict, title: str) -> str:
 def secteur_oublie_embed():
     infos = JsonDatabase.GetInformations(Config.LOSTSECTOR)
 
-    surcharges = [EMOJI_MAP.get(surcharge, surcharge) for surcharge in [infos[JsonDbDefines.SURCHARGE1], infos[JsonDbDefines.SURCHARGE2]]]
     expert_shields = infos[JsonDbDefines.SHIELDS_EXPERT]
     expert_champs = infos[JsonDbDefines.CHAMPS_EXPERT]
     maitrise_shields = infos[JsonDbDefines.SHIELDS_MASTER]
@@ -42,6 +41,8 @@ def secteur_oublie_embed():
     power_expert = infos[JsonDbDefines.POWER_EXPERT]
     power_master = infos[JsonDbDefines.POWER_MASTER]
 
+    surcharges = [EMOJI_MAP.get(surcharge, surcharge) for surcharge in
+                  [infos[JsonDbDefines.SURCHARGE1], infos[JsonDbDefines.SURCHARGE2]]]
     expert_field_value = format_field(expert_shields, "Boucliers") + "\n" + format_field(expert_champs, "Champions")
     maitrise_field_value = format_field(maitrise_shields, "Boucliers") + "\n" + format_field(maitrise_champs, "Champions")
 
