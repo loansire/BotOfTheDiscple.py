@@ -19,7 +19,73 @@ EMOJI_MAP = {
     "Perturbation": "<:Surcharge:1270042140944236619>",
     "Perturbations": "<:Surcharge:1270042140944236619>",
     "Chancellement": "<:Implacable:1270042120857849877>",
-    "Chancellements": "<:Implacable:1270042120857849877>"
+    "Chancellements": "<:Implacable:1270042120857849877>",
+
+    "Torse":"<:Torse:1352430868756697099>",
+    "Casque":"<:Casque:1352430820802957403>",
+    "Jambes":"<:Jambes:1352430853036310600>",
+    "Bras":"<:Bras:1352430835881480322>",
+
+    "Arc": "<:Arc:1305317528079437955>",
+    "Epée": "<:Epee:1305317544684556370>",
+    "Fusil à Impulsion": "<:Fusilaimpulsion:1305317558748057661>",
+    "Fusil à Pompe": "<:Fusilapompe:1305317574585745408>",
+    "Fusil à Rayon": "<:Fusilarayon:1305317604839264257>",
+    "Fusil Automatique": "<:Fusilautomatique:1305317622266462238>",
+    "Fusil d'Eclaireur": "<:Fusildeclaireur:1305317638158942248>",
+    "Fusil de Précision": "<:Fusildeprecision:1305317655221375026>",
+    "Fusion": "<:Fusion:1305317671889403925>",
+    "Fusion Lineaire": "<:Fusionlineaire:1305317687894999060>",
+    "Glaive": "<:Glaive:1305317709751259147>",
+    "Lance Grenades Léger": "<:Lancegrenadesleger:1305317726125948968>",
+    "Lance Grenades Lourd": "<:Lancegrenadeslourd:1305317747349000192>",
+    "Lance Roquettes": "<:Lanceroquettes:1305317762712735744>",
+    "Mitrailleuse": "<:Mitrailleuse:1305317781029388378>",
+    "Pistolet": "<:Pistolet:1305317796908892160>",
+    "Pistolet Mitrailleur": "<:Pistoletmitrailleur:1305317813094711416>",
+    "Revolver": "<:Revolver:1305317829653823608>",
+
+    "Principale":"<:Principale:1352409012511051799>",
+    "Spéciale":"<:Speciale:1352409042538070016>",
+    "Lourde":"<:Lourde:1352409107273093191>",
+}
+
+WEAPON_TYPE_MAP = {
+    "None": 0,
+    "Fusil Automatique": 6,
+    "Fusil à Pompe": 7,
+    "Mitrailleuse": 8,
+    "Revolver": 9,
+    "Lance Roquettes": 10,
+    "FusionRifle": 11,
+    "Fusil de Précision": 12,
+    "Fusil à Impulsion": 13,
+    "Fusil d'Eclaireur": 14,
+    "Pistolet": 17,
+    "Epée": 18,
+    "Fusion Lineaire": 22,
+    "Lance Grenades": 23,
+    "Pistolet Mitrailleur": 24,
+    "Fusil à Rayon": 25,
+    "Arc": 31,
+    "Glaive": 33,
+}
+WEAPON_DAMAGES_TYPE_MAP = {
+    "None": 0,
+    "Cinétiques": 1,
+    "Cryo-électriques": 2,
+    "Thermal": 3,
+    "Abyssaux": 4,
+    "Raid": 5,
+    "Stase": 6,
+    "Filobscur": 7,
+}
+WEAPON_MUNITIONS_TYPE_MAP = {
+    "None": 0,
+    "Principale": 1,
+    "Spéciale": 2,
+    "Lourde": 3,
+    "Inconnue": 4,
 }
 
 
@@ -29,9 +95,12 @@ def format_field(data: dict, title: str) -> str:
     lines = [title] + [f"> {EMOJI_MAP.get(item, item)} {count}" for item, count in data.items()]
     return "\n".join(lines)
 
+def lostsector_infos():
+    infos = JsonDatabase.GetInformations(Config.LOSTSECTOR)
+    return infos
 
 def secteur_oublie_embed():
-    infos = JsonDatabase.GetInformations(Config.LOSTSECTOR)
+    infos = lostsector_infos()
 
     expert_shields = infos[JsonDbDefines.SHIELDS_EXPERT]
     expert_champs = infos[JsonDbDefines.CHAMPS_EXPERT]
@@ -62,30 +131,88 @@ def secteur_oublie_embed():
             "inline": True
         })
 
-    fields.append({
-        "name": "Surcharges",
-        "value": " | ".join(surcharges) if surcharges else "Aucune surcharge définie",
-        "inline": False
-    })
-
     image_path = "Output/Output.png"  # Assurez-vous que le chemin et l'extension correspondent
-    footer_icon_path = "Ressources/footer_icon.png"
 
     image_file = discord.File(image_path, filename="Output.png")  # Assurez-vous que le nom du fichier correspond
-    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
 
-    files = [image_file, footer_icon_file]
+    files = [image_file] if image_file else []  # Assurer que files est une liste même si elle est vide
 
     # Création de l'embed avec la fonction générique
     embed, components, _ = create_embed_with_components(
-        description="## " + activity_name + "\n**Récompenses**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
+        description="## " + activity_name + "\n**Surcharges**\n" + " | ".join(surcharges) if surcharges else "Aucune surcharge définie",
         color=0xff7300,
         author="Secteur oublié du jour",
         author_icon_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png",
         thumbnail_url="https://www.bungie.net/common/destiny2_content/icons/DestinyActivityModeDefinition_7d11acd7d5a3daebc0a0c906452932d6.png",
         image_url="attachment://Output.png",
         fields=fields,
-        footer_text="BotOfTheDisciple",
+        footer_text=None,
+        footer_icon_url=None,
+        add_date_to_footer=True,
+        buttons=None,
+        files=None
+    )
+
+    return embed, files
+
+def secteur_oublie_Loot_embed():
+    infos = JsonDatabase.GetInformations(Config.LOSTSECTOR)
+    loot_details = infos["Loot"]["Weapons Detail"]
+
+    fields = []
+
+    # Focus Armor
+    focus_armor = infos["Loot"]["Focus Armor"]
+    focus_armor_emoji = EMOJI_MAP.get(focus_armor, focus_armor)
+
+    fields.append({
+        "name": "Décryptage Focus du jour",
+        "value": f"{focus_armor_emoji}",
+        "inline": False
+    })
+
+    # Ajout des armes (toutes)
+    for idx, weapon in enumerate(loot_details):
+        weapon_name = weapon["Name"]
+        weapon_hash = weapon["Hash"]
+        weapon_type = next((k for k, v in WEAPON_TYPE_MAP.items() if v == weapon["Weapon Type"]), "Inconnu")
+        ammo_type = next((k for k, v in WEAPON_MUNITIONS_TYPE_MAP.items() if v == weapon["Munitions Type"]), "Inconnue")
+        damage_type = next((k for k, v in WEAPON_DAMAGES_TYPE_MAP.items() if v == weapon["Damage Type"]), "Inconnu")
+
+        # Condition spéciale pour Lance Grenades (Léger ou Lourd)
+        if weapon_type == "Lance Grenades":
+            if ammo_type == "Lourde":
+                weapon_type = "Lance Grenades Lourd"
+            else:
+                weapon_type = "Lance Grenades Léger"
+
+        # Ajout des emotes
+        weapon_type_emoji = EMOJI_MAP.get(weapon_type, "")
+        ammo_type_emoji = EMOJI_MAP.get(ammo_type, "")
+        damage_type_emoji = EMOJI_MAP.get(damage_type, "")
+
+        fields.append({
+            "name": "",
+            "value": f"**{weapon_name}**\n"
+                     f"[ᶠʳ ᴸᶦᵍʰᵗᴳᴳ](<https://www.light.gg/db/fr/items/{weapon_hash}>) • [ᵉⁿ ᶠᵒᵘⁿᵈʳʸ](<https://d2foundry.gg/w/{weapon_hash}>)\n"
+                     f"> {weapon_type_emoji} | {ammo_type_emoji} | {damage_type_emoji}",
+            "inline": idx != 0  # Seul le premier champ est False, tous les autres sont True
+        })
+
+    footer_icon_path = "Ressources/footer_icon.png"
+    footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
+    files = [footer_icon_file] if footer_icon_file else []  # Assurer que files est une liste même si elle est vide
+
+    # Création de l'embed
+    embed, components, _ = create_embed_with_components(
+        description="## Récompenses\n**Loot Potentiel**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
+        color=0xff7300,
+        author=None,
+        author_icon_url=None,
+        thumbnail_url=None,
+        image_url=None,
+        fields=fields,
+        footer_text="Infographie générée par Sisimonis et Loan#5197",
         footer_icon_url="attachment://footer_icon.png",
         add_date_to_footer=True,
         buttons=None,
@@ -93,3 +220,6 @@ def secteur_oublie_embed():
     )
 
     return embed, files
+
+
+
