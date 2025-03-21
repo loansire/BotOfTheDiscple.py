@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 from Sources.Bot.Common import *
-from Sources.Bot.LostSectorBuilder import secteur_oublie_embed
+from Sources.Bot.LostSectorBuilder import secteur_oublie_embed, secteur_oublie_Loot_embed
 from Sources.Bot.MaintenanceUpdater import maintenance_embed
 from Sources.Bot.MaintenanceUpdater import maintenance_embed_end
 from Sources.Bot.NewsBuilder import news_article_embed
@@ -32,10 +32,12 @@ def save_alert_channels(alert_type, channels):
 
 async def publish_alerts(alert_type):
     print(f"Publication des alertes pour le type : {alert_type}")
+
     if alert_type == "maintenance_end":
         alert_channel = "maintenance"
     else:
         alert_channel = alert_type
+
     alert_channels = load_alert_channels(alert_channel)
     any_success = False  # Variable pour vérifier si au moins une publication a réussi
 
@@ -68,16 +70,27 @@ async def publish_alerts(alert_type):
                 try:
                     # Générer l'embed et autres paramètres selon le type d'alerte
                     if alert_type == "secteur_oublie":
-                        embed, files = secteur_oublie_embed()
+                        # Première étape : récupérer les deux embeds
+                        embed_1, files_1 = secteur_oublie_embed()
+                        embed_2, files_2 = secteur_oublie_Loot_embed()  # Ce second embed est récupéré ici
                         view = None
                         message_content = role_mention  # Ajouter la mention du rôle
+
+                        # Ajouter les deux embeds à la liste
+                        embeds = [embed_1, embed_2]
+                        files = files_1 + files_2  # Combine les fichiers des deux embeds
+
                     elif alert_type == "maintenance":
                         embed, files, view = maintenance_embed()
                         message_content = role_mention
+                        embeds = [embed]
+
                     elif alert_type == "maintenance_end":
                         embed, files = maintenance_embed_end()
                         view = None
                         message_content = None
+                        embeds = [embed]
+
                     elif alert_type in ["twid", "patch_note"]:
                         keyword = 'twid' if alert_type == "twid" else 'destiny_update'
                         embed, view, message_content = await news_article_embed(
@@ -95,11 +108,17 @@ async def publish_alerts(alert_type):
                             print(f"Aucun embed trouvé pour {alert_type}.")
                             continue
 
-                    # Envoyer le message avec ou sans vue
+                        embeds = [embed]
+
+                    # Vérification que `files` est une liste, même vide
+                    if not isinstance(files, list):
+                        files = []
+
+                    # Envoyer le message avec ou sans vue, avec plusieurs embeds
                     if view:
-                        await destination.send(content=message_content, embed=embed, files=files, view=view)
+                        await destination.send(content=message_content, embeds=embeds, files=files, view=view)
                     else:
-                        await destination.send(content=message_content, embed=embed, files=files)
+                        await destination.send(content=message_content, embeds=embeds, files=files)
 
                     any_success = True  # Marquer comme réussi si l'envoi est effectué
 
@@ -115,6 +134,7 @@ async def publish_alerts(alert_type):
 
 
 target_time = GetResetHour()
+
 
 async def wait_until_target():
     paris_tz = pytz.timezone('Europe/Paris')
