@@ -128,14 +128,27 @@ async def deletmaintenance(interaction: discord.Interaction):
 
 
 # region LostSectorPublication
-@bot.tree.command(name="secteur-oublie", description="Obtenez les informations du Secteur Oublié du jour")
-async def today_lost_sector(interaction: discord.Interaction):
-    try:
-        embed, files = secteur_oublie_embed()
-        await interaction.response.send_message(embed=embed, files=files)
-    except discord.DiscordException as e:
-        await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
-        print(f"Erreur lors de l'exécution de la commande /secteur-oublie : {e}\n")
+# @bot.tree.command(name="secteur-oublie", description="Obtenez les informations du Secteur Oublié du jour")
+# async def today_lost_sector(interaction: discord.Interaction):
+#     try:
+#         # Récupérer les deux embeds
+#         embed_1, files_1 = secteur_oublie_embed()
+#         embed_2, files_2 = secteur_oublie_Loot_embed()  # Ce second embed
+#
+#         # Ajouter les deux embeds à une liste
+#         embeds = [embed_1, embed_2]
+#         files = files_1 + files_2
+#
+#         # Vérification que `files` est une liste, même vide
+#         if not isinstance(files, list):
+#             files = []
+#
+#         # Envoyer le message avec les deux embeds
+#         await interaction.response.send(embed=embeds, files=files)  # Combine les fichiers si nécessaires
+#
+#     except discord.DiscordException as e:
+#         await interaction.response.send_message(f"Erreur lors de la génération de l'activité: `{e}`", ephemeral=True)
+#         print(f"Erreur lors de l'exécution de la commande /secteur-oublie : {e}\n")
 # endregion
 
 
