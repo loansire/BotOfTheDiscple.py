@@ -158,18 +158,9 @@ def secteur_oublie_embed():
 def secteur_oublie_Loot_embed():
     infos = JsonDatabase.GetInformations(Config.LOSTSECTOR)
     loot_details = infos["Loot"]["Weapons Detail"]
+    focus_armor = infos["Loot"]["Focus Armor"]
 
     fields = []
-
-    # Focus Armor
-    focus_armor = infos["Loot"]["Focus Armor"]
-    focus_armor_emoji = EMOJI_MAP.get(focus_armor, focus_armor)
-
-    fields.append({
-        "name": "Décryptage Focus du jour",
-        "value": f"{focus_armor_emoji}",
-        "inline": False
-    })
 
     # Ajout des armes (toutes)
     for idx, weapon in enumerate(loot_details):
@@ -195,21 +186,25 @@ def secteur_oublie_Loot_embed():
             "name": "",
             "value": f"**{weapon_name}**\n"
                      f"[ᶠʳ ᴸᶦᵍʰᵗᴳᴳ](<https://www.light.gg/db/fr/items/{weapon_hash}>) • [ᵉⁿ ᶠᵒᵘⁿᵈʳʸ](<https://d2foundry.gg/w/{weapon_hash}>)\n"
-                     f"> {weapon_type_emoji} | {ammo_type_emoji} | {damage_type_emoji}",
-            "inline": idx != 0  # Seul le premier champ est False, tous les autres sont True
+                     f"{weapon_type_emoji} | {ammo_type_emoji} | {damage_type_emoji}",
+            "inline": True
         })
 
     footer_icon_path = "Ressources/footer_icon.png"
     footer_icon_file = discord.File(footer_icon_path, filename="footer_icon.png")
-    files = [footer_icon_file] if footer_icon_file else []  # Assurer que files est une liste même si elle est vide
+
+    focus_armor_image_path = f"Ressources/Rahol/{focus_armor}.png"
+    focus_armor_image_file = discord.File(focus_armor_image_path, filename=f"focus_armor.png")
+
+    files = [footer_icon_file, focus_armor_image_file] if focus_armor_image_file else [footer_icon_file]  # Assurer que files est une liste même si elle est vide
 
     # Création de l'embed
     embed, components, _ = create_embed_with_components(
-        description="## Récompenses\n**Loot Potentiel**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
+        description="## Décryptage Focus du jour\n**Récompenses de secteur oublié**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
         color=0xff7300,
         author=None,
         author_icon_url=None,
-        thumbnail_url=None,
+        thumbnail_url="attachment://focus_armor.png",
         image_url=None,
         fields=fields,
         footer_text="Infographie générée par Sisimonis et Loan#5197",
