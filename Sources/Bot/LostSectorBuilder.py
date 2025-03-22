@@ -10,6 +10,8 @@ EMOJI_MAP = {
     "Abyssaux": "<:Abyssale:1270715025660711023>",
     "Solaire": "<:Solaire:1270714993553178624>",
     "Solaires": "<:Solaire:1270714993553178624>",
+    "Cinétique": "<:Cinetique:1353052017278320650>",
+    "Cinétiques": "<:Cinetique:1353052017278320650>",
     "Stase": "<:Stase:1293381064869285938>",
     "Stases": "<:Stase:1293381064869285938>",
     "Filobscur": "<:Filobscure:1293381094774931456>",
@@ -200,7 +202,7 @@ def secteur_oublie_Loot_embed():
 
     # Création de l'embed
     embed, components, _ = create_embed_with_components(
-        description="## Décryptage Focus du jour\n**Récompenses de secteur oublié**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>",
+        description=f"## Décryptage concentré du jour: {focus_armor}\n*Décryptage exotique à Rahol x1 <:Engramme_Exo:1270719580322660425>*\n**Récompenses de secteur oublié Légende ou Maitrise**\n<:Engramme_Exo:1270719580322660425> | <:Lengendaire:1270719601646374954> | <:Matrice:1270042340324544604>\n",
         color=0xff7300,
         author=None,
         author_icon_url=None,
