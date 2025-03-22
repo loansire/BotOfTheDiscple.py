@@ -57,7 +57,7 @@ WEAPON_TYPE_MAP = {
     "Mitrailleuse": 8,
     "Revolver": 9,
     "Lance Roquettes": 10,
-    "FusionRifle": 11,
+    "Fusion": 11,
     "Fusil de Précision": 12,
     "Fusil à Impulsion": 13,
     "Fusil d'Eclaireur": 14,
