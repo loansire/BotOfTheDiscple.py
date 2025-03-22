@@ -76,7 +76,7 @@ WEAPON_DAMAGES_TYPE_MAP = {
     "None": 0,
     "Cinétiques": 1,
     "Cryo-électriques": 2,
-    "Thermal": 3,
+    "Solaire": 3,
     "Abyssaux": 4,
     "Raid": 5,
     "Stase": 6,
