@@ -289,16 +289,17 @@ class MaintenanceView(discord.ui.View):
     @discord.ui.button(label="Copier les infos", style=discord.ButtonStyle.primary, emoji="💾")
     async def copy_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         message_content = (
-            f"__**Maintenance**__ et mise à jour aujourd'hui:\n"
+            f"__**Maintenance**__ et mise à jour du <t:{self.stop_timestamp}:D>:\n"
             f"{f'- 📝: {self.maintenance_comment}\n' if self.maintenance_comment else ''}"
             f"- :x: Stop serv <t:{self.stop_timestamp}:t> | :white_check_mark: Retour serv <t:{self.return_timestamp}:t> | :repeat: Débute __**<t:{self.stop_timestamp}:R>**__"
+            f"- Rotation d'activité de la semaine prochaine => https://discord.com/channels/321028061237608448/1332352251439878154"
+            f"- Trop de sel ? => https://discord.com/channels/321028061237608448/999016015700688967"
         )
 
         await interaction.response.send_message(
             f"Voici le texte formaté, prêt à être copié:\n```\n{message_content}\n```",
             ephemeral=True
         )
-
 
 # Fonction pour créer l'embed de maintenance avec vue et fichiers
 def maintenance_embed():
