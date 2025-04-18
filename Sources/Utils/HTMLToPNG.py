@@ -39,7 +39,7 @@ def html_to_png(html_path, output_path, css_path):
             image = Image.open(io.BytesIO(image_response.content))
 
             # Redimensionner l'image en 1920x1080
-            image_resized = image.resize((1920, 1080), Image.ANTIALIAS)
+            image_resized = image.resize((1920, 1080),  Image.Resampling.LANCZOS)
 
             # Sauvegarder l'image redimensionnée dans output_path
             image_resized.save(output_path, format='PNG')
