@@ -492,7 +492,7 @@ async def daily_update():
         ActivityManager.GetLatestActivities(Config.NOACTIVITY)
         print("L'activité a été mise à jour.")
         print("Publication en cours ...")
-        await upload_image_to_github()
+        upload_image_to_github()
         await publish_alerts("secteur_oublie")
         print("Alerte quotidienne publiée !")
     except Exception as e:
