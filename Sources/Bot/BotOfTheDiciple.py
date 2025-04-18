@@ -6,6 +6,7 @@ from discord.ext import tasks
 
 from Sources.ActivityManager import ActivityManager
 from Sources.Bot.AlertMessageBuilder import load_alert_channels, save_alert_channels, wait_until_target, publish_alerts
+from Sources.Bot.ImageToGitPage import upload_image_to_github
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
 from Sources.Bot.RivenWishes import *
@@ -33,6 +34,7 @@ async def on_ready():
     try:
         # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
         ActivityManager.GetLatestActivities(Config.NOACTIVITY)
+        await upload_image_to_github()
         # Démarrer la tâche de mise à jour quotidienne à 19h si GenerateActivity() réussit
         daily_update.start()
     except Exception as e:
@@ -94,7 +96,7 @@ async def updatemaintenance(interaction: discord.Interaction):
     allowed_user_id = 222465158075777035  # Remplacez par l'ID utilisateur autorisé
 
     if interaction.user.id != allowed_user_id:
-        print(f"{interaction.user.id} is trying to use the forbidden command\n")
+        print(f"{interaction.user.id} n'est pas autorisé à utiliser cette commande\n")
         await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
 
@@ -108,7 +110,7 @@ async def deletmaintenance(interaction: discord.Interaction):
 
     # Vérifier les permissions de l'utilisateur
     if interaction.user.id != allowed_user_id:
-        print(f"{interaction.user.id} is trying to use the forbidden command\n")
+        print(f"{interaction.user.id} n'est pas autorisé à utiliser cette commande\n")
         await interaction.response.send_message(":thermometer_face: Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
         return
 
@@ -490,6 +492,7 @@ async def daily_update():
         ActivityManager.GetLatestActivities(Config.NOACTIVITY)
         print("L'activité a été mise à jour.")
         print("Publication en cours ...")
+        await upload_image_to_github()
         await publish_alerts("secteur_oublie")
         print("Alerte quotidienne publiée !")
     except Exception as e:

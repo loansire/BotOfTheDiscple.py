@@ -1,4 +1,7 @@
+from PIL import Image
 import requests
+import io
+import Sources.Bot.ApiKey as APIKey
 
 def html_to_png(html_path, output_path, css_path):
     # Lire le contenu des fichiers HTML et CSS
@@ -10,15 +13,15 @@ def html_to_png(html_path, output_path, css_path):
 
     # Informations sur l'API
     api_endpoint = "https://hcti.io/v1/image"
-    api_user = "aadb32cf-e14c-47ea-8b0d-63ef95c0a546"
-    api_key = "415c4e2b-5faf-489e-a607-e72c5fdaecef"
+    api_user = APIKey.html_to_png_api_user
+    api_key = APIKey.html_to_png_api_key
 
     data = {
         "html": html_content,
         "css": css_content,
-        "viewport_width": 1880,
-        "viewport_height": 960,
-        "ms_delay": 3000,
+        "viewport_width": 1880,  # Largeur souhaitée pour le rendu
+        "viewport_height": 960,  # Hauteur souhaitée pour le rendu
+        "ms_delay": 3000,        # Délai pour s'assurer que la page soit rendue
     }
 
     # Envoyer la requête POST à l'API
@@ -32,10 +35,15 @@ def html_to_png(html_path, output_path, css_path):
         # Télécharger l'image depuis l'URL
         image_response = requests.get(image_url)
         if image_response.status_code == 200:
-            # Sauvegarder l'image dans output_path
-            with open(output_path, 'wb') as image_file:
-                image_file.write(image_response.content)
-            print(f"Image PNG téléchargée et sauvegardée avec succès : {output_path}\n")
+            # Ouvrir l'image à l'aide de Pillow
+            image = Image.open(io.BytesIO(image_response.content))
+
+            # Redimensionner l'image en 1920x1080
+            image_resized = image.resize((1920, 1080), Image.ANTIALIAS)
+
+            # Sauvegarder l'image redimensionnée dans output_path
+            image_resized.save(output_path, format='PNG')
+            print(f"Image PNG redimensionnée et sauvegardée avec succès : {output_path}\n")
         else:
             print(f"Erreur lors du téléchargement de l'image : {image_response.status_code}\n")
     else:
