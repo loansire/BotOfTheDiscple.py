@@ -9,7 +9,7 @@ GITHUB_TOKEN = APIKey.git_api
 REPO_OWNER = "loansire"
 REPO_NAME = "Botofthedisciple.fr"
 BRANCH = "main"
-TARGET_PATH = "todaylostsector/rsz_output.jpg"
+TARGET_PATH = "todaylostsector/Output.png"
 LOCAL_IMAGE_PATH = OUTPUT_JPEG_PATH
 COMMIT_MESSAGE = "Bot: mise à jour de l’image secteur oublié du jour"
 
