@@ -1,20 +1,20 @@
 @font-face {
     font-family: 'Neue Haas Display Black';
-    src: url('https://botofthedisciple.fr/d2glossaire/fonts/NeueHaasDisplayBlack.ttf') format('truetype');
+    src: url('https://botofthedisciple.fr/d2glossaire/assets/fonts/NeueHaasDisplayBlack.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'Neue Haas Display Light';
-    src: url('https://botofthedisciple.fr/d2glossaire/fonts/NeueHaasDisplayXThin.ttf') format('truetype');
+    src: url('https://botofthedisciple.fr/d2glossaire/assets/fonts/NeueHaasDisplayXThin.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'Neue Haas Display Medium';
-    src: url('https://botofthedisciple.fr/d2glossaire/fonts/NeueHaasDisplayMedium.ttf') format('truetype');
+    src: url('https://botofthedisciple.fr/d2glossaire/assets/fonts/NeueHaasDisplayMedium.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
