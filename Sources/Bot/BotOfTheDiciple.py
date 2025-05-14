@@ -453,6 +453,7 @@ async def force_update_alert(interaction: discord.Interaction, alert_type: app_c
                 await interaction.response.send_message(
                     f":repeat: L'activité 'Secteur Oublié' est en cours de mise à jour et l'alerte sera publiée.", ephemeral=True)
                 ActivityManager.GetLatestActivities(Config.LOSTSECTOR)  # Appel de la fonction pour générer l'activité
+                upload_image_to_github()
                 print("L'activité a été mise à jour.")
                 print("Publication en cours ...")
                 await publish_alerts("secteur_oublie")  # Publier l'alerte
