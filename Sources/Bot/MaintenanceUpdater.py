@@ -291,9 +291,9 @@ class MaintenanceView(discord.ui.View):
         message_content = (
             f"__**Maintenance**__ et mise à jour du <t:{self.stop_timestamp}:D>:\n"
             f"{f'- 📝: {self.maintenance_comment}\n' if self.maintenance_comment else ''}"
-            f"- :x: Stop serv <t:{self.stop_timestamp}:t> | :white_check_mark: Retour serv <t:{self.return_timestamp}:t> | :repeat: Débute __**<t:{self.stop_timestamp}:R>**__\n"
-            f"- Rotation d'activité de la semaine prochaine => https://discord.com/channels/321028061237608448/1332352251439878154\n"
-            f"- Trop de sel ? => https://discord.com/channels/321028061237608448/999016015700688967"
+            f"- :x: Stop serv <t:{self.stop_timestamp}:t> | :white_check_mark: Retour serv <t:{self.return_timestamp}:t> | :repeat: Débute __**<t:{self.stop_timestamp}:R>**__"
+            ## f"- Rotation d'activité de la semaine prochaine => https://discord.com/channels/321028061237608448/1332352251439878154\n"
+            ## f"- Trop de sel ? => https://discord.com/channels/321028061237608448/999016015700688967"
         )
 
         await interaction.response.send_message(
