@@ -1,3 +1,20 @@
+character = {
+    "membership_type": 3,
+    "membership_id": "4611686018487115429",
+    "character_id": "2305843009487014305"
+}
+
+activityType = {
+    "Raid": "2043403989",
+    "Donjon": "608898761",
+    "Solo Ops": "3851289711",
+    "MissionExotic": "1227821118",
+    "LostSector": "103143560",
+}
+
+
+# =============================================================== #
+
 MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
 MF_ACTIVITY_TYPE_DEFINITION = "DestinyActivityTypeDefinition"
 MF_MODIFIER_DEFINITION = "DestinyActivityModifierDefinition"
