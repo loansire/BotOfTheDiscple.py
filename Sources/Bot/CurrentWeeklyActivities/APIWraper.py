@@ -3,17 +3,13 @@ import json
 import Sources.Bot.ApiKey as APIKey
 from Sources.Bot.CurrentWeeklyActivities.BungieCharacterActivities import get_bungie_character_data
 from Sources.Bot.CurrentWeeklyActivities.BungieEntityDefinition import get_entities_info
-from Sources.Bot.CurrentWeeklyActivities.FilterActivities import filter_activities
+from Sources.Bot.CurrentWeeklyActivities.FilterActivities import get_SoloOps, get_PinnacleOps, get_Raids, get_Dungeons, get_ExoticMission, get_LostSector
 
 class BungieAPI:
     def __init__(self, api_key):
         self.api_key = api_key
         self.base_url = "https://www.bungie.net/Platform"
-        self.character = {
-            "membership_type": 3,
-            "membership_id": "4611686018487115429",
-            "character_id": "2305843009487014305"
-        }
+        self.character = APIKey.character
 
     def get_bungie_character_data(self):
         return get_bungie_character_data(self.api_key, self.base_url, self.character)
@@ -21,39 +17,64 @@ class BungieAPI:
     def get_entities_info(self, entity_type, hash_identifier, parameters=None):
         return get_entities_info(self.api_key, self.base_url, entity_type, hash_identifier, parameters)
 
-    def filter_activities(self, data, activity_types, base_value, value_compare, definition_name, parameters):
-        return filter_activities(self, data, activity_types, base_value, value_compare, definition_name, parameters)
+    def get_SoloOps(self, data):
+        activity_types = [3851289711]  # Hash des types "Solo Ops"
+        parameters = ["activityTypeHash", "originalDisplayProperties.name", "pgcrImage", "index"]
+        return get_SoloOps(self, data, activity_types, parameters)
+
+    def get_PinnacleOps(self, data):
+        activity_types = [1227821118]  # Hash des types "MissionsExotiques"
+        parameters = ["activityTypeHash", "originalDisplayProperties.name", "pgcrImage", "index"]
+        return get_PinnacleOps(self, data, activity_types, parameters)
+
+    def get_Raid(self, data):
+        activity_types = [2043403989] # Hash des types "Raid"
+        parameters = ["activityTypeHash", "displayProperties.name", "pgcrImage", "index"]
+        return get_Raids(self, data, activity_types, parameters)
+
+    def get_Dungeon(self, data):
+        activity_types = [608898761] # Hash des types "Donjon"
+        parameters = ["activityTypeHash", "displayProperties.name", "pgcrImage", "index"]
+        return get_Dungeons(self, data, activity_types, parameters)
+
+    def get_ExoticMission(self, data):
+        activity_types = [1686739444] # Hash des types "Story"
+        parameters = ["activityTypeHash", "originalDisplayProperties.name", "pgcrImage", "index"]
+        return get_ExoticMission(self, data, activity_types, parameters)
+
+    def get_LostSector(self, data):
+        activity_types = [103143560] # Hash des types "Story"
+        parameters = ["activityTypeHash", "originalDisplayProperties.name","destinationHash", "placeHash", "pgcrImage", "index"]
+        return get_LostSector(self, data, activity_types, parameters)
 
 if __name__ == "__main__":
     bungie_api = BungieAPI(APIKey.bungie_api)
-    response, data, _ = bungie_api.get_bungie_character_data()
+    response, character_activities, character_interactables = bungie_api.get_bungie_character_data()
 
-    definition_name = "DestinyActivityDefinition"
-    value_compare = "activityTypeHash"
-    base_value = "activityHash"
-
-    # activity_types = [2043403989] # Hash des types "Raid"
-    # parameters = ["activityTypeHash", "displayProperties.name", "pgcrImage", "index"]
-
-    # activity_types = [608898761] # Hash des types "Donjon"
+    # activity_types = [3851289711, 556925641] # Hash des types "Vanguard Ops"
     # parameters = ["activityTypeHash", "originalDisplayProperties.name", "pgcrImage", "index"]
 
-    activity_types = [3851289711] # Hash des types "Solo Ops"
-    parameters = ["activityTypeHash", "originalDisplayProperties.name", "pgcrImage", "index"]
+    # Récupération des activités
+    SoloOps = bungie_api.get_SoloOps(character_activities)
+    PinnacleOps = bungie_api.get_PinnacleOps(character_activities)
+    Raids = bungie_api.get_Raid(character_activities)
+    Dungeons = bungie_api.get_Dungeon(character_activities)
+    ExoticMissions = bungie_api.get_ExoticMission(character_activities)
+    LostSectors = bungie_api.get_LostSector(character_interactables)
 
-    # activity_types = [556925641] # Hash des types "Vanguard Ops"
-    # parameters = ["activityTypeHash", "originalDisplayProperties.name", "pgcrImage", "index"]
+    # Dictionnaire pour gérer facilement les sauvegardes
+    data_dict = {
+        "SoloOps": SoloOps,
+        "PinnacleOps": PinnacleOps,
+        "Raids": Raids,
+        "Dungeons": Dungeons,
+        "ExoticMissions": ExoticMissions,
+        "LostSectors": LostSectors
+    }
 
-    # activity_types = [1227821118]  # Hash des types "MissionsExotiques"
-    # parameters = ["activityTypeHash", "displayProperties.name", "pgcrImage", "index"]
-
-    filtered_activities = bungie_api.filter_activities(
-        data, activity_types, base_value, value_compare, definition_name, parameters
-    )
-
-    # Sauvegarde dans data.json (écrase le fichier existant)
-    with open("data.json", "w", encoding="utf-8") as f:
-        json.dump(filtered_activities, f, indent=2, ensure_ascii=False)
-
-    print("Filtered Activities saved to data.json:")
-    print(json.dumps(filtered_activities, indent=2, ensure_ascii=False))
+    # Sauvegarde chaque variable dans un fichier JSON séparé
+    for name, data in data_dict.items():
+        filename = f"data/{name}.json"
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        print(f"{name} saved to {filename}")

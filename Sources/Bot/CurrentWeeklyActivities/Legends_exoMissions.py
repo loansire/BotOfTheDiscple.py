@@ -1,0 +1,132 @@
+activities = [
+  {
+    "activityName": "Présage",
+    "activityHash": 3883295757,
+    "activityHash_expert": 4201846671,
+    "weapon": {
+      "name": "Récit D'un Homme Mort",
+      "hash": 3654674561,
+      "lightgg": "https://www.light.gg/db/fr/items/3654674561",
+      "foundry": "https://d2foundry.gg/w/3654674561",
+      "type": "Fusil d'Éclaireur",
+      "emote": "<:Fusildeclaireur:1305317638158942248>"
+    }
+  },
+  {
+    "activityName": "Vox Obscura",
+    "activityHash": 2668737148,
+    "activityHash_expert": 666172264,
+    "weapon": {
+      "name": "Messager Mort",
+      "hash": 46125926,
+      "lightgg": "https://www.light.gg/db/fr/items/46125926",
+      "foundry": "https://d2foundry.gg/w/46125926",
+      "type": "Lance Grenades Léger",
+      "emote": "<:Lancegrenadesleger:1305317726125948968>"
+    }
+  },
+  {
+    "activityName": "Opération: Bouclier de Séraphin",
+    "activityHash": 1221538367,
+    "activityHash_expert": 2919809209,
+    "weapon": {
+      "name": "Révision Zéro",
+      "hash": 1473821207,
+      "lightgg": "https://www.light.gg/db/fr/items/1473821207",
+      "foundry": "https://d2foundry.gg/w/1473821207",
+      "type": "Fusil à Impulsion",
+      "emote": "<:Fusilaimpulsion:1305317558748057661>"
+    }
+  },
+  {
+    "activityName": "//module.manuel.AVALON//",
+    "activityHash": 509188661,
+    "activityHash_expert": 3083261666,
+    "weapon": {
+      "name": "Vexcalibur",
+      "hash": 3118061005,
+      "lightgg": "https://www.light.gg/db/fr/items/3118061005",
+      "foundry": "https://d2foundry.gg/w/3118061005",
+      "type": "Glaive",
+      "emote": "<:Glaive:1305317709751259147>"
+    }
+  },
+  {
+    "activityName": "Malchance",
+    "activityHash": 196691221,
+    "activityHash_expert": 3214480871,
+    "weapon": {
+      "name": "Garde Souhaits",
+      "hash": 2910326942,
+      "lightgg": "https://www.light.gg/db/fr/items/2910326942",
+      "foundry": "https://d2foundry.gg/w/2910326942",
+      "type": "Arc",
+      "emote": "<:Arc:1305317528079437955>"
+    }
+  },
+  {
+    "activityName": "Le Murmure",
+    "activityHash": 3743446313,
+    "activityHash_expert": 3871520787,
+    "weapon": {
+      "name": "Murmure du Ver",
+      "hash": 1983149589,
+      "lightgg": "https://www.light.gg/db/fr/items/1983149589",
+      "foundry": "https://d2foundry.gg/w/1983149589",
+      "type": "Fusil de Précision",
+      "emote": "<:Fusildeprecision:1305317655221375026>"
+    }
+  },
+  {
+    "activityName": "Dernière Heure",
+    "activityHash": 3361746271,
+    "activityHash_expert": 1848771417,
+    "weapon": {
+      "name": "Infection Parfaite",
+      "hash": 3824673936,
+      "lightgg": "https://www.light.gg/db/fr/items/3824673936",
+      "foundry": "https://d2foundry.gg/w/3824673936",
+      "type": "Fusil à Impulsion",
+      "emote": "<:Fusilaimpulsion:1305317558748057661>"
+    }
+  },
+  {
+    "activityName": "Rappel",
+    "activityHash": 2880643894,
+    "activityHash_expert": 2166410122,
+    "weapon": {
+      "name": "Chorale Solitaire",
+      "hash": 3698448090,
+      "lightgg": "https://www.light.gg/db/fr/items/3698448090",
+      "foundry": "https://d2foundry.gg/w/3698448090",
+      "type": "Fusil Automatique",
+      "emote": "<:Fusilautomatique:1305317622266462238>"
+    }
+  },
+  {
+    "activityName": "La Chute du Kaal",
+    "activityHash": 3878270936,
+    "activityHash_expert": 367562924,
+    "weapon": {
+      "name": "Croc Du Bourreau",
+      "hash": 1047932517,
+      "lightgg": "https://www.light.gg/db/fr/items/1047932517",
+      "foundry": "https://d2foundry.gg/w/1047932517",
+      "type": "Fusil à Pompe",
+      "emote": "<:Fusilapompe:1305317574585745408>"
+    }
+  },
+  {
+    "activityName": "Déréalisation",
+    "activityHash": None,
+    "activityHash_expert": None,
+    "weapon": {
+      "name": "Tumulus Dyadique",
+      "hash": 1481594633,
+      "lightgg": "https://www.light.gg/db/fr/items/1481594633",
+      "foundry": "https://d2foundry.gg/w/1481594633",
+      "type": "Pistolet Mitrailleur",
+      "emote": "<:Pistoletmitrailleur:1305317813094711416>"
+    }
+  }
+]

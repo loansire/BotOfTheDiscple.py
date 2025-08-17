@@ -1,7 +1,6 @@
 import json
 import requests
 
-
 def get_entities_info(api_key, base_url, definition_name, hash_identifier, parameters=None):
     BASE_URL = f"{base_url}/Destiny2/Manifest/{definition_name}/{hash_identifier}/"
     headers = {"X-API-Key": api_key}
@@ -14,9 +13,7 @@ def get_entities_info(api_key, base_url, definition_name, hash_identifier, param
         if parameters:
             filtered_item = {}
             for key in parameters:
-                if key in item:
-                    filtered_item[key] = item[key]
-                elif '.' in key:
+                if '.' in key:
                     keys = key.split('.')
                     temp_item = item
                     for k in keys:
@@ -26,7 +23,10 @@ def get_entities_info(api_key, base_url, definition_name, hash_identifier, param
                             temp_item = None
                             break
                     if temp_item is not None:
-                        filtered_item[key] = temp_item
+                        # On utilise uniquement la dernière partie de la clé
+                        filtered_item[keys[-1]] = temp_item
+                elif key in item:
+                    filtered_item[key] = item[key]
             return filtered_item
         else:
             return item
@@ -38,13 +38,10 @@ if __name__ == "__main__":
     import Sources.Bot.ApiKey as APIKey
     from Sources.Bot.CurrentWeeklyActivities.APIWraper import BungieAPI
 
-    # Appel de la class BungieAPI(APIKey)
     bungie_api = BungieAPI(APIKey.bungie_api)
-
-    # Exemple d'utilisation de get_entities_info
-    definition_name = "DestinyActivityDefinition"
-    hash_identifier = "2185538252"
-    parameters = ["displayProperties.name", "pgcrImage", "destinationHash", "placeHash", "activityTypeHash"]
+    definition_name = "DestinyActivityInteractableDefinition"
+    hash_identifier = "2610536081"
+    parameters = ["displayProperties.icon"]
 
     entity_info = bungie_api.get_entities_info(definition_name, hash_identifier, parameters)
     print(json.dumps(entity_info, indent=2, ensure_ascii=False))

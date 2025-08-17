@@ -1,7 +1,4 @@
-import requests
 import json
-from Config import character
-
 import requests
 
 def get_bungie_character_data(api_key, base_url, character):
@@ -30,7 +27,7 @@ if __name__ == "__main__":
     bungie_api = BungieAPI(APIKey.bungie_api)
 
     # Exemple d'utilisation de get_bungie_character_data
-    response, data, _ = bungie_api.get_bungie_character_data()
+    response, _, data = bungie_api.get_bungie_character_data()
     print("Response:", response)
     print("Playlist Activities:", json.dumps(data, indent=2, ensure_ascii=False))
     # print("Flag Activities:", json.dumps(flag_activities, indent=2, ensure_ascii=False))

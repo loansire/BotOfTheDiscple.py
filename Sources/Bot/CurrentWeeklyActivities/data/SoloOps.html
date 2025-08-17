@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOLO OPS - Destiny</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding-left: 200px;
+      padding-right: 200px;
+      background-color: #1a1a1a;
+      color: white;
+    }
+
+    h1 {
+      text-align: Left;
+      font-size: 2.5em;
+      margin-bottom: 30px;
+      letter-spacing: 2px;
+    }
+
+    .section-title {
+      margin: 40px 0 15px;
+      font-size: 1.5em;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 5px;
+    }
+
+    .container {
+      display: grid;
+      gap: 15px;
+      justify-content: center;
+    }
+
+    /* Quickplay section → 4 colonnes */
+    .quickplay-container {
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+    }
+
+    /* Autres activités → 3 colonnes, plus larges */
+    .activities-container {
+      grid-template-columns: repeat(3, minmax(240px, 1fr));
+    }
+
+    .card {
+      position: relative;
+      border-radius: 15px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.1s;
+      background: #000;
+      height: 300px;
+    }
+
+    /* Ajout du vignettage léger */
+    .card::after {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle at center, rgba(0,0,0,0.0) 50%, rgba(0,0,0,0.25) 100%);
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: scale(0.98);
+    }
+
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ✅ Texte en haut à gauche */
+    .card-content {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+    }
+
+    .card-subtitle {
+      font-size: 1.5em;
+      opacity: 0.7;
+      margin-bottom: 3px;
+    }
+
+    .card-title {
+      font-size: 2.5em;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
+    /* ✅ Rewards en bas à gauche */
+    .rewards-container {
+      position: absolute;
+      bottom: 15px;
+      left: 15px;
+      display: flex;
+      gap: 15px;
+    }
+
+    .reward-wrapper {
+      position: relative;
+      width: 75px;
+      height: 75px;
+    }
+
+    .reward-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      cursor: pointer;
+    }
+
+    /* JPG rewards → bordure blanche */
+    .reward-icon[src$=".jpg"],
+    .reward-icon[src$=".jpeg"] {
+      border: 1px solid white;
+    }
+
+    /* PNG rewards → contour net */
+    .reward-icon[src$=".png"] {
+      filter: drop-shadow(1.5px 0 0 white)
+              drop-shadow(-1px 0 0 white)
+              drop-shadow(0 1.5px 0 white)
+              drop-shadow(0 -1.5px 0 white);
+    }
+
+    .reward-quantity {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: rgba(128,128,128,0.7);
+      color: white;
+      font-size: 10px; /* réduit le texte de quantité */
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>SOLO OPS</h1>
+
+  <h2 class="section-title">Partie Rapide</h2>
+  <div class="container quickplay-container" id="quickplay-container"></div>
+
+  <h2 class="section-title">Autres activités</h2>
+  <div class="container activities-container" id="activities-container"></div>
+<script>
+  // Fonction de copie
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const notification = document.getElementById('copy-notification');
+      notification.style.display = 'block';
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 1500);
+    } catch (err) {
+      console.error('Erreur lors de la copie : ', err);
+    }
+  }
+
+  fetch('SoloOps.json')
+    .then(response => response.json())
+    .then(data => {
+      const quickplayContainer = document.getElementById('quickplay-container');
+      const activitiesContainer = document.getElementById('activities-container');
+      const activities = Object.values(data);
+
+      const quickplays = [];
+      const others = [];
+
+      let advancedRewards = []; // Pour propager sur Expert et Master
+
+      activities.forEach(activity => {
+        const name = activity.name.toLowerCase();
+
+        // Filtrer les rewards indésirables
+        if (activity.rewards && activity.rewards.length > 0) {
+          activity.rewards = activity.rewards.filter(r => r.itemHash !== 3956025454);
+        }
+
+        if (name.includes("quickplay") || name.includes("partie rapide")) {
+          // Sauvegarder les rewards Advanced
+          if (name.includes("advanced")) {
+            advancedRewards = activity.rewards ? [...activity.rewards] : [];
+          }
+          quickplays.push(activity);
+        } else {
+          others.push(activity);
+        }
+      });
+
+      // Ajouter les rewards Advanced aux Expert et Master
+      quickplays.forEach(activity => {
+        const name = activity.name.toLowerCase();
+        if ((name.includes("expert") || name.includes("master")) && advancedRewards.length > 0) {
+          activity.rewards = activity.rewards ? [...activity.rewards, ...advancedRewards] : [...advancedRewards];
+        }
+      });
+
+      // Fonction de création des cartes
+      function createCard(activity) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.tabIndex = 0;
+
+        const imgUrl = `https://www.bungie.net${activity.pgcrImage}`;
+
+        let rewardIconsHTML = '';
+        if (activity.rewards && activity.rewards.length > 0) {
+          rewardIconsHTML = activity.rewards.map(reward => {
+            const quantityBadge = reward.quantity > 1
+              ? `<div class="reward-quantity">${reward.quantity}</div>` : '';
+            return `
+              <div class="reward-wrapper" title="${reward.rewardName}">
+                <img src="https://www.bungie.net${reward.icon}"
+                     class="reward-icon"
+                     data-itemhash="${reward.itemHash}"
+                     alt="Récompense">
+                ${quantityBadge}
+              </div>
+            `;
+          }).join('');
+        }
+
+        card.innerHTML = `
+          <img src="${imgUrl}" alt="${activity.name}">
+          <div class="card-content">
+            <div class="card-subtitle">${activity.activityTypeName || ''}</div>
+            <div class="card-title">${activity.name}</div>
+          </div>
+          <div class="rewards-container">${rewardIconsHTML}</div>
+        `;
+
+        // Copier le hash activité
+        card.addEventListener('click', () => {
+          copyToClipboard(activity.activityHash?.toString() || '');
+        });
+
+        // Copier uniquement itemHash sur clic reward
+        card.querySelectorAll('.reward-icon').forEach(icon => {
+          icon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyToClipboard(icon.dataset.itemhash);
+          });
+        });
+
+        return card;
+      }
+
+      // Trier et afficher Quickplays dans l'ordre fixe : Normal → Advanced → Expert → Master
+      const quickplayOrder = ["normal", "advanced", "expert", "master"];
+      quickplayOrder.forEach(qp => {
+        quickplays
+          .filter(activity => activity.name.toLowerCase().includes(qp))
+          .forEach(activity => quickplayContainer.appendChild(createCard(activity)));
+      });
+
+      // Trier "autres activités" : rewards d'abord, puis index
+      others.sort((a, b) => {
+        const aHasReward = a.rewards && a.rewards.length > 0;
+        const bHasReward = b.rewards && b.rewards.length > 0;
+
+        if (aHasReward && !bHasReward) return -1;
+        if (!aHasReward && bHasReward) return 1;
+
+        return (a.index || 0) - (b.index || 0);
+      });
+
+      others.forEach(activity => activitiesContainer.appendChild(createCard(activity)));
+    })
+    .catch(error => {
+      console.error('Erreur :', error);
+      document.getElementById('activities-container').innerHTML =
+        '<p style="color: white; text-align: center;">Erreur de chargement.</p>';
+    });
+</script>
+
+
+</body>
+</html>
