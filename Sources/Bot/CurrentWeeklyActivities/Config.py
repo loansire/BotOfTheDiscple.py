@@ -1,9 +1,3 @@
-character = {
-    "membership_type": 3,
-    "membership_id": "4611686018487115429",
-    "character_id": "2305843009487014305"
-}
-
 # =============================================================== #
 
 MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
