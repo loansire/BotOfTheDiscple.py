@@ -1,77 +1,175 @@
-# =============================================================== #
 
-MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
-MF_ACTIVITY_TYPE_DEFINITION = "DestinyActivityTypeDefinition"
-MF_MODIFIER_DEFINITION = "DestinyActivityModifierDefinition"
-MF_OBJECTIVE_DEFINITION = "DestinyObjectiveDefinition"
+# \Configuration des Key-value et des Definitions\
 
+"""
+  DEFINITION :list
+              nom des manifests à télécharger et à update.
+  KEY_MAP :dict
+              associe des clefs d'objet JSON à un manifest.
+  ACTIVITI_TYPE_MAP :dict
+              liste les potentiels Filtres à garder pour trier les types d'activités.
+"""
 
-FIELDTODELET = [
-    'isNew', 'canLead', 'canJoin',
-    'isCompleted', 'isVisible', 'displayLevel',
-    'recommendedLight', 'difficultyTier', 'complete',
-    'visible', 'activityLightLevel',
-    'challenges.objective.activityHash',
-    'challenges.objective.progress',
-    'challenges.objective.completionValue',
-    'challenges.objective.complete',
-    'challenges.objective.visible',
-]
+DEFINITION = ["DestinyActivityDefinition",
+              "DestinyActivityInteractableDefinition",
+              "DestinyDestinationDefinition",
+              "DestinyPlaceDefinition",
+              "DestinyActivityGraphDefinition",
+              "DestinyInventoryItemDefinition",
+              "DestinyActivityModifierDefinition"]
 
-MODIFIERTODELET = {
-    # Vide
-    1783825372,
-    # Ennemis avec bouclier
-    2833087500, 1553093202, 2833087500,
-    3139381566, 3230561446, 3538098588,
-    3958417570, 1651706850,
-    # Modificateur de difficulté
-    85104725, 1174869237, 3674616727,
-    445825536, 2001067135, 3897480986,
-    501815068, 2567927655, 4087563963,
-    791047754, 3240131679, 1139702033,
-    3623371497,
-    # Champions adverses
-    2006149364, 438106166, 1262171714,
-    1990363418, 2006149364, 2475764450,
-    3307318061, 4190795159,
+KEY_MAP = {
+    "activityHash":"DestinyActivityDefinition",
+    "itemHash":"DestinyInventoryItemDefinition",
+    "modifierHashes":"DestinyActivityModifierDefinition",
+    "activityInteractableHash":"DestinyActivityInteractableDefinition",
+    "destinationHash":"DestinyDestinationDefinition",
+    "placeHash":"DestinyPlaceDefinition",
+    "activityModifierHash":"DestinyActivityModifierDefinition",
+    "activityTypeHash":"DestinyActivityTypeDefinition",
 }
 
-ACTIVITY_FIELDS = [
-    "displayProperties.name",
-    "activityTypeHash",
-    "originalDisplayProperties.name",
-    "displayProperties.description",
-    "pgcrImage",
-]
-ACTIVITY_TYPE_FIELDS = [
-    "displayProperties.name",
-]
-MODIFIER_FIELDS = [
-    "displayProperties.name",
-    "displayProperties.icon",
-    "displayProperties.description",
-]
-OBJECTIVE_FIELDS = [
-    "displayProperties.name",
-]
+ACTIVITI_TYPE_MAP = {
+  "SoloOps": 3851289711,  # Hash des types "SoloOps"
+  "ExoticMission": 1227821118,  # Hash des types "ExoticMission" (Opération prestige)
+  "Raid": 2043403989,  # Hash des types "Raid"
+  "Donjon": 608898761,   # Hash des types "Donjon"
+  "Story": 1686739444,  # Hash des types "Story" (pour exotic mission, enrichi avec EXOTIC_DEFINITION)
+  "LostSector": 103143560,   # Hash des types "LostSector"
+}
 
-# Défi de donjon hebdomadaire
-OBJECTIVE_DUNGEON_HASH = [
-    "1062014463", "2367956143", "2697564403",
-    "1283234589", "3039545165", "1288508599",
-    "2039792527", "3211393925", "3838169295",
-]
-# Défi de Raid de la semaine
-OBJECTIVE_RAID_HASH = [
-    "406803827", "897950155", "1633394671",
-    "1863972407", "2398860795", "3180884403",
-    "3767289993", "3826130187",
-]
-# Défi de rotation exotique hebdomadaire
-OBJECTIVE_EXOMISSION_HASH = [
-    "3726310377", "1510063869", "1274811193",
-    "1320261963", "3407714741",
-]
-# Défi de score de la semaine
-OBJECTIVE_NN_HASH = ["1612424695"]
+# -----------------------------------
+# \JSON pour ExoticMissions(Légende)\
+# -----------------------------------
+EXOTIC_DEFINITION = {
+  {
+    "activityName": "Présage",
+    "activityHash": 3883295757,
+    "activityHash_expert": 4201846671,
+    "weapon": {
+      "name": "Récit D'un Homme Mort",
+      "hash": 3654674561,
+      "lightgg": "https://www.light.gg/db/fr/items/3654674561",
+      "foundry": "https://d2foundry.gg/w/3654674561",
+      "type": "Fusil d'Éclaireur",
+      "emote": "<:Fusildeclaireur:1305317638158942248>"
+    }
+  },
+  {
+    "activityName": "Vox Obscura",
+    "activityHash": 2668737148,
+    "activityHash_expert": 666172264,
+    "weapon": {
+      "name": "Messager Mort",
+      "hash": 46125926,
+      "lightgg": "https://www.light.gg/db/fr/items/46125926",
+      "foundry": "https://d2foundry.gg/w/46125926",
+      "type": "Lance Grenades Léger",
+      "emote": "<:Lancegrenadesleger:1305317726125948968>"
+    }
+  },
+  {
+    "activityName": "Opération: Bouclier de Séraphin",
+    "activityHash": 1221538367,
+    "activityHash_expert": 2919809209,
+    "weapon": {
+      "name": "Révision Zéro",
+      "hash": 1473821207,
+      "lightgg": "https://www.light.gg/db/fr/items/1473821207",
+      "foundry": "https://d2foundry.gg/w/1473821207",
+      "type": "Fusil à Impulsion",
+      "emote": "<:Fusilaimpulsion:1305317558748057661>"
+    }
+  },
+  {
+    "activityName": "//module.manuel.AVALON//",
+    "activityHash": 509188661,
+    "activityHash_expert": 3083261666,
+    "weapon": {
+      "name": "Vexcalibur",
+      "hash": 3118061005,
+      "lightgg": "https://www.light.gg/db/fr/items/3118061005",
+      "foundry": "https://d2foundry.gg/w/3118061005",
+      "type": "Glaive",
+      "emote": "<:Glaive:1305317709751259147>"
+    }
+  },
+  {
+    "activityName": "Malchance",
+    "activityHash": 196691221,
+    "activityHash_expert": 3214480871,
+    "weapon": {
+      "name": "Garde Souhaits",
+      "hash": 2910326942,
+      "lightgg": "https://www.light.gg/db/fr/items/2910326942",
+      "foundry": "https://d2foundry.gg/w/2910326942",
+      "type": "Arc",
+      "emote": "<:Arc:1305317528079437955>"
+    }
+  },
+  {
+    "activityName": "Le Murmure",
+    "activityHash": 3743446313,
+    "activityHash_expert": 3871520787,
+    "weapon": {
+      "name": "Murmure du Ver",
+      "hash": 1983149589,
+      "lightgg": "https://www.light.gg/db/fr/items/1983149589",
+      "foundry": "https://d2foundry.gg/w/1983149589",
+      "type": "Fusil de Précision",
+      "emote": "<:Fusildeprecision:1305317655221375026>"
+    }
+  },
+  {
+    "activityName": "Dernière Heure",
+    "activityHash": 3361746271,
+    "activityHash_expert": 1848771417,
+    "weapon": {
+      "name": "Infection Parfaite",
+      "hash": 3824673936,
+      "lightgg": "https://www.light.gg/db/fr/items/3824673936",
+      "foundry": "https://d2foundry.gg/w/3824673936",
+      "type": "Fusil à Impulsion",
+      "emote": "<:Fusilaimpulsion:1305317558748057661>"
+    }
+  },
+  {
+    "activityName": "Rappel",
+    "activityHash": 2880643894,
+    "activityHash_expert": 2166410122,
+    "weapon": {
+      "name": "Chorale Solitaire",
+      "hash": 3698448090,
+      "lightgg": "https://www.light.gg/db/fr/items/3698448090",
+      "foundry": "https://d2foundry.gg/w/3698448090",
+      "type": "Fusil Automatique",
+      "emote": "<:Fusilautomatique:1305317622266462238>"
+    }
+  },
+  {
+    "activityName": "La Chute du Kaal",
+    "activityHash": 3878270936,
+    "activityHash_expert": 367562924,
+    "weapon": {
+      "name": "Croc Du Bourreau",
+      "hash": 1047932517,
+      "lightgg": "https://www.light.gg/db/fr/items/1047932517",
+      "foundry": "https://d2foundry.gg/w/1047932517",
+      "type": "Fusil à Pompe",
+      "emote": "<:Fusilapompe:1305317574585745408>"
+    }
+  },
+  {
+    "activityName": "Déréalisation",
+    "activityHash": None,
+    "activityHash_expert": None,
+    "weapon": {
+      "name": "Tumulus Dyadique",
+      "hash": 1481594633,
+      "lightgg": "https://www.light.gg/db/fr/items/1481594633",
+      "foundry": "https://d2foundry.gg/w/1481594633",
+      "type": "Pistolet Mitrailleur",
+      "emote": "<:Pistoletmitrailleur:1305317813094711416>"
+    }
+  }
+}

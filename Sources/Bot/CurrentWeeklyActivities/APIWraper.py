@@ -1,4 +1,3 @@
-import requests
 import json
 import Sources.Bot.ApiKey as APIKey
 from Sources.Bot.CurrentWeeklyActivities.BungieCharacterActivities import get_bungie_character_data
