@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Raids - Destiny</title>
+  <title>Opération Prestige - Destiny</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -101,47 +101,61 @@
       border: 1px solid white;
     }
 
+    .reward-icon[src$=".png"] {
+      filter: drop-shadow(1.5px 0 0 white)
+              drop-shadow(-1px 0 0 white)
+              drop-shadow(0 1.5px 0 white)
+              drop-shadow(0 -1.5px 0 white);
+    }
+
     .reward-quantity {
       position: absolute;
-      top: 5px;
-      right: 5px;
-      width: 20px;
-      height: 20px;
-      background: gray; /* blanc cassé */
-      color: white;        /* texte noir */
-      font-size: 15px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      top: -5px;
+      right: -5px;
+      background: rgba(128,128,128,0.7);
+      color: white;
+      font-size: 10px;
+      padding: 1px 4px;
       border-radius: 3px;
     }
   </style>
 </head>
 <body>
-  <h1>Raids</h1>
-  <div class="container" id="raids-container"></div>
+  <h1>Opération Prestige</h1>
+  <div class="container" id="activities-container"></div>
 
 <script>
-  // Fonction de copie
   async function copyToClipboard(text) {
     try {
       await navigator.clipboard.writeText(text);
+      console.log('Copié :', text);
     } catch (err) {
       console.error('Erreur lors de la copie : ', err);
     }
   }
 
-  fetch('Raids.json')
+  fetch('../../activities/PinnacleOps.json')
     .then(response => response.json())
     .then(data => {
-      const container = document.getElementById('raids-container');
+      const container = document.getElementById('activities-container');
 
-      // Filtrer les activités qui ont des rewards
-      const activitiesWithRewards = data.filter(activity => activity.rewards && activity.rewards.length > 0);
+      // Filtrer rewards exclues
+      data.forEach(activity => {
+        if (activity.rewards && activity.rewards.length > 0) {
+          activity.rewards = activity.rewards.filter(r => r.itemHash !== 3956025454);
+        }
+      });
 
-      // Trier par index croissant
-      activitiesWithRewards.sort((a, b) => (a.index || 0) - (b.index || 0));
+      // Trier : activités avec rewards en priorité
+      data.sort((a, b) => {
+        const aHasReward = a.rewards && a.rewards.length > 0;
+        const bHasReward = b.rewards && b.rewards.length > 0;
+
+        if (aHasReward && !bHasReward) return -1;
+        if (!aHasReward && bHasReward) return 1;
+
+        return (a.index || 0) - (b.index || 0);
+      });
 
       function createCard(activity) {
         const card = document.createElement('div');
@@ -150,17 +164,22 @@
 
         const imgUrl = `https://www.bungie.net${activity.pgcrImage}`;
 
-        const rewardIconsHTML = activity.rewards.map(reward => {
-          return `
-            <div class="reward-wrapper" title="${reward.rewardName}">
-              <img src="https://www.bungie.net${reward.icon}"
-                   class="reward-icon"
-                   data-itemhash="${reward.itemHash}"
-                   alt="Récompense">
-              <div class="reward-quantity">${reward.quantity}</div>
-            </div>
-          `;
-        }).join('');
+        let rewardIconsHTML = '';
+        if (activity.rewards && activity.rewards.length > 0) {
+          rewardIconsHTML = activity.rewards.map(reward => {
+            const quantityBadge = reward.quantity > 1
+              ? `<div class="reward-quantity">${reward.quantity}</div>` : '';
+            return `
+              <div class="reward-wrapper" title="${reward.rewardName}">
+                <img src="https://www.bungie.net${reward.icon}"
+                     class="reward-icon"
+                     data-itemhash="${reward.itemHash}"
+                     alt="Récompense">
+                ${quantityBadge}
+              </div>
+            `;
+          }).join('');
+        }
 
         card.innerHTML = `
           <img src="${imgUrl}" alt="${activity.name}">
@@ -171,14 +190,12 @@
           <div class="rewards-container">${rewardIconsHTML}</div>
         `;
 
-        // Copier le hash activité
         card.addEventListener('click', () => {
           copyToClipboard(activity.activityHash?.toString() || '');
         });
 
-        // Copier itemHash au clic sur reward
         card.querySelectorAll('.reward-icon').forEach(icon => {
-          icon.addEventListener('click', (e) => {
+          icon.addEventListener('click', e => {
             e.stopPropagation();
             copyToClipboard(icon.dataset.itemhash);
           });
@@ -187,11 +204,11 @@
         return card;
       }
 
-      activitiesWithRewards.forEach(activity => container.appendChild(createCard(activity)));
+      data.forEach(activity => container.appendChild(createCard(activity)));
     })
     .catch(error => {
       console.error('Erreur :', error);
-      document.getElementById('raids-container').innerHTML =
+      document.getElementById('activities-container').innerHTML =
         '<p style="color: white; text-align: center;">Erreur de chargement.</p>';
     });
 </script>

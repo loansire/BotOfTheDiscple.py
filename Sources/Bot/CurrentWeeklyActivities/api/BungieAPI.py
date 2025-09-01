@@ -12,24 +12,8 @@ class BungieAPI:
 
     Fonctionnalités principales :
     - Téléchargement et mise en cache du manifest Destiny 2.
-    - Téléchargement local des définitions demandées (Config.DEFINITION).
-    - Recherche locale d’une entité par son hash (équivalent du
-      endpoint Destiny2.GetDestinyEntityDefinition).
-
-    Attributs
-    ----------
-    BASE_URL : str
-        URL de base de l’API Bungie.
-    MANIFEST_ENDPOINT : str
-        Endpoint pour récupérer le manifest Destiny 2.
-    MANIFEST_FILE : str
-        Chemin du fichier manifest local en cache.
-    api_key : str
-        Clé API Bungie.
-    lang : str
-        Langue des définitions (par défaut "fr").
-    session : requests.Session
-        Session HTTP réutilisée avec header API Key.
+    - Téléchargement local des définitions listées dans Config.DEFINITION.
+    - Recherche locale d’une entité par son hash.
     """
 
     BASE_URL = "https://www.bungie.net/Platform"
@@ -76,49 +60,50 @@ class BungieAPI:
             return None
 
         data = response.json()
-        # Log Bungie API
         print(f"[BUNGIE] Status={data.get('ErrorStatus')} "
               f"Message={data.get('Message')} "
               f"Code={data.get('ErrorCode')}")
         return data
 
-    def _load_local_manifest(self):
+    @staticmethod
+    def _load_json(file_path: str):
         """
-        Charge le manifest local en cache.
+        Charge un fichier JSON depuis un chemin donné.
+
+        Parameters
+        ----------
+        file_path : str
+            Chemin du fichier JSON.
 
         Returns
         -------
         dict | None
-            Contenu JSON du manifest si disponible, sinon None.
+            Contenu JSON du fichier, ou None si le fichier n’existe pas.
         """
-        if os.path.exists(self.MANIFEST_FILE):
-            with open(self.MANIFEST_FILE, "r", encoding="utf-8") as f:
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         return None
 
-    def _save_local_manifest(self, version: str, lang_paths: dict):
+    @staticmethod
+    def _save_json(file_path: str, data: dict):
         """
-        Sauvegarde le manifest téléchargé en local.
+        Sauvegarde un dictionnaire en fichier JSON.
 
         Parameters
         ----------
-        version : str
-            Version du manifest.
-        lang_paths : dict
-            Dictionnaire des chemins de définitions pour une langue donnée.
+        file_path : str
+            Chemin du fichier de sortie.
+        data : dict
+            Contenu à sauvegarder.
         """
-        manifest_data = {
-            "version": version,
-            "lang": self.lang,
-            "paths": {k: lang_paths[k] for k in DEFINITION if k in lang_paths}
-        }
-        with open(self.MANIFEST_FILE, "w", encoding="utf-8") as f:
-            json.dump(manifest_data, f, ensure_ascii=False, indent=2)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
     def download_manifest_definitions(self):
         """
         Télécharge et met en cache le manifest Destiny 2,
-        ainsi que les définitions listées dans `Config.DEFINITION`.
+        ainsi que les définitions listées dans Config.DEFINITION.
 
         Si le manifest local est déjà à jour, il est réutilisé.
 
@@ -141,14 +126,20 @@ class BungieAPI:
             return None
 
         # Vérifie si manifest déjà en cache
-        local_manifest = self._load_local_manifest()
+        local_manifest = self._load_json(self.MANIFEST_FILE)
         if local_manifest and local_manifest.get("version") == version:
             print(f"[CACHE] Manifest déjà à jour (version {version})")
             return version
 
         print(f"[UPDATE] Nouvelle version manifest détectée : {version}")
+
         # Sauvegarde du manifest local
-        self._save_local_manifest(version, lang_paths)
+        manifest_data = {
+            "version": version,
+            "lang": self.lang,
+            "paths": {k: lang_paths[k] for k in DEFINITION if k in lang_paths}
+        }
+        self._save_json(self.MANIFEST_FILE, manifest_data)
 
         # Télécharge les définitions
         for def_name in DEFINITION:
@@ -162,8 +153,7 @@ class BungieAPI:
             if def_response.status_code == 200:
                 def_data = def_response.json()
                 output_path = os.path.join("data/definitions", f"{def_name}.json")
-                with open(output_path, "w", encoding="utf-8") as f:
-                    json.dump(def_data, f, ensure_ascii=False)
+                self._save_json(output_path, def_data)
                 print(f"[OK] {def_name} sauvegardé ({len(def_data)} entrées)")
             else:
                 print(f"[HTTP ERROR] {def_response.status_code} pour {def_name}")
@@ -188,13 +178,11 @@ class BungieAPI:
             Données de l’entité trouvée, ou None si absente.
         """
         file_path = os.path.join("data/definitions", f"{definition}.json")
+        data = self._load_json(file_path)
 
-        if not os.path.exists(file_path):
+        if data is None:
             print(f"[ERREUR] La définition {definition} n’est pas disponible localement.")
             return None
-
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
 
         entity_hash = str(entity_hash)  # Bungie stocke les clés en string
         entity = data.get(entity_hash)

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lost Sectors - Destiny</title>
+  <title>Raids - Destiny</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -107,8 +107,8 @@
       right: 5px;
       width: 20px;
       height: 20px;
-      background: gray;
-      color: white;
+      background: gray; /* blanc cassé */
+      color: white;        /* texte noir */
       font-size: 15px;
       font-weight: bold;
       display: flex;
@@ -119,8 +119,8 @@
   </style>
 </head>
 <body>
-  <h1>Secteurs Oubliés</h1>
-  <div class="container" id="lostsectors-container"></div>
+  <h1>Raids</h1>
+  <div class="container" id="raids-container"></div>
 
 <script>
   // Fonction de copie
@@ -132,25 +132,25 @@
     }
   }
 
-  fetch('LostSectors.json')
+  fetch('../../activities/Raids.json')
     .then(response => response.json())
     .then(data => {
-      const container = document.getElementById('lostsectors-container');
+      const container = document.getElementById('raids-container');
 
       // Filtrer les activités qui ont des rewards
-      const sectorsWithRewards = data; // afficher tous les secteurs, rewards ou non
+      const activitiesWithRewards = data.filter(activity => activity.rewards && activity.rewards.length > 0);
 
-      // Trier par index si disponible
-      sectorsWithRewards.sort((a, b) => (a.index || 0) - (b.index || 0));
+      // Trier par index croissant
+      activitiesWithRewards.sort((a, b) => (a.index || 0) - (b.index || 0));
 
-      function createCard(sector) {
+      function createCard(activity) {
         const card = document.createElement('div');
         card.className = 'card';
         card.tabIndex = 0;
 
-        const imgUrl = `https://www.bungie.net${sector.pgcrImage || ''}`;
+        const imgUrl = `https://www.bungie.net${activity.pgcrImage}`;
 
-        const rewardIconsHTML = sector.rewards.map(reward => {
+        const rewardIconsHTML = activity.rewards.map(reward => {
           return `
             <div class="reward-wrapper" title="${reward.rewardName}">
               <img src="https://www.bungie.net${reward.icon}"
@@ -163,17 +163,17 @@
         }).join('');
 
         card.innerHTML = `
-          <img src="${imgUrl}" alt="${sector.name}">
+          <img src="${imgUrl}" alt="${activity.name}">
           <div class="card-content">
-            <div class="card-subtitle">${sector.activityTypeName || 'Lost Sector'}</div>
-            <div class="card-title">${sector.name}</div>
+            <div class="card-subtitle">${activity.activityTypeName || ''}</div>
+            <div class="card-title">${activity.name}</div>
           </div>
           <div class="rewards-container">${rewardIconsHTML}</div>
         `;
 
         // Copier le hash activité
         card.addEventListener('click', () => {
-          copyToClipboard(sector.activityHash?.toString() || '');
+          copyToClipboard(activity.activityHash?.toString() || '');
         });
 
         // Copier itemHash au clic sur reward
@@ -187,12 +187,12 @@
         return card;
       }
 
-      sectorsWithRewards.forEach(sector => container.appendChild(createCard(sector)));
+      activitiesWithRewards.forEach(activity => container.appendChild(createCard(activity)));
     })
     .catch(error => {
       console.error('Erreur :', error);
-      document.getElementById('lostsectors-container').innerHTML =
-        '<p style="color: white; text-align: center;">Erreur de chargement des Lost Sectors.</p>';
+      document.getElementById('raids-container').innerHTML =
+        '<p style="color: white; text-align: center;">Erreur de chargement.</p>';
     });
 </script>
 </body>
