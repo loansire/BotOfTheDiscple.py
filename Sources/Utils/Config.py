@@ -32,41 +32,41 @@ OUTPUT_FOLDER = "Output"
 
 # URL de l'endpoint pour télécharger le manifeste complet
 MAIN_MF_URL = "https://www.bungie.net/Platform/Destiny2/Manifest/"
-MAIN_MF_OUTPUT_FILE = TempPath("Manifests/MainManifest.json")
+MAIN_MF_OUTPUT_FILE = TempPath("local_definitions/MainManifest.json")
 
 #Destiny Activity Namings
 MF_ACTIVITY_DEFINITION = "DestinyActivityDefinition"
-MF_ACTIVITY_LOST_SECTOR_EXPERT = TempPath("Manifests/LostSector.Expert.json")
-MF_ACTIVITY_LOST_SECTOR_MASTER = TempPath("Manifests/LostSector.Master.json")
-MF_ACTIVITY_FILENAME = TempPath("Manifests/ActivityDefinition.json")
-MF_ACTIVITY_FILTERED_FILENAME = TempPath("Manifests/ActivityDefinitionFiltered.json")
-MF_ACTIVITY_FILTERED_GENERAL_FILENAME = TempPath("Manifests/ActivityDefinitionFilteredGeneral.json")
+MF_ACTIVITY_LOST_SECTOR_EXPERT = TempPath("local_definitions/LostSector.Expert.json")
+MF_ACTIVITY_LOST_SECTOR_MASTER = TempPath("local_definitions/LostSector.Master.json")
+MF_ACTIVITY_FILENAME = TempPath("local_definitions/ActivityDefinition.json")
+MF_ACTIVITY_FILTERED_FILENAME = TempPath("local_definitions/ActivityDefinitionFiltered.json")
+MF_ACTIVITY_FILTERED_GENERAL_FILENAME = TempPath("local_definitions/ActivityDefinitionFilteredGeneral.json")
 
 #Destination Manifest
 MF_DESTINATION_DEFINITION = "DestinyDestinationDefinition"
-MF_DESTINATION_FILENAME = TempPath("Manifests/DestinationDefinition.json")
-MF_DESTINATION_FILTERED_FILENAME = TempPath("Manifests/DestinationDefinitionFiltered.json")
+MF_DESTINATION_FILENAME = TempPath("local_definitions/DestinationDefinition.json")
+MF_DESTINATION_FILTERED_FILENAME = TempPath("local_definitions/DestinationDefinitionFiltered.json")
 
 #Place Manifest
 MF_PLACE_DEFINITION = "DestinyPlaceDefinition"
-MF_PLACE_FILENAME = TempPath("Manifests/PlaceDefinition.json")
-MF_PLACE_FILTERED_FILENAME = TempPath("Manifests/PlaceDefinitionFiltered.json")
+MF_PLACE_FILENAME = TempPath("local_definitions/PlaceDefinition.json")
+MF_PLACE_FILTERED_FILENAME = TempPath("local_definitions/PlaceDefinitionFiltered.json")
 
 #Inventory Item Manifest
 MF_II_DEFINITION = "DestinyInventoryItemDefinition"
-MF_II_FILENAME = TempPath("Manifests/IIDefinition.json")
-MF_II_FILTERED_FILENAME = TempPath("Manifests/IIDefinitionFiltered.json")
+MF_II_FILENAME = TempPath("local_definitions/IIDefinition.json")
+MF_II_FILTERED_FILENAME = TempPath("local_definitions/IIDefinitionFiltered.json")
 
 #Inventory Item Manifest
 MF_MODIFIER_DEFINITION = "DestinyActivityModifierDefinition"
-MF_MODIFIER_FILENAME = TempPath("Manifests/ModifierDefinition.json")
-MF_MODIFIER_FILTERED_FILENAME = TempPath("Manifests/ModifierDefinitionFiltered.json")
+MF_MODIFIER_FILENAME = TempPath("local_definitions/ModifierDefinition.json")
+MF_MODIFIER_FILTERED_FILENAME = TempPath("local_definitions/ModifierDefinitionFiltered.json")
 
 #Damage and Breaker type manifest
 MF_DAMAGE_TYPE = "DestinyDamageTypeDefinition"
-MF_DAMAGE_TYPE_FILENAME = TempPath("Manifests/DamageType.json")
+MF_DAMAGE_TYPE_FILENAME = TempPath("local_definitions/DamageType.json")
 MF_BREAKER_TYPE = "DestinyBreakerTypeDefinition"
-MF_BREAKER_TYPE_FILENAME = TempPath("Manifests/BreakerType.json")
+MF_BREAKER_TYPE_FILENAME = TempPath("local_definitions/BreakerType.json")
 
 #GGdoc api credentials file
 CREDENTIALS_GGDOC = RessourcePath("credentials.json")

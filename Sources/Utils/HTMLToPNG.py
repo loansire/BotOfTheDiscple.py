@@ -1,7 +1,7 @@
 from PIL import Image
 import requests
 import io
-import Sources.Bot.ApiKey as APIKey
+
 
 def html_to_png(html_path, output_path, css_path):
     # Lire le contenu des fichiers HTML et CSS
@@ -13,8 +13,8 @@ def html_to_png(html_path, output_path, css_path):
 
     # Informations sur l'API
     api_endpoint = "https://hcti.io/v1/image"
-    api_user = APIKey.html_to_png_api_user
-    api_key = APIKey.html_to_png_api_key
+    api_user = ApiKey.html_to_png_api_user
+    api_key = ApiKey.html_to_png_api_key
 
     data = {
         "html": html_content,

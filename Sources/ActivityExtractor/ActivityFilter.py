@@ -28,7 +28,7 @@ def GetSpecificsManifests():
 
     for activity_hash, activity_detail in json_data.items():
         if activity_hash in activities_hash:
-            file_name = "Manifests/" + activities_hash[activity_hash] + ".json"
+            file_name = "local_definitions/" + activities_hash[activity_hash] + ".json"
             with open(Config.TempPath(file_name), 'w', encoding='utf-8') as file:
                 json.dump(activity_detail, file, indent=4, ensure_ascii=False)
                 print("Created a new activity file : " + file_name)

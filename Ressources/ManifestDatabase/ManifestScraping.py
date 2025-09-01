@@ -1,11 +1,10 @@
-import hashlib
 import sqlite3
 import json
 import requests
 import zipfile
 import os
 from io import BytesIO
-from Sources.Bot import ApiKey
+from Sources.Bot.CurrentWeeklyActivities.api import ApiKey
 
 # Liste des à garder
 MANIFEST_TO_USE = [

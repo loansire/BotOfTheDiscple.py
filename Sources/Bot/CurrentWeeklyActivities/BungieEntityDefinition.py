@@ -35,10 +35,9 @@ def get_entities_info(api_key, base_url, definition_name, hash_identifier, param
 
 # Exemple d'utilisation
 if __name__ == "__main__":
-    import Sources.Bot.ApiKey as APIKey
     from Sources.Bot.CurrentWeeklyActivities.APIWraper import BungieAPI
 
-    bungie_api = BungieAPI(APIKey.bungie_api)
+    bungie_api = BungieAPI(ApiKey.bungie_api)
     definition_name = "DestinyActivityInteractableDefinition"
     hash_identifier = "2610536081"
     parameters = ["displayProperties.icon"]

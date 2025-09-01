@@ -1,5 +1,4 @@
 import json
-import Sources.Bot.ApiKey as APIKey
 from Sources.Bot.CurrentWeeklyActivities.BungieCharacterActivities import get_bungie_character_data
 from Sources.Bot.CurrentWeeklyActivities.BungieEntityDefinition import get_entities_info
 from Sources.Bot.CurrentWeeklyActivities.FilterActivities import get_SoloOps, get_PinnacleOps, get_Raids, get_Dungeons, get_ExoticMission, get_LostSector
@@ -8,7 +7,7 @@ class BungieAPI:
     def __init__(self, api_key):
         self.api_key = api_key
         self.base_url = "https://www.bungie.net/Platform"
-        self.character = APIKey.character
+        self.character = ApiKey.character
 
     def get_bungie_character_data(self):
         return get_bungie_character_data(self.api_key, self.base_url, self.character)
@@ -47,7 +46,7 @@ class BungieAPI:
         return get_LostSector(self, data, activity_types, parameters)
 
 if __name__ == "__main__":
-    bungie_api = BungieAPI(APIKey.bungie_api)
+    bungie_api = BungieAPI(ApiKey.bungie_api)
     response, character_activities, character_interactables = bungie_api.get_bungie_character_data()
 
     # activity_types = [3851289711, 556925641] # Hash des types "Vanguard Ops"

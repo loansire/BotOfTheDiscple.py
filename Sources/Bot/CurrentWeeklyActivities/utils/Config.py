@@ -3,7 +3,7 @@
 
 """
   DEFINITION :list
-              nom des manifests à télécharger et à update.
+              nom des local_definitions à télécharger et à update.
   KEY_MAP :dict
               associe des clefs d'objet JSON à un manifest.
   ACTIVITI_TYPE_MAP :dict
@@ -38,10 +38,17 @@ ACTIVITI_TYPE_MAP = {
   "LostSector": 103143560,   # Hash des types "LostSector"
 }
 
+ACTIVITI_GRAPH_MAP = {
+  "FireteamOps": 111,
+  "SoloOps": 111,
+  "PinnacleOps": 111,
+  "LegendsNode": 111,
+}
+
 # -----------------------------------
 # \JSON pour ExoticMissions(Légende)\
 # -----------------------------------
-EXOTIC_DEFINITION = {
+EXOTIC_DEFINITION = [
   {
     "activityName": "Présage",
     "activityHash": 3883295757,
@@ -172,4 +179,4 @@ EXOTIC_DEFINITION = {
       "emote": "<:Pistoletmitrailleur:1305317813094711416>"
     }
   }
-}
+]

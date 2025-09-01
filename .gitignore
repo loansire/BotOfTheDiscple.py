@@ -9,4 +9,17 @@ Ressources/token.json
 
 Ressources/AlertDatabase
 Output/
-Sources/Bot/ApiKey.py
+Sources/Bot/CurrentWeeklyActivities/api/ApiKey.py
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyActivityDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyActivityGraphDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyActivityInteractableDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyActivityModifierDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyDestinationDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyInventoryItemDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyPlaceDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/Dungeons.json
+/Sources/Bot/CurrentWeeklyActivities/data/ExoticMissions.json
+/Sources/Bot/CurrentWeeklyActivities/data/LostSectors.json
+/Sources/Bot/CurrentWeeklyActivities/data/PinnacleOps.json
+/Sources/Bot/CurrentWeeklyActivities/data/Raids.json
+/Sources/Bot/CurrentWeeklyActivities/data/SoloOps.json

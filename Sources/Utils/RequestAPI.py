@@ -1,8 +1,6 @@
 import requests
-import Sources.Bot.ApiKey as APIKey
-import json
 
-api_key = APIKey.bungie_api
+api_key = ApiKey.bungie_api
 headers = {
         "X-API-Key": api_key
 }

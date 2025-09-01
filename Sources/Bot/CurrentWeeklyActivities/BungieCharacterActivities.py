@@ -20,11 +20,10 @@ def get_bungie_character_data(api_key, base_url, character):
 
 # Exemple d'utilisation
 if __name__ == "__main__":
-    import Sources.Bot.ApiKey as APIKey
     from Sources.Bot.CurrentWeeklyActivities.APIWraper import BungieAPI
 
     # Appel de la class BungieAPI(APIKey)
-    bungie_api = BungieAPI(APIKey.bungie_api)
+    bungie_api = BungieAPI(ApiKey.bungie_api)
 
     # Exemple d'utilisation de get_bungie_character_data
     response, data, _ = bungie_api.get_bungie_character_data()

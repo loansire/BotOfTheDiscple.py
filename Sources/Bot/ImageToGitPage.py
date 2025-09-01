@@ -1,11 +1,10 @@
 import base64
 import requests
 import certifi
-import Sources.Bot.ApiKey as APIKey
 from Sources.LostSector.Html.HtmlDefines import OUTPUT_JPEG_PATH
 
 # === CONFIGURATION ===
-GITHUB_TOKEN = APIKey.git_api
+GITHUB_TOKEN = ApiKey.git_api
 REPO_OWNER = "loansire"
 REPO_NAME = "Botofthedisciple.fr"
 BRANCH = "main"
