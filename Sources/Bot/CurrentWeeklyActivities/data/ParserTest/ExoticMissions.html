@@ -130,7 +130,7 @@
       window.addEventListener('resize', () => { if (tooltipEl.classList.contains('visible')) positionTooltip(); });
     }
 
-    fetch('../../activities/ExoticMissions.json')
+    fetch('../activities/ExoticMissions.json')
       .then(r => r.json())
       .then(data => {
         const container = document.getElementById('raids-container');

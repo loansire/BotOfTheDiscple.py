@@ -8,6 +8,8 @@
     "DestinyPlaceDefinition": "/common/destiny2_content/json/fr/DestinyPlaceDefinition-6451f787-b065-400f-8522-5629894ee6a0.json",
     "DestinyActivityGraphDefinition": "/common/destiny2_content/json/fr/DestinyActivityGraphDefinition-6451f787-b065-400f-8522-5629894ee6a0.json",
     "DestinyInventoryItemDefinition": "/common/destiny2_content/json/fr/DestinyInventoryItemDefinition-6451f787-b065-400f-8522-5629894ee6a0.json",
-    "DestinyActivityModifierDefinition": "/common/destiny2_content/json/fr/DestinyActivityModifierDefinition-6451f787-b065-400f-8522-5629894ee6a0.json"
+    "DestinyActivityModifierDefinition": "/common/destiny2_content/json/fr/DestinyActivityModifierDefinition-6451f787-b065-400f-8522-5629894ee6a0.json",
+    "DestinySandboxPerkDefinition": "/common/destiny2_content/json/fr/DestinySandboxPerkDefinition-6451f787-b065-400f-8522-5629894ee6a0.json",
+    "DestinyEquipableItemSetDefinition": "/common/destiny2_content/json/fr/DestinyEquipableItemSetDefinition-6451f787-b065-400f-8522-5629894ee6a0.json"
   }
 }

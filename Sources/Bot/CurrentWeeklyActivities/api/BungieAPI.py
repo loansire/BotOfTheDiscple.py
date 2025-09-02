@@ -3,6 +3,7 @@ import os
 import json
 
 from utils.Config import DEFINITION  # <- liste de définitions
+from api.ApiKey import bungie_api, character
 
 
 class BungieAPI:
@@ -12,6 +13,7 @@ class BungieAPI:
 
     Fonctionnalités principales :
     - Téléchargement et mise en cache du manifest Destiny 2.
+    - Téléchargement des activités du personnage.
     - Téléchargement local des définitions listées dans Config.DEFINITION.
     - Recherche locale d’une entité par son hash.
     """
@@ -20,7 +22,7 @@ class BungieAPI:
     MANIFEST_ENDPOINT = "/Destiny2/Manifest/"
     MANIFEST_FILE = "data/definitions/manifest.json"
 
-    def __init__(self, api_key: str, lang: str = "fr"):
+    def __init__(self, lang: str = "fr"):
         """
         Initialise la classe BungieAPI.
 
@@ -30,13 +32,24 @@ class BungieAPI:
             Clé API Bungie.
         lang : str, optional
             Langue pour les définitions (par défaut "fr").
+        membership_type : int, optional
+            Type de membership (ex: 1 = Xbox, 2 = PSN, 3 = Steam).
+        destiny_membership_id : str, optional
+            ID Bungie du joueur.
+        character_id : str, optional
+            ID du personnage Destiny 2.
         """
-        self.api_key = api_key
+        self.api_key = bungie_api
         self.lang = lang
         self.session = requests.Session()
         self.session.headers.update({"X-API-Key": self.api_key})
 
         os.makedirs("data/definitions", exist_ok=True)
+
+        # Attributs pour le personnage
+        self.membership_type = character["membership_type"]
+        self.destiny_membership_id = character["membership_id"]
+        self.character_id = character["character_id"]
 
     def _get(self, endpoint: str):
         """
@@ -64,6 +77,48 @@ class BungieAPI:
               f"Message={data.get('Message')} "
               f"Code={data.get('ErrorCode')}")
         return data
+
+    def get_character_profile(self, components: list = [204]):
+        """
+        Récupère les informations du personnage configuré via l’API Destiny2.GetCharacter
+        et sauvegarde les données localement.
+
+        Parameters
+        ----------
+        components : list of int, optional
+            Liste des composants Destiny à récupérer (par défaut [204] = CharacterActivities).
+
+        Returns
+        -------
+        dict | None
+            JSON de la réponse de l’API si succès, None en cas d’erreur.
+
+        Notes
+        -----
+        - Les données sont sauvegardées localement dans 'data/activities/CharacterActivities.json'.
+        - Affiche des messages d’information ou d’erreur pour faciliter le debug.
+        """
+        if not all([self.membership_type, self.destiny_membership_id, self.character_id]):
+            print("[ERREUR] membership_type, destiny_membership_id ou character_id non défini dans l’instance.")
+            return None
+
+        os.makedirs("data/activities", exist_ok=True)
+
+        comp_str = ",".join(map(str, components))
+        endpoint = f"/Destiny2/{self.membership_type}/Profile/{self.destiny_membership_id}/Character/{self.character_id}/?components={comp_str}"
+
+        print(f"[REQUEST] Interrogation de l’API pour character_id={self.character_id} avec components={components}")
+
+        data = self._get(endpoint)
+        if data is None or "Response" not in data:
+            print(f"[ERREUR] Impossible de récupérer les données du personnage {self.character_id}.")
+            return None
+
+        output_file = "data/activities/CharacterActivities.json"
+        self._save_json(output_file, data["Response"])
+        print(f"[OK] Données sauvegardées dans CharacterActivities.json")
+
+        return data["Response"]
 
     @staticmethod
     def _load_json(file_path: str):
@@ -190,3 +245,4 @@ class BungieAPI:
         if entity is None:
             print(f"[INFO] Hash {entity_hash} introuvable dans {definition}.")
         return entity
+

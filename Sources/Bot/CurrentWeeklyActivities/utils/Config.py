@@ -16,7 +16,9 @@ DEFINITION = ["DestinyActivityDefinition",
               "DestinyPlaceDefinition",
               "DestinyActivityGraphDefinition",
               "DestinyInventoryItemDefinition",
-              "DestinyActivityModifierDefinition"]
+              "DestinyActivityModifierDefinition",
+              "DestinySandboxPerkDefinition",
+              "DestinyEquipableItemSetDefinition"]
 
 KEY_MAP = {
     "activityHash":"DestinyActivityDefinition",
@@ -39,10 +41,23 @@ ACTIVITI_TYPE_MAP = {
 }
 
 ACTIVITI_GRAPH_MAP = {
-  "FireteamOps": 111,
-  "SoloOps": 111,
-  "PinnacleOps": 111,
-  "LegendsNode": 111,
+  "FireteamOps": 2021988413,
+  "SoloOps": 1733518967,
+  "PinnacleOps": 2427019152,
+  "LegendsNode": 1148849101,
+  "CrussibleOps": 3557894678,
+}
+
+ACTIVITI_LINK_MAP = {
+  "FireteamOps": ACTIVITI_GRAPH_MAP,
+  "SoloOps": ACTIVITI_GRAPH_MAP,
+  "PinnacleOps": ACTIVITI_GRAPH_MAP,
+  "CrussibleOps": ACTIVITI_GRAPH_MAP,
+  "LegendsNode": ACTIVITI_GRAPH_MAP,
+
+  "Raid": ACTIVITI_TYPE_MAP,
+  "Donjon": ACTIVITI_TYPE_MAP,
+  "LostSector": ACTIVITI_TYPE_MAP,
 }
 
 # -----------------------------------
