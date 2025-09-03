@@ -245,4 +245,3 @@ class BungieAPI:
         if entity is None:
             print(f"[INFO] Hash {entity_hash} introuvable dans {definition}.")
         return entity
-

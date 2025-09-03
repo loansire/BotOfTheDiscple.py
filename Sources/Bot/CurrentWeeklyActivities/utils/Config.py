@@ -49,15 +49,17 @@ ACTIVITI_GRAPH_MAP = {
 }
 
 ACTIVITI_LINK_MAP = {
-  "FireteamOps": ACTIVITI_GRAPH_MAP,
-  "SoloOps": ACTIVITI_GRAPH_MAP,
-  "PinnacleOps": ACTIVITI_GRAPH_MAP,
-  "CrussibleOps": ACTIVITI_GRAPH_MAP,
-  "LegendsNode": ACTIVITI_GRAPH_MAP,
+    # ceux qui se résolvent via GRAPH
+    "FireteamOps": ("graph", "FireteamOps"),
+    "SoloOps": ("graph", "SoloOps"),
+    "PinnacleOps": ("graph", "PinnacleOps"),
+    "CrussibleOps": ("graph", "CrussibleOps"),
+    "LegendsNode": ("graph", "LegendsNode"),
 
-  "Raid": ACTIVITI_TYPE_MAP,
-  "Donjon": ACTIVITI_TYPE_MAP,
-  "LostSector": ACTIVITI_TYPE_MAP,
+    # ceux qui se résolvent via TYPE
+    "Raid": ("type", "Raid"),
+    "Donjon": ("type", "Donjon"),
+    "LostSector": ("type", "LostSector"),
 }
 
 # -----------------------------------

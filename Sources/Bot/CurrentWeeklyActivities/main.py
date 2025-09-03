@@ -1,37 +1,38 @@
 import json
+import os
 
 from api.BungieAPI import BungieAPI
+from enrichers.ActivityService import ActivityService
+from enrichers.InteractableService import InteractableService
 
 if __name__ == "__main__":
-    api = BungieAPI(lang="fr")
+    # Paramètres de contrôle
+    LIMIT = 1       # nombre maximum d'éléments à sauvegarder
+    OFFSET = 28       # décalage à partir du début
 
-    version = api.download_manifest_definitions()
-    print(f"Manifest Destiny2 version: {version}")
+    # 1. Charger les données depuis BungieAPI
+    currentActivities = BungieAPI(lang="fr").get_character_profile()
 
-    currentActivities = api.get_character_profile()
+    # Services
+    activity_service = ActivityService(currentActivities)
+    interactable_service = InteractableService(currentActivities)
 
-    # Extraction des hashes
-    available_activities_hash = currentActivities.get("activities", {}).get("data", {}).get("availableActivities", [])
-    available_interactables_hash = currentActivities.get("activities", {}).get("data", {}).get("availableActivityInteractables", [])
+    # Enrichissement
+    enriched_activities = activity_service.enrich()
+    enriched_interactables = interactable_service.enrich()
 
-    activity_hashes = [act.get("activityHash") for act in available_activities_hash if act.get("activityHash") is not None]
-    interactable_hashes = [inter.get("activityInteractableHash") for inter in available_interactables_hash if inter.get("activityInteractableHash") is not None]
+    # Appliquer offset et limit
+    enriched_activities = enriched_activities[OFFSET:OFFSET + LIMIT]
+    enriched_interactables = enriched_interactables[OFFSET:OFFSET + LIMIT]
 
-    # Fonction utilitaire pour afficher en tableau avec N éléments par ligne
-    def print_table(lst, n=4):
-        for i in range(0, len(lst), n):
-            print(" | ".join(str(x) for x in lst[i:i+n]))
+    # Créer le dossier de sortie si nécessaire
+    os.makedirs("data/temp", exist_ok=True)
 
-    print("Available Activities Hashes:")
-    print_table(activity_hashes, 4)
+    # Sauvegarde des résultats
+    with open("data/temp/enriched_activities.json", "w", encoding="utf-8") as f:
+        json.dump(enriched_activities, f, indent=2, ensure_ascii=False)
 
-    print("\nAvailable Activity Interactables Hashes:")
-    print_table(interactable_hashes, 4)
+    with open("data/temp/enriched_interactables.json", "w", encoding="utf-8") as f:
+        json.dump(enriched_interactables, f, indent=2, ensure_ascii=False)
 
-    #test = api.get_definition_entity(
-    #    definition="DestinyActivityGraphDefinition",
-    #    entity_hash=1733518967
-    #)
-    #print(json.dumps(test, indent=2, ensure_ascii=False))
-
-
+    print(f"[OK] Données enrichies sauvegardées dans data/temp/ (limit={LIMIT}, offset={OFFSET})")
