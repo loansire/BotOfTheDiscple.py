@@ -2,6 +2,8 @@ import requests
 import os
 import json
 
+from datetime import datetime, timedelta
+
 from utils.Config import DEFINITION  # <- liste de définitions
 from api.ApiKey import bungie_api, character
 
@@ -78,47 +80,47 @@ class BungieAPI:
               f"Code={data.get('ErrorCode')}")
         return data
 
+    from datetime import datetime, timedelta
+
     def get_character_profile(self, components: list = [204]):
         """
-        Récupère les informations du personnage configuré via l’API Destiny2.GetCharacter
-        et sauvegarde les données localement.
-
-        Parameters
-        ----------
-        components : list of int, optional
-            Liste des composants Destiny à récupérer (par défaut [204] = CharacterActivities).
-
-        Returns
-        -------
-        dict | None
-            JSON de la réponse de l’API si succès, None en cas d’erreur.
-
-        Notes
-        -----
-        - Les données sont sauvegardées localement dans 'data/activities/CharacterActivities.json'.
-        - Affiche des messages d’information ou d’erreur pour faciliter le debug.
+        Récupère les informations du personnage avec cache de 24h
+        stocké directement dans le JSON via "timestamp".
         """
         if not all([self.membership_type, self.destiny_membership_id, self.character_id]):
-            print("[ERREUR] membership_type, destiny_membership_id ou character_id non défini dans l’instance.")
+            print("[ERREUR] membership_type, destiny_membership_id ou character_id non défini.")
             return None
 
         os.makedirs("data/activities", exist_ok=True)
+        output_file = "data/activities/CharacterActivities.json"
 
+        # Vérifie si le fichier existe et si le cache est encore valide
+        cached_data = self._load_json(output_file)
+        if cached_data and "timestamp" in cached_data:
+            timestamp = datetime.fromisoformat(cached_data["timestamp"])
+            if datetime.now() - timestamp < timedelta(hours=24):
+                print("[CACHE] Données CharacterActivities valides (<24h), lecture depuis le fichier.")
+                # Supprime le champ timestamp avant de retourner les données
+                cached_data.pop("timestamp")
+                return cached_data
+
+        # Sinon, télécharge depuis l'API
         comp_str = ",".join(map(str, components))
         endpoint = f"/Destiny2/{self.membership_type}/Profile/{self.destiny_membership_id}/Character/{self.character_id}/?components={comp_str}"
 
         print(f"[REQUEST] Interrogation de l’API pour character_id={self.character_id} avec components={components}")
-
         data = self._get(endpoint)
+
         if data is None or "Response" not in data:
             print(f"[ERREUR] Impossible de récupérer les données du personnage {self.character_id}.")
             return None
 
-        output_file = "data/activities/CharacterActivities.json"
-        self._save_json(output_file, data["Response"])
+        # Ajoute le timestamp dans les données avant de sauvegarder
+        response_data = data["Response"]
+        response_data["timestamp"] = datetime.now().isoformat()
+        self._save_json(output_file, response_data)
         print(f"[OK] Données sauvegardées dans CharacterActivities.json")
-
-        return data["Response"]
+        return response_data
 
     @staticmethod
     def _load_json(file_path: str):

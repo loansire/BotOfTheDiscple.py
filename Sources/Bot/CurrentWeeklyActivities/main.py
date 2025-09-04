@@ -19,7 +19,9 @@ if __name__ == "__main__":
 
     # Enrichissement
     enriched_activities = activity_service.enrich()
+    print("[OK] Données de activities enrichies.")
     enriched_interactables = interactable_service.enrich()
+    print("[OK] Données de interactables enrichies.")
 
     # Appliquer offset et limit
     enriched_activities = enriched_activities[OFFSET:OFFSET + LIMIT]
