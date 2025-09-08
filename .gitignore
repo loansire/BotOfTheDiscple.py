@@ -9,7 +9,9 @@ Ressources/token.json
 
 Ressources/AlertDatabase
 Output/
+
 Sources/Bot/CurrentWeeklyActivities/api/ApiKey.py
+
 /Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyActivityDefinition.json
 /Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyActivityGraphDefinition.json
 /Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyActivityInteractableDefinition.json
@@ -28,3 +30,5 @@ Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinySandboxPerkDefinitio
 Sources/Bot/CurrentWeeklyActivities/data/activities/CharacterActivities.json
 /Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyCollectibleDefinition.json
 /Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyPlugSetDefinition.json
+
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/manifest.json
