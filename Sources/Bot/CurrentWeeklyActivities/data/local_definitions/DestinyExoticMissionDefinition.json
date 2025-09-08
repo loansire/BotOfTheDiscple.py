@@ -118,8 +118,8 @@
   },
   {
     "activityName": "Déréalisation",
-    "activityHash": None,
-    "activityHash_expert": None,
+    "activityHash": -1,
+    "activityHash_expert": -1,
     "weapon": {
       "name": "Tumulus Dyadique",
       "hash": 1481594633,

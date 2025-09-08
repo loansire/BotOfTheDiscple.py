@@ -26,3 +26,5 @@ Sources/Bot/CurrentWeeklyActivities/api/ApiKey.py
 Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyEquipableItemSetDefinition.json
 Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinySandboxPerkDefinition.json
 Sources/Bot/CurrentWeeklyActivities/data/activities/CharacterActivities.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyCollectibleDefinition.json
+/Sources/Bot/CurrentWeeklyActivities/data/definitions/DestinyPlugSetDefinition.json

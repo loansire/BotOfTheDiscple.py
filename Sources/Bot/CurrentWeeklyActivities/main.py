@@ -10,6 +10,8 @@ if __name__ == "__main__":
     LIMIT = 1       # nombre maximum d'éléments à sauvegarder
     OFFSET = 28       # décalage à partir du début
 
+    BungieAPI(lang="fr").download_manifest_definitions()
+
     # 1. Charger les données depuis BungieAPI
     currentActivities = BungieAPI(lang="fr").get_character_profile()
 

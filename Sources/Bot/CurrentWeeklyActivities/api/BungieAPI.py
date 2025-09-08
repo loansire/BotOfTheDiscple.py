@@ -4,7 +4,7 @@ import json
 
 from datetime import datetime, timedelta
 
-from utils.Config import DEFINITION  # <- liste de définitions
+from engine.definitions import DEFINITION  # <- liste de définitions
 from api.ApiKey import bungie_api, character
 
 
@@ -68,6 +68,7 @@ class BungieAPI:
             Réponse JSON de l’API en dict si succès, None sinon.
         """
         url = f"{self.BASE_URL}{endpoint}"
+        print(f"[REQUEST] Manifest ...")
         response = self.session.get(url)
 
         if response.status_code != 200:
@@ -79,8 +80,6 @@ class BungieAPI:
               f"Message={data.get('Message')} "
               f"Code={data.get('ErrorCode')}")
         return data
-
-    from datetime import datetime, timedelta
 
     def get_character_profile(self, components: list = [204]):
         """
@@ -143,7 +142,7 @@ class BungieAPI:
         return None
 
     @staticmethod
-    def _save_json(file_path: str, data: dict):
+    def _save_json(file_path: str, data: dict, indent: int | None = None):
         """
         Sauvegarde un dictionnaire en fichier JSON.
 
@@ -153,9 +152,12 @@ class BungieAPI:
             Chemin du fichier de sortie.
         data : dict
             Contenu à sauvegarder.
+        indent : int | None, optional
+            Indentation pour le JSON (None = compact).
         """
         with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            json.dump(data, f, ensure_ascii=False, indent=indent)
+
 
     def download_manifest_definitions(self):
         """
@@ -196,7 +198,7 @@ class BungieAPI:
             "lang": self.lang,
             "paths": {k: lang_paths[k] for k in DEFINITION if k in lang_paths}
         }
-        self._save_json(self.MANIFEST_FILE, manifest_data)
+        self._save_json(self.MANIFEST_FILE, manifest_data, indent=2)
 
         # Télécharge les définitions
         for def_name in DEFINITION:
@@ -216,34 +218,3 @@ class BungieAPI:
                 print(f"[HTTP ERROR] {def_response.status_code} pour {def_name}")
 
         return version
-
-    def get_definition_entity(self, definition: str, entity_hash: int):
-        """
-        Recherche locale d’un hash dans une définition donnée.
-        Simule le comportement de `Destiny2.GetDestinyEntityDefinition`.
-
-        Parameters
-        ----------
-        definition : str
-            Nom de la définition (ex: "DestinyInventoryItemDefinition").
-        entity_hash : int
-            Hash numérique de l’item ou entité.
-
-        Returns
-        -------
-        dict | None
-            Données de l’entité trouvée, ou None si absente.
-        """
-        file_path = os.path.join("data/definitions", f"{definition}.json")
-        data = self._load_json(file_path)
-
-        if data is None:
-            print(f"[ERREUR] La définition {definition} n’est pas disponible localement.")
-            return None
-
-        entity_hash = str(entity_hash)  # Bungie stocke les clés en string
-        entity = data.get(entity_hash)
-
-        if entity is None:
-            print(f"[INFO] Hash {entity_hash} introuvable dans {definition}.")
-        return entity
