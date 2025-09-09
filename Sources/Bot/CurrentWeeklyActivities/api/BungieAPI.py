@@ -68,7 +68,6 @@ class BungieAPI:
             Réponse JSON de l’API en dict si succès, None sinon.
         """
         url = f"{self.BASE_URL}{endpoint}"
-        print(f"[REQUEST] Manifest ...")
         response = self.session.get(url)
 
         if response.status_code != 200:
@@ -86,6 +85,8 @@ class BungieAPI:
         Récupère les informations du personnage avec cache de 24h
         stocké directement dans le JSON via "timestamp".
         """
+
+        print(f"[REQUEST] CharacterActivities ...")
         if not all([self.membership_type, self.destiny_membership_id, self.character_id]):
             print("[ERREUR] membership_type, destiny_membership_id ou character_id non défini.")
             return None
@@ -117,7 +118,7 @@ class BungieAPI:
         # Ajoute le timestamp dans les données avant de sauvegarder
         response_data = data["Response"]
         response_data["timestamp"] = datetime.now().isoformat()
-        self._save_json(output_file, response_data)
+        self._save_json(output_file, response_data, indent=2)
         print(f"[OK] Données sauvegardées dans CharacterActivities.json")
         return response_data
 
@@ -172,6 +173,7 @@ class BungieAPI:
             Version du manifest téléchargé ou None en cas d’échec.
         """
         data = self._get(self.MANIFEST_ENDPOINT)
+        print(f"[REQUEST] Manifest ...")
         if not data or "Response" not in data:
             return None
 

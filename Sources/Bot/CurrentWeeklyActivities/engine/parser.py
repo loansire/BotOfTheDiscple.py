@@ -3,7 +3,7 @@ import json
 from Sources.Bot.CurrentWeeklyActivities.engine.definitions import RewardItem, ActivityReward, Activity, ActivityInteractable
 
 # ton JSON brut
-with open("bungie_activities.json", "r") as f:
+with open("../data/activities/CharacterActivities.json", "r") as f:
     data = json.load(f)
 
 activities_data = data["activities"]["data"]["availableActivities"]
@@ -34,3 +34,16 @@ for act in activities_data:
     ))
 
 interactables = [ActivityInteractable(**i) for i in interactables_data]
+
+
+print("=== Liste des activités disponibles ===")
+for act in activities:
+    print(f"- Activity {act.activityHash}, Light recommandé: {act.recommendedLight}")
+    if act.visibleRewards:
+        for reward in act.visibleRewards:
+            for item in reward.rewardItems:
+                print(f"   → Loot: itemHash={item.itemHash}, quantité={item.quantity}")
+
+print("\n=== Interactables ===")
+for inter in interactables:
+    print(f"- Interactable {inter.activityInteractableHash} (index {inter.activityInteractableElementIndex})")
