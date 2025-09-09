@@ -1,5 +1,3 @@
-from dataclasses import dataclass, field
-
 DEFINITION = [
     "DestinyActivityDefinition",
     "DestinyActivityInteractableDefinition",
@@ -17,6 +15,38 @@ DEFINITION = [
     "DestinyPlugSetDefinition"
 ]
 
+# region CharacterActivitesDataClass
+from dataclasses import dataclass, field
+
+@dataclass
+class RewardItem:
+    itemHash: int
+    quantity: int
+
+@dataclass
+class ActivityReward:
+    rewardItems: list = field(default_factory=list)  # liste de RewardItem
+
+@dataclass
+class Activity:
+    activityHash: int
+    isNew: bool
+    canLead: bool
+    canJoin: bool
+    isCompleted: bool
+    isVisible: bool
+    recommendedLight: int = None
+    difficultyTier: int = None
+    modifierHashes: list = field(default_factory=list)   # Hash to DestinyActivityModifierDefinition
+    visibleRewards: list = field(default_factory=list)   # liste de ActivityReward
+
+@dataclass
+class ActivityInteractable:
+    activityInteractableHash: int
+    activityInteractableElementIndex: int
+# endregion
+
+# region DefinitionsDataClass
 @dataclass
 class DestinyActivityDefinition:
     hash: int
@@ -29,23 +59,23 @@ class DestinyActivityDefinition:
     original_icon: str = ""
     releaseIcon: str = ""
     activityLightLevel: int = -1
-    destinationHash: int = -1 #Hash to DestinyDestinationDefinition
-    placeHash: int = -1 #Hash to DestinyPlaceDefinition
+    destinationHash: int = -1 # Hash to DestinyDestinationDefinition
+    placeHash: int = -1 # Hash to DestinyPlaceDefinition
     pgcrImage: str = ""
-    rewards: list[int] = field(default_factory=list) #Hash to DestinyInventoryItemDefinition
-    modifierHashes: list[int] = field(default_factory=list) #Hash to DestinyActivityModifierDefinition
+    rewards: list[int] = field(default_factory=list) # Hash to DestinyInventoryItemDefinition
+    modifierHashes: list[int] = field(default_factory=list) # Hash to DestinyActivityModifierDefinition
 
 @dataclass
 class DestinyActivityInteractableDefinition:
     hash: int
-    activity_hashes: list[int] = field(default_factory=list) #Hash to DestinyActivityDefinition
+    activity_hashes: list[int] = field(default_factory=list) # Hash to DestinyActivityDefinition
 
 @dataclass
 class DestinyDestinationDefinition:
     hash: int
     name: str = ""
     description: str = ""
-    placeHash: int = -1 #Hash to DestinyPlaceDefinition
+    placeHash: int = -1 # Hash to DestinyPlaceDefinition
 
 @dataclass
 class DestinyPlaceDefinition:
@@ -58,14 +88,14 @@ class DestinyActivityGraphDefinition:
     hash: int
     node_name: str = ""
     node_description: str = ""
-    activityHash: list[int] = field(default_factory=list) #Hash to DestinyActivityDefinition
+    activityHash: list[int] = field(default_factory=list) # Hash to DestinyActivityDefinition
 
 @dataclass
 class DestinyInventoryItemDefinition:
     hash: int
     description: str = ""
     name: str = ""
-    collectibleHash: int = -1 #Hash to DestinyCollectibleDefinition
+    collectibleHash: int = -1 # Hash to DestinyCollectibleDefinition
     icon: str = ""
     iconWatermark: str = ""
     iconWatermarkFeatured: str = ""
@@ -74,8 +104,8 @@ class DestinyInventoryItemDefinition:
     itemTypeDisplayName: str = ""
 
     #socketTypeHash: int = -1 # ??
-    #singleInitialItemHash: int = 0 #Hash to DestinyInventoryItemDefinition
-    #randomizedPlugSetHash: int = -1 #Hash to DestinyPlugSetDefinition
+    #singleInitialItemHash: int = 0 # Hash to DestinyInventoryItemDefinition
+    #randomizedPlugSetHash: int = -1 # Hash to DestinyPlugSetDefinition
 
 @dataclass
 class DestinyActivityModifierDefinition:
@@ -85,7 +115,9 @@ class DestinyActivityModifierDefinition:
     icon: str = ""
     icon_1: str = ""
     icon_2: str = ""
+# endregion
 
+# à ajouter plus tard ?
 """
 @dataclass
 class DestinySandboxPerkDefinition:
@@ -101,18 +133,19 @@ class DestinyCollectibleDefinition:
     name: str = ""
     icon: str = ""
     sourceString: str = ""
-    itemHash: int = -1 #Hash to DestinyInventoryItemDefinition
+    itemHash: int = -1 # Hash to DestinyInventoryItemDefinition
     
 @dataclass
 class DestinyPlugSetDefinition:
     hash: int
-    plugItemHash: int = -1 #Hash to DestinyInventoryItemDefinition
+    plugItemHash: int = -1 # Hash to DestinyInventoryItemDefinition
 """
 
+# à corriger et ajouter plus tard
 """
 @dataclass
 class DestinyExoticMissionDefinition:
-    hash: list[int] = field(default_factory=list) #Hash to DestinyActivityDefinition
+    hash: list[int] = field(default_factory=list) # Hash to DestinyActivityDefinition
     name: str = ""
     weapon: list[
         name: str = "",
