@@ -77,7 +77,6 @@ class DestinyInventoryItemDefinition:
     #singleInitialItemHash: int = 0 #Hash to DestinyInventoryItemDefinition
     #randomizedPlugSetHash: int = -1 #Hash to DestinyPlugSetDefinition
 
-
 @dataclass
 class DestinyActivityModifierDefinition:
     hash: int
@@ -108,4 +107,23 @@ class DestinyCollectibleDefinition:
 class DestinyPlugSetDefinition:
     hash: int
     plugItemHash: int = -1 #Hash to DestinyInventoryItemDefinition
+"""
+
+"""
+@dataclass
+class DestinyExoticMissionDefinition:
+    hash: list[int] = field(default_factory=list) #Hash to DestinyActivityDefinition
+    name: str = ""
+    weapon: list[
+        name: str = "",
+        hash: int = -1,
+        lightgg: str = "",
+        foundry: str = "",
+        type: str = "",
+        emote: str = ""
+    ]
+
+@dataclass
+class DestinyLostSectorDefinition:
+
 """

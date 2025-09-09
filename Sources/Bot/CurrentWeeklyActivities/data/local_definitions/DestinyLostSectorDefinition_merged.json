@@ -1,0 +1,964 @@
+[
+  {
+    "name": "Repos de l'aphélie",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 2571435841,
+        "name": "Repos de l'aphélie",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 11,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 2,
+          "Chancellement": 2
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 2571435846,
+        "name": "Repos de l'aphélie",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 10,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 4,
+          "Chancellement": 3
+        }
+      }
+    }
+  },
+  {
+    "name": "Cave de lumière stellaire",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 457172842,
+        "name": "Cave de lumière stellaire",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": 18,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 1,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 457172845,
+        "name": "Cave de lumière stellaire",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": 28,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 3,
+          "Chancellement": 5
+        }
+      }
+    }
+  },
+  {
+    "name": "Baie des souhaits noyés",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 628527324,
+        "name": "Baie des souhaits noyés",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 1,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 2,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 628527323,
+        "name": "Baie des souhaits noyés",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 1,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 3,
+          "Chancellement": 4
+        }
+      }
+    }
+  },
+  {
+    "name": "La Carrière",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 1344654780,
+        "name": "La Carrière",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": 1,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": null,
+          "Chancellement": 2
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 1344654779,
+        "name": "La Carrière",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": null,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 4,
+          "Perturbation": null,
+          "Chancellement": 4
+        }
+      }
+    }
+  },
+  {
+    "name": "Quai aérien IV",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 55186263,
+        "name": "Quai aérien IV",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 4,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 1,
+          "Perturbation": null,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 55186256,
+        "name": "Quai aérien IV",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 2,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 1,
+          "Perturbation": null,
+          "Chancellement": 5
+        }
+      }
+    }
+  },
+  {
+    "name": "Site de fouilles XII",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 3350278559,
+        "name": "Site de fouilles XII",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 1,
+          "Perturbation": null,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 3350278552,
+        "name": "Site de fouilles XII",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": null,
+          "Chancellement": 5
+        }
+      }
+    }
+  },
+  {
+    "name": "Antre des charognards",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 144485114,
+        "name": "Antre des charognards",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": 3,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 144485117,
+        "name": "Antre des charognards",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": 5,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Précepte doré",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 2983905025,
+        "name": "Précepte doré",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": 4,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 1,
+          "Perturbation": null,
+          "Chancellement": 2
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 2983905030,
+        "name": "Précepte doré",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 5,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": null,
+          "Chancellement": 3
+        }
+      }
+    }
+  },
+  {
+    "name": "Delta hydroponique",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 1869786712,
+        "name": "Delta hydroponique",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": null,
+          "Chancellement": 2
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 1869786719,
+        "name": "Delta hydroponique",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": null,
+          "Chancellement": 4
+        }
+      }
+    }
+  },
+  {
+    "name": "Stimulodrome",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 584726932,
+        "name": "Stimulodrome",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 6,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": 2,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 584726931,
+        "name": "Stimulodrome",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 5,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 4,
+          "Perturbation": 3,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "La Déchirure",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 4269987990,
+        "name": "La Déchirure",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 10,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": null,
+          "Chancellement": 2
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 4269987985,
+        "name": "La Déchirure",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 10,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": null,
+          "Chancellement": 3
+        }
+      }
+    }
+  },
+  {
+    "name": "Perdition",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 1962464165,
+        "name": "Perdition",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 2,
+          "Cryo-électriques": 22,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": 2,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 1962464162,
+        "name": "Perdition",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 2,
+          "Cryo-électriques": 22,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 4,
+          "Perturbation": 2,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Bunker E15",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 3981864036,
+        "name": "Bunker E15",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 2,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 1,
+          "Perturbation": 3,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 3981864035,
+        "name": "Bunker E15",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 2,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": 5,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Abysse caché",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 4044885806,
+        "name": "Abysse caché",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": 3,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": 1,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 4044885801,
+        "name": "Abysse caché",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": 3,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": 5,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Labyrinthe de Veles",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 2310698359,
+        "name": "Labyrinthe de Veles",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": null,
+          "Cryo-électriques": 4,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": null,
+          "Chancellement": 1
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 2310698352,
+        "name": "Labyrinthe de Veles",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": null,
+          "Cryo-électriques": 2,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 5,
+          "Perturbation": null,
+          "Chancellement": 5
+        }
+      }
+    }
+  },
+  {
+    "name": "Jardin de l'Exode 2A",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 2504276275,
+        "name": "Jardin de l'Exode 2A",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 4,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": 2,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 2504276276,
+        "name": "Jardin de l'Exode 2A",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 3,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 5,
+          "Perturbation": 4,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Révélation K1",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 1174061510,
+        "name": "Révélation K1",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 4,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 4,
+          "Perturbation": null,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 1174061505,
+        "name": "Révélation K1",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 7,
+          "Perturbation": null,
+          "Chancellement": 3
+        }
+      }
+    }
+  },
+  {
+    "name": "Quartiers du personnel K1",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 1525311382,
+        "name": "Quartiers du personnel K1",
+        "shields": {
+          "Solaires": 10,
+          "Abyssaux": null,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": 2,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 1525311377,
+        "name": "Quartiers du personnel K1",
+        "shields": {
+          "Solaires": 10,
+          "Abyssaux": null,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 4,
+          "Perturbation": 6,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Logistique K1",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 3229581111,
+        "name": "Logistique K1",
+        "shields": {
+          "Solaires": 8,
+          "Abyssaux": null,
+          "Cryo-électriques": 3,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": 2,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 3229581104,
+        "name": "Logistique K1",
+        "shields": {
+          "Solaires": 8,
+          "Abyssaux": null,
+          "Cryo-électriques": 3,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 4,
+          "Perturbation": 6,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Communion K1",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 1956131630,
+        "name": "Communion K1",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": 2,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": 2,
+          "Chancellement": null
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 1956131625,
+        "name": "Communion K1",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": null,
+          "Cryo-électriques": null,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 4,
+          "Perturbation": 6,
+          "Chancellement": null
+        }
+      }
+    }
+  },
+  {
+    "name": "Sépulcre",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 212477861,
+        "name": "Sépulcre",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 3,
+          "Perturbation": null,
+          "Chancellement": 1
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 212477858,
+        "name": "Sépulcre",
+        "shields": {
+          "Solaires": 2,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 5,
+          "Perturbation": null,
+          "Chancellement": 3
+        }
+      }
+    }
+  },
+  {
+    "name": "Extraction",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 1509764568,
+        "name": "Extraction",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 5,
+          "Cryo-électriques": 7,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 1,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 1509764575,
+        "name": "Extraction",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": 5,
+          "Cryo-électriques": 2,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 4,
+          "Chancellement": 3
+        }
+      }
+    }
+  },
+  {
+    "name": "Métamorphose",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 283251614,
+        "name": "Métamorphose",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": null,
+          "Cryo-électriques": 2,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 3,
+          "Chancellement": 2
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 283251609,
+        "name": "Métamorphose",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": null,
+          "Cryo-électriques": 4,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 3,
+          "Chancellement": 4
+        }
+      }
+    }
+  },
+  {
+    "name": "Les Profondeurs brisées",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 2875391872,
+        "name": "Les Profondeurs brisées",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 3,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 2875391879,
+        "name": "Les Profondeurs brisées",
+        "shields": {
+          "Solaires": null,
+          "Abyssaux": null,
+          "Cryo-électriques": 0,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 5,
+          "Chancellement": 3
+        }
+      }
+    }
+  },
+  {
+    "name": "Les Profondeurs fleurissantes",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 3995113176,
+        "name": "Les Profondeurs fleurissantes",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": 15,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 2,
+          "Chancellement": 3
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 3995113183,
+        "name": "Les Profondeurs fleurissantes",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": 15,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": null,
+          "Perturbation": 3,
+          "Chancellement": 6
+        }
+      }
+    }
+  },
+  {
+    "name": "Les Profondeurs oubliées",
+    "difficulties": {
+      "Légende": {
+        "activityHash": 699527776,
+        "name": "Les Profondeurs oubliées",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": null,
+          "Chancellement": 2
+        }
+      },
+      "Maîtrise": {
+        "activityHash": 699527783,
+        "name": "Les Profondeurs oubliées",
+        "shields": {
+          "Solaires": 1,
+          "Abyssaux": null,
+          "Cryo-électriques": 1,
+          "Stasiques": null,
+          "Filobscures": null
+        },
+        "champions": {
+          "Brise-bouclier": 2,
+          "Perturbation": null,
+          "Chancellement": 2
+        }
+      }
+    }
+  }
+]
