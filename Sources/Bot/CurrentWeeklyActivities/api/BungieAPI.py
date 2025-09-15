@@ -1,3 +1,5 @@
+from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo
 import requests
 import os
 import json
@@ -82,9 +84,20 @@ class BungieAPI:
 
     def get_character_profile(self, components: list = [204]):
         """
-        Récupère les informations du personnage avec cache de 24h
-        stocké directement dans le JSON via "timestamp".
+        Récupère les informations du personnage avec cache de 24h,
+        stocké directement dans le JSON via "timestamp" fixé à 18h/19h FR.
         """
+
+        def _get_reset_timestamp_france():
+            """Retourne le dernier reset (18h hiver / 19h été, heure de Paris)."""
+            tz_paris = ZoneInfo("Europe/Paris")
+            now = datetime.now(tz_paris)
+
+            reset_hour = 19 if now.dst() else 18
+            reset_today = datetime.combine(now.date(), time(reset_hour, 0, 0), tzinfo=tz_paris)
+
+            # Si l'heure actuelle est avant le reset du jour, on prend celui de la veille
+            return reset_today if now >= reset_today else reset_today - timedelta(days=1)
 
         print(f"[REQUEST] CharacterActivities ...")
         if not all([self.membership_type, self.destiny_membership_id, self.character_id]):
@@ -98,9 +111,10 @@ class BungieAPI:
         cached_data = self._load_json(output_file)
         if cached_data and "timestamp" in cached_data:
             timestamp = datetime.fromisoformat(cached_data["timestamp"])
-            if datetime.now() - timestamp < timedelta(hours=24):
+            tz_paris = ZoneInfo("Europe/Paris")
+
+            if datetime.now(tz_paris) - timestamp < timedelta(hours=24):
                 print("[CACHE] Données CharacterActivities valides (<24h), lecture depuis le fichier.")
-                # Supprime le champ timestamp avant de retourner les données
                 cached_data.pop("timestamp")
                 return cached_data
 
@@ -115,9 +129,10 @@ class BungieAPI:
             print(f"[ERREUR] Impossible de récupérer les données du personnage {self.character_id}.")
             return None
 
-        # Ajoute le timestamp dans les données avant de sauvegarder
+        # Ajoute le timestamp aligné sur l'heure de reset
         response_data = data["Response"]
-        response_data["timestamp"] = datetime.now().isoformat()
+        response_data["timestamp"] = _get_reset_timestamp_france().isoformat()
+
         self._save_json(output_file, response_data, indent=2)
         print(f"[OK] Données sauvegardées dans CharacterActivities.json")
         return response_data
