@@ -1,6 +1,8 @@
 import base64
 import requests
 import certifi
+
+from Sources.Bot.CurrentWeeklyActivities.api import ApiKey
 from Sources.LostSector.Html.HtmlDefines import OUTPUT_JPEG_PATH
 
 # === CONFIGURATION ===

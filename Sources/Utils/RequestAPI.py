@@ -1,5 +1,7 @@
 import requests
 
+from Sources.Bot.CurrentWeeklyActivities.api import ApiKey
+
 api_key = ApiKey.bungie_api
 headers = {
         "X-API-Key": api_key

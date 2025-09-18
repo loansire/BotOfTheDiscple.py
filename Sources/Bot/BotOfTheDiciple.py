@@ -31,16 +31,16 @@ async def on_ready():
         print(f'Command: {command.name}, Description: {command.description}')
     print(f'\n')
 
-    try:
+    #try:
         # Actualisation du Secteur oublié du jour lorsque le bot s'initialise
-        ActivityManager.GetLatestActivities(Config.NOACTIVITY)
-        upload_image_to_github()
+        #ActivityManager.GetLatestActivities(Config.NOACTIVITY)
+        #upload_image_to_github()
         # Démarrer la tâche de mise à jour quotidienne à 19h si GenerateActivity() réussit
-        daily_update.start()
-    except Exception as e:
-        print(f'Une erreur est survenue lors de l\'exécution de GenerateActivity: {e}')
+        #daily_update.start()
+    #except Exception as e:
+        #print(f'Une erreur est survenue lors de l\'exécution de GenerateActivity: {e}')
 
-    # Tester toutes les 10 minutes si de nouveaux articles sont sortis
+    # Tester toutes les 1 minutes si de nouveaux articles sont sortis
     recurring_update.start()
 
 
