@@ -5,6 +5,7 @@ from discord.ext import tasks
 
 from Sources.ActivityManager import ActivityManager
 from Sources.Bot.AlertMessageBuilder import load_alert_channels, save_alert_channels, wait_until_target, publish_alerts
+from Sources.Bot.CurrentWeeklyActivities.api import ApiKey
 from Sources.Bot.ImageToGitPage import upload_image_to_github
 from Sources.Bot.MaintenanceUpdater import *
 from Sources.Bot.ActivityRandomizer import *
@@ -500,7 +501,7 @@ async def daily_update():
     print("Fin de la mise à jour quotidienne.\n")
 # endregion
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=1)
 async def recurring_update():
     await NewArticleTest()
 
