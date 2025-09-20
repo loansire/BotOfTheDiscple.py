@@ -26,7 +26,7 @@ async def save_news_alerts(news_alerts):
 
 
 async def NewArticleTest():
-    heure_fr = datetime.now(ZoneInfo("Europe/Paris")).strftime("%d/m%/y% - %H:%M")
+    heure_fr = datetime.now(ZoneInfo("Europe/Paris")).strftime("%d/%m/%y - %H:%M")
     print(f"[{heure_fr}]Début de la vérification récurrente.")
     try:
         # Récupérer les derniers articles TWID et Destiny 2 Update
