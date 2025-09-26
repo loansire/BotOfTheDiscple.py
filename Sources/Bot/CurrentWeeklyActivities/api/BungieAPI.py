@@ -174,7 +174,6 @@ class BungieAPI:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=indent)
 
-
     def download_manifest_definitions(self):
         """
         Télécharge et met en cache le manifest Destiny 2,
@@ -235,3 +234,47 @@ class BungieAPI:
                 print(f"[HTTP ERROR] {def_response.status_code} pour {def_name}")
 
         return version
+
+    def get_bungie_rss_articles(self, language: str = "fr", page_token: str = "0", includebody: bool = False, categoryfilter: str = ""):
+        """
+        Récupère les articles officiels Bungie.net via l'endpoint NewsArticles.
+
+        Parameters
+        ----------
+        language : str, optional
+            Langue du flux (par défaut "fr").
+        page_token : str, optional
+            Numéro de page (par défaut "0").
+        includebody : bool, optional
+            Inclure ou non le corps complet des articles (par défaut False).
+        categoryfilter : str, optional
+            Filtre de catégorie (ex: "News", "Updates", par défaut toutes).
+
+        Returns
+        -------
+        dict | None
+            Résultat de l’API Bungie ou None en cas d’échec.
+        """
+        endpoint = f"/Content/Rss/NewsArticles/{page_token}/"
+
+        params = {
+            "lang": language,
+            "includebody": str(includebody).lower(),
+            "categoryfilter": categoryfilter
+        }
+
+        # Construction manuelle de la query string
+        query = "&".join([f"{k}={v}" for k, v in params.items() if v])
+        if query:
+            endpoint = f"{endpoint}?{query}"
+
+        print(f"[REQUEST] Bungie NewsArticles page={page_token}, lang={language}, "
+              f"includebody={includebody}, categoryfilter='{categoryfilter}'")
+
+        data = self._get(endpoint)
+
+        if not data or "Response" not in data:
+            print("[ERREUR] Impossible de récupérer les NewsArticles.")
+            return None
+
+        return data["Response"]
