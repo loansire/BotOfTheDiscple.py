@@ -128,5 +128,17 @@
       "type": "Pistolet Mitrailleur",
       "emote": "<:Pistoletmitrailleur:1305317813094711416>"
     }
+  {
+    "activityName": "Héliostat",
+    "activityHash": 3296536505,
+    "activityHash_2": 4129522203,
+    "weapon": {
+      "name": "Aconit",
+      "hash": 1753923263,
+      "lightgg": "https://www.light.gg/db/fr/items/1753923263",
+      "foundry": "https://d2foundry.gg/w/1753923263",
+      "type": "Epée",
+      "emote": "<:Epee:1305317544684556370>"
+    }
   }
 ]
