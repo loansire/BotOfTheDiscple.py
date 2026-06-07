@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Dispatch d'un embed vers tous les abonnés d'un topic."""
-from typing import Callable
+from typing import Callable, Optional
 
 import discord
 
@@ -8,33 +8,30 @@ from bot.utils.logger import log
 from bot.utils.subscriptions import load_subscriptions
 
 
-def _resolve_destinations(guild: discord.Guild, conf: dict) -> list:
-    dests = []
-    channels = conf.get("channels", {})
-    cid = channels.get("channel_ID")
-    if cid:
-        ch = guild.get_channel(int(cid))
-        if isinstance(ch, discord.TextChannel):
-            dests.append(ch)
-    tid = channels.get("thread_ID")
-    if tid:
-        th = guild.get_thread(int(tid))
-        if isinstance(th, discord.Thread):
-            dests.append(th)
-    return dests
+def _resolve_destination(
+    guild: discord.Guild, dest_id: str, is_thread: bool
+) -> Optional[discord.abc.Messageable]:
+    if is_thread:
+        th = guild.get_thread(int(dest_id))
+        return th if isinstance(th, discord.Thread) else None
+    ch = guild.get_channel(int(dest_id))
+    return ch if isinstance(ch, discord.TextChannel) else None
 
 
 async def publish_to_subscribers(bot: discord.Client, topic: str, build: Callable):
     """`build()` doit renvoyer (embed, files, view) NEUFS à chaque appel
     (un discord.File est consommé après envoi)."""
     subs = load_subscriptions(topic)
-    for guild_id, conf in subs.items():
+    for guild_id, dests in subs.items():
         guild = bot.get_guild(int(guild_id))
         if not guild:
             continue
-        role_id = conf.get("roles")
-        mention = f"<@&{role_id}>" if role_id else None
-        for dest in _resolve_destinations(guild, conf):
+        for dest_id, info in dests.items():
+            dest = _resolve_destination(guild, dest_id, info.get("is_thread", False))
+            if dest is None:
+                continue
+            role_id = info.get("role")
+            mention = f"<@&{role_id}>" if role_id else None
             embed, files, view = build()
             try:
                 if view:

@@ -12,6 +12,7 @@ COGS = (
     "bot.discord.cogs.randomizer",
     "bot.discord.cogs.wishwall",
     "bot.discord.cogs.alerts",
+    "bot.discord.cogs.subscriptions",
 )
 
 

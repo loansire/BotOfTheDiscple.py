@@ -6,7 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 
 # Commandes réservées aux admins (abonnements) → masquées du /help public
-HIDDEN_COMMANDS = {"maintenance-alert", "news-alert"}
+HIDDEN_COMMANDS = {"alerte"}
 
 
 class Help(commands.Cog):

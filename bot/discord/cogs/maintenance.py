@@ -13,17 +13,12 @@ from bot.features.maintenance import (
 )
 from bot.features.maintenance_state import MaintenanceState
 from bot.utils.logger import log
-from bot.utils.subscriptions import subscribe, unsubscribe, current_destination
 
 GAMES = ("destiny", "marathon")
 
 _GAME_CHOICES = [
     app_commands.Choice(name="Destiny 2", value="destiny"),
     app_commands.Choice(name="Marathon", value="marathon"),
-]
-_ACTION_CHOICES = [
-    app_commands.Choice(name="S'abonner", value="subscribe"),
-    app_commands.Choice(name="Se désabonner", value="unsubscribe"),
 ]
 
 
@@ -94,59 +89,6 @@ class Maintenance(commands.Cog):
         )
 
     # ---------- Commandes ----------
-    @app_commands.command(
-        name="maintenance-alert",
-        description="S'abonner / se désabonner aux alertes de maintenance d'un jeu.",
-    )
-    @app_commands.describe(
-        jeu="Jeu concerné",
-        action="Action à effectuer",
-        role="Rôle à mentionner lors des alertes (optionnel, abonnement uniquement)",
-    )
-    @app_commands.choices(jeu=_GAME_CHOICES, action=_ACTION_CHOICES)
-    @app_commands.default_permissions(administrator=True)
-    async def maintenance_alert(
-            self,
-            interaction: discord.Interaction,
-            jeu: str,
-            action: str,
-            role: discord.Role = None,
-    ):
-        topic = f"maintenance_{jeu}"
-        guild_id = str(interaction.guild.id)
-        channel_id = str(interaction.channel.id)
-        is_thread = isinstance(interaction.channel, discord.Thread)
-        label = GAME_LABELS[jeu]
-
-        if action == "subscribe":
-            role_id = str(role.id) if role else None
-            if subscribe(topic, guild_id, channel_id, is_thread, role_id):
-                suffix = f" — mention <@&{role_id}>" if role_id else ""
-                await interaction.response.send_message(
-                    f":white_check_mark: <#{channel_id}> abonné aux alertes de maintenance **{label}**{suffix}.",
-                    ephemeral=True,
-                )
-            else:
-                existing = current_destination(topic, guild_id)
-                where = f" (<#{existing}>)" if existing else ""
-                await interaction.response.send_message(
-                    f":warning: Ce serveur a déjà un salon configuré pour la maintenance **{label}**{where}. "
-                    f"Désabonnez-le d'abord (action *Se désabonner*) avant d'en configurer un nouveau.",
-                    ephemeral=True,
-                )
-        else:
-            removed = unsubscribe(topic, guild_id, channel_id, is_thread)
-            if removed:
-                await interaction.response.send_message(
-                    f":wastebasket: <#{channel_id}> désabonné des alertes de maintenance **{label}**.",
-                    ephemeral=True,
-                )
-            else:
-                await interaction.response.send_message(
-                    f":x: Ce salon n'était pas abonné aux alertes de maintenance **{label}**.",
-                    ephemeral=True,
-                )
-
     @app_commands.command(
         name="maintenance",
         description="Affiche la maintenance à venir d'un jeu.",
