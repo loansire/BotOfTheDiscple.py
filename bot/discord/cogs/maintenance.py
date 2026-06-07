@@ -13,7 +13,7 @@ from bot.features.maintenance import (
 )
 from bot.features.maintenance_state import MaintenanceState
 from bot.utils.logger import log
-from bot.utils.subscriptions import subscribe, unsubscribe
+from bot.utils.subscriptions import subscribe, unsubscribe, current_destination
 
 GAMES = ("destiny", "marathon")
 
@@ -37,8 +37,9 @@ class Maintenance(commands.Cog):
         self.poll.cancel()
 
     # ---------- Tâche récurrente ----------
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=1)
     async def poll(self):
+        log.debug("[Maintenance] poll #%d", self.poll.current_loop)
         for game in GAMES:
             try:
                 await self._check_game(game)
@@ -97,10 +98,20 @@ class Maintenance(commands.Cog):
         name="maintenance-alert",
         description="S'abonner / se désabonner aux alertes de maintenance d'un jeu.",
     )
-    @app_commands.describe(jeu="Jeu concerné", action="Action à effectuer")
+    @app_commands.describe(
+        jeu="Jeu concerné",
+        action="Action à effectuer",
+        role="Rôle à mentionner lors des alertes (optionnel, abonnement uniquement)",
+    )
     @app_commands.choices(jeu=_GAME_CHOICES, action=_ACTION_CHOICES)
     @app_commands.default_permissions(administrator=True)
-    async def maintenance_alert(self, interaction: discord.Interaction, jeu: str, action: str):
+    async def maintenance_alert(
+            self,
+            interaction: discord.Interaction,
+            jeu: str,
+            action: str,
+            role: discord.Role = None,
+    ):
         topic = f"maintenance_{jeu}"
         guild_id = str(interaction.guild.id)
         channel_id = str(interaction.channel.id)
@@ -108,11 +119,21 @@ class Maintenance(commands.Cog):
         label = GAME_LABELS[jeu]
 
         if action == "subscribe":
-            subscribe(topic, guild_id, channel_id, is_thread)
-            await interaction.response.send_message(
-                f":white_check_mark: <#{channel_id}> abonné aux alertes de maintenance **{label}**.",
-                ephemeral=True,
-            )
+            role_id = str(role.id) if role else None
+            if subscribe(topic, guild_id, channel_id, is_thread, role_id):
+                suffix = f" — mention <@&{role_id}>" if role_id else ""
+                await interaction.response.send_message(
+                    f":white_check_mark: <#{channel_id}> abonné aux alertes de maintenance **{label}**{suffix}.",
+                    ephemeral=True,
+                )
+            else:
+                existing = current_destination(topic, guild_id)
+                where = f" (<#{existing}>)" if existing else ""
+                await interaction.response.send_message(
+                    f":warning: Ce serveur a déjà un salon configuré pour la maintenance **{label}**{where}. "
+                    f"Désabonnez-le d'abord (action *Se désabonner*) avant d'en configurer un nouveau.",
+                    ephemeral=True,
+                )
         else:
             removed = unsubscribe(topic, guild_id, channel_id, is_thread)
             if removed:

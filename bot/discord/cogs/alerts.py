@@ -9,7 +9,7 @@ from bot.embeds.news import build_news_alert
 from bot.features.news import get_latest_article
 from bot.features.news_state import NewsState
 from bot.utils.logger import log
-from bot.utils.subscriptions import subscribe, unsubscribe
+from bot.utils.subscriptions import subscribe, unsubscribe, current_destination
 
 # type d'alerte → (keyword Bungie, topic d'abonnement, libellé)
 NEWS_TYPES = {
@@ -42,6 +42,7 @@ class NewsAlerts(commands.Cog):
     # ---------- Polling ----------
     @tasks.loop(minutes=1)
     async def poll(self):
+        log.debug("[NewsAlerts] poll #%d", self.poll.current_loop)
         for alert_type, cfg in NEWS_TYPES.items():
             try:
                 await self._check(alert_type, cfg)
@@ -75,10 +76,20 @@ class NewsAlerts(commands.Cog):
         name="news-alert",
         description="S'abonner / se désabonner aux alertes d'actualités Destiny.",
     )
-    @app_commands.describe(type="Type d'actualité", action="Action à effectuer")
+    @app_commands.describe(
+        type="Type d'actualité",
+        action="Action à effectuer",
+        role="Rôle à mentionner lors des alertes (optionnel, abonnement uniquement)",
+    )
     @app_commands.choices(type=_TYPE_CHOICES, action=_ACTION_CHOICES)
     @app_commands.default_permissions(administrator=True)
-    async def news_alert(self, interaction: discord.Interaction, type: str, action: str):
+    async def news_alert(
+            self,
+            interaction: discord.Interaction,
+            type: str,
+            action: str,
+            role: discord.Role = None,
+    ):
         cfg = NEWS_TYPES[type]
         topic = cfg["topic"]
         label = cfg["label"]
@@ -87,11 +98,21 @@ class NewsAlerts(commands.Cog):
         is_thread = isinstance(interaction.channel, discord.Thread)
 
         if action == "subscribe":
-            subscribe(topic, guild_id, channel_id, is_thread)
-            await interaction.response.send_message(
-                f":white_check_mark: <#{channel_id}> abonné aux alertes **{label}**.",
-                ephemeral=True,
-            )
+            role_id = str(role.id) if role else None
+            if subscribe(topic, guild_id, channel_id, is_thread, role_id):
+                suffix = f" — mention <@&{role_id}>" if role_id else ""
+                await interaction.response.send_message(
+                    f":white_check_mark: <#{channel_id}> abonné aux alertes **{label}**{suffix}.",
+                    ephemeral=True,
+                )
+            else:
+                existing = current_destination(topic, guild_id)
+                where = f" (<#{existing}>)" if existing else ""
+                await interaction.response.send_message(
+                    f":warning: Ce serveur a déjà un salon configuré pour les alertes **{label}**{where}. "
+                    f"Désabonnez-le d'abord avant d'en configurer un nouveau.",
+                    ephemeral=True,
+                )
         else:
             removed = unsubscribe(topic, guild_id, channel_id, is_thread)
             msg = (
