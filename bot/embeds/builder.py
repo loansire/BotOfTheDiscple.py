@@ -9,6 +9,7 @@ def build_embed(
     description: str | None = None,
     color: int | discord.Color = discord.Color.default(),
     author: str | None = None,
+    author_url: str | None = None,
     author_icon_url: str | None = None,
     thumbnail_url: str | None = None,
     image_url: str | None = None,
@@ -17,16 +18,10 @@ def build_embed(
     footer_icon_url: str | None = None,
     add_date_to_footer: bool = False,
 ) -> discord.Embed:
-    """Construit un embed Discord générique.
-
-    `fields` : liste de dicts {"name", "value", "inline"(optionnel)}.
-    Les fichiers (images/thumbnails) sont à attacher par l'appelant via
-    discord.File, et référencés ici par `attachment://nom.ext`.
-    """
     embed = discord.Embed(description=description, color=color)
 
     if author:
-        embed.set_author(name=author, icon_url=author_icon_url)
+        embed.set_author(name=author, url=author_url, icon_url=author_icon_url)
     if thumbnail_url:
         embed.set_thumbnail(url=thumbnail_url)
     if image_url:
