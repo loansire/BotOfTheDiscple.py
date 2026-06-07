@@ -1,0 +1,94 @@
+{
+  "voeux": [
+    {
+      "nom": "Premier vœu - Clé éthérée",
+      "description": "Ce vœu **donne une clé éthérée**. Permet d'ouvrir un coffre supplémentaire à la fin du raid. Ne fonctionne qu'une fois par compte.",
+      "image": "Voeu1.webp",
+      "BoutonName": "1️⃣ - Clé éthérée"
+    },
+    {
+      "nom": "Deuxième vœu - Coffre Clé Scintillante",
+      "description": "Ce vœu **fait apparaître un coffre** entre l'étape 3 (Morgeth) et l'étape 4 (Le Caveau). Pour être ouvert, ce coffre nécessite une **clé scintillante** qui se récupère aléatoirement en terminant le raid. Ce coffre est le seul moyen de récupérer le **vaisseau du raid**.",
+      "image": "Voeu2.webp",
+      "BoutonName": "2️⃣ - Coffre Clé Scintillante"
+    },
+    {
+      "nom": "Troisième vœu - Emblème",
+      "description": "Ce vœu Débloque l'emblème **\"Nombres de Puissance\"**",
+      "image": "Voeu3.webp",
+      "BoutonName": "3️⃣ - Emblème"
+    },
+    {
+      "nom": "Quatrième vœu - Save Shuro-Chi",
+      "description": "Ce vœu **vous téléporte à la 2eme étape du raid** du raid, à l'affrontement avec **Shuro-Chi**. Il permet également de revenir en arrière pour **récupérer le coffre secret sous le pont**.",
+      "image": "Voeu4.webp",
+      "BoutonName": "4️⃣ - Save Shuro-Chi"
+    },
+    {
+      "nom": "Cinquième vœu - Save Morgeth",
+      "description": "Ce vœu **vous téléporte à la 3eme étape du raid** du raid, à l'affrontement avec **Morgeth**.",
+      "image": "Voeu5.webp",
+      "BoutonName": "5️⃣ - Save Morgeth"
+    },
+    {
+      "nom": "Sixième vœu - Save Caveau",
+      "description": "Ce vœu **vous téléporte à la 4eme étape du raid** du raid, à l'affrontement du **Caveau**.",
+      "image": "Voeu6.webp",
+      "BoutonName": "6️⃣ - Save Caveau"
+    },
+    {
+      "nom": "Septième vœu - Save Riven",
+      "description": "Ce vœu **vous téléporte à la 5eme étape du raid** du raid, à l'affrontement avec **Riven**.",
+      "image": "Voeu7.webp",
+      "BoutonName": "7️⃣ - Save Riven"
+    },
+    {
+      "nom": "Huitième vœu - Musique",
+      "description": "Ce vœu **joue la musique** *Hope for the Future* de *Paul McCartney*.",
+      "image": "Voeu8.webp",
+      "BoutonName": "8️⃣ - Musique"
+    },
+    {
+      "nom": "Neuvième vœu - Voix de Failsafe",
+      "description": "Ce vœu **active les commentaires de Failsafe** tout au long du raid.",
+      "image": "Voeu9.webp",
+      "BoutonName": "9️⃣ - Voix Failsafe"
+    },
+    {
+      "nom": "Dixième vœu - Voix du Vagabond",
+      "description": "Ce vœu **active les commentaires du Vagabond** tout au long du raid.",
+      "image": "Voeu10.webp",
+      "BoutonName": "🔟 - Voix Vagabond"
+    },
+    {
+      "nom": "Onzième vœu - Head Shot Confettis",
+      "description": "Ce vœu **active une pluie de confettis** lors des frags de précision dans tout le raid.",
+      "image": "Voeu11.webp",
+      "BoutonName": "1️⃣1️⃣ - Head Shot Confettis"
+    },
+    {
+      "nom": "Douzième vœu - Masque de Gardien",
+      "description": "Ce vœu **modifie la tête de votre gardien** dans le raid. Il s'agit d'une modification uniquement cosmétique qui n'a aucune influence sur le déroulement du raid.",
+      "image": "Voeu12.webp",
+      "BoutonName": "1️⃣2️⃣ - Masque de Gardien"
+    },
+    {
+      "nom": "Treizième vœu - Tentative de Pétra",
+      "description": "Ce vœu active la **Tentative de Pétra** du raid: Si un joueur meurt, l'escouade complète est renvoyée en orbite et la progression du raid est remise à zéro.",
+      "image": "Voeu13.webp",
+      "BoutonName": "1️⃣3️⃣ - Tentative de Pétra"
+    },
+    {
+      "nom": "Quatorzième vœu - Apparition des Œufs altérés",
+      "description": "Ce vœu **fait apparaître 5 œufs altérés** dans le raid.",
+      "image": "Voeu14.webp",
+      "BoutonName": "1️⃣4️⃣ - Œufs altérés"
+    },
+    {
+      "nom": "Quinzième vœu - Dernier Vœu de Riven",
+      "description": "Ce vœu nous a été offert par Riven, et nous a permis de **suivre le Témoin dans le Voyageur**.",
+      "image": "Voeu15.webp",
+      "BoutonName": "1️⃣5️⃣ - Dernier Vœu de Riven"
+    }
+  ]
+}
