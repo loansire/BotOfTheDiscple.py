@@ -5,7 +5,7 @@ from typing import Callable, Optional
 import discord
 
 from bot.utils.logger import log
-from bot.utils.subscriptions import load_subscriptions
+from bot.utils.subscriptions import iter_subscribers
 
 
 def _resolve_destination(
@@ -21,22 +21,21 @@ def _resolve_destination(
 async def publish_to_subscribers(bot: discord.Client, topic: str, build: Callable):
     """`build()` doit renvoyer (embed, files, view) NEUFS à chaque appel
     (un discord.File est consommé après envoi)."""
-    subs = load_subscriptions(topic)
-    for guild_id, dests in subs.items():
+    for guild_id, dest_id, info in iter_subscribers(topic):
         guild = bot.get_guild(int(guild_id))
         if not guild:
             continue
-        for dest_id, info in dests.items():
-            dest = _resolve_destination(guild, dest_id, info.get("is_thread", False))
-            if dest is None:
-                continue
-            role_id = info.get("role")
-            mention = f"<@&{role_id}>" if role_id else None
-            embed, files, view = build()
-            try:
-                if view:
-                    await dest.send(content=mention, embed=embed, files=files, view=view)
-                else:
-                    await dest.send(content=mention, embed=embed, files=files)
-            except discord.DiscordException as e:
-                log.error(f"[Publisher] Envoi échoué dans {dest} ({topic}) : {e}")
+        dest = _resolve_destination(guild, dest_id, info.get("is_thread", False))
+        if dest is None:
+            continue
+
+        role_id = info.get("role")
+        mention = f"<@&{role_id}>" if role_id else None
+        embed, files, view = build()
+        try:
+            if view:
+                await dest.send(content=mention, embed=embed, files=files, view=view)
+            else:
+                await dest.send(content=mention, embed=embed, files=files)
+        except discord.DiscordException as e:
+            log.error(f"[Publisher] Envoi échoué dans {dest} ({topic}) : {e}")

@@ -61,7 +61,15 @@ class Subscriptions(commands.Cog):
             )
         else:
             role_id = str(role.id) if role else None
-            subscribe(topic, guild_id, dest_id, is_thread, role_id)
+            subscribe(
+                topic,
+                guild_id,
+                dest_id,
+                is_thread=is_thread,
+                guild_name=interaction.guild.name,
+                channel_name=interaction.channel.name,
+                role_id=role_id,
+            )
             suffix = f" — mention <@&{role_id}>" if role_id else ""
             await interaction.response.send_message(
                 f":white_check_mark: <#{dest_id}> abonné aux alertes **{label}**{suffix}.",
