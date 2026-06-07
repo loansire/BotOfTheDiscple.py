@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 import discord
 from discord.ui import Button, View
 
@@ -74,7 +75,7 @@ class ArticleLanguageView(View):
             reload_btn.callback = self._on_reload
             self.add_item(reload_btn)
 
-    async def _refresh(self, interaction: discord.Interaction, language: str):
+    async def _swap_language(self, interaction: discord.Interaction, language: str):
         article, is_both = await get_latest_article(language, self.keyword)
         if not article:
             await interaction.response.edit_message(
@@ -89,17 +90,17 @@ class ArticleLanguageView(View):
         await interaction.response.edit_message(embed=build_news_embed(article), view=self)
 
     async def _on_en(self, interaction: discord.Interaction):
-        await self._refresh(interaction, "en")
+        await self._swap_language(interaction, "en")
 
     async def _on_fr(self, interaction: discord.Interaction):
-        await self._refresh(interaction, "fr")
+        await self._swap_language(interaction, "fr")
 
     async def _on_reload(self, interaction: discord.Interaction):
         _, is_both = await get_latest_article("fr", self.keyword)
         if not is_both:
             await interaction.response.send_message(content=_FR_UNAVAILABLE, ephemeral=True)
         else:
-            await self._refresh(interaction, "fr")
+            await self._swap_language(interaction, "fr")
 
 
 def build_article_message(
