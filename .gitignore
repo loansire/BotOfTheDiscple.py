@@ -7,4 +7,10 @@ __pycache__/
 # Secrets
 .env
 .env.example
+
+# CacheData
 /Ressources/AlertDatabase
+/Ressources/Manifest
+dump_weekly.json
+dump_weekly.py
+Smoke lot1.py
