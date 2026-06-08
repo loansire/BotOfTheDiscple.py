@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """Composants interactifs de /botconfig (Components V2).
 
-Logique de staging : chaque interaction ne modifie QUE l'état `pending` de la
-vue puis reconstruit une vue neuve (edit_message). Rien n'est persisté tant
-que l'utilisateur n'a pas cliqué sur « Valider ».
+Navigation à 2 niveaux :
+- page principale (current_topic=None) : résumé + bouton ⚙️ par topic
+- page détail (current_topic=<topic>) : listes déroulantes + Valider/Annuler
+
+Staging : chaque interaction ne modifie QUE l'état `pending` (ou la navigation)
+puis reconstruit une vue neuve. Rien n'est persisté tant que l'utilisateur n'a
+pas cliqué sur « Valider ».
 """
 import copy
 
@@ -22,19 +26,28 @@ _CHANNEL_TYPES = [
     discord.ChannelType.news_thread,
 ]
 
-# Les valeurs d'un ChannelSelect sont des AppCommandChannel/Thread (objets
-# partiels) → on détecte les threads via .type, jamais via isinstance(Thread).
 _THREAD_TYPES = {
     discord.ChannelType.public_thread,
     discord.ChannelType.private_thread,
     discord.ChannelType.news_thread,
 }
 
+# Sentinelle : « garder la page courante » lors d'un rebuild.
+_KEEP = object()
 
-def _rebuild(view, pending):
-    """Instancie une vue neuve avec le même persisted et le nouveau pending."""
+
+def _rebuild(view, pending, current_topic=_KEEP):
+    """Instancie une vue neuve avec le même persisted et le nouveau pending.
+
+    `current_topic` :
+        - _KEEP  → on reste sur la page courante (cas des selects)
+        - None   → page principale
+        - <str>  → page détail du topic
+    """
     from bot.discord.configbot_view import ConfigView
-    return ConfigView(view.user, view.guild, view.persisted, pending)
+    if current_topic is _KEEP:
+        current_topic = view.current_topic
+    return ConfigView(view.user, view.guild, view.persisted, pending, current_topic)
 
 
 # ── Selects par topic ──────────────────────────────────────────────────
@@ -68,7 +81,6 @@ class ConfigChannelSelect(ui.ChannelSelect):
             slot["channel_id"] = str(ch.id)
             slot["is_thread"] = ch.type in _THREAD_TYPES
         else:
-            # Salon retiré → on désactive le topic et on purge le rôle associé
             slot["channel_id"] = None
             slot["is_thread"] = False
             slot["role_id"] = None
@@ -103,11 +115,41 @@ class ConfigRoleSelect(ui.RoleSelect):
         await interaction.response.edit_message(view=_rebuild(view, pending))
 
 
-# ── Boutons d'action ───────────────────────────────────────────────────
+# ── Navigation ─────────────────────────────────────────────────────────
+
+
+class TopicSettingsButton(ui.Button):
+    """Accessoire ⚙️ d'une Section : ouvre la page détail du topic."""
+
+    def __init__(self, topic: str):
+        super().__init__(emoji="⚙️", style=discord.ButtonStyle.secondary)
+        self.topic = topic
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        await interaction.response.edit_message(
+            view=_rebuild(view, copy.deepcopy(view.pending), current_topic=self.topic)
+        )
+
+
+class BackButton(ui.Button):
+    """Retour à la page principale (conserve le pending tel quel)."""
+
+    def __init__(self):
+        super().__init__(label="Retour", emoji="◀️", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        await interaction.response.edit_message(
+            view=_rebuild(view, copy.deepcopy(view.pending), current_topic=None)
+        )
+
+
+# ── Boutons d'action (page détail) ─────────────────────────────────────
 
 
 class ValidateButton(ui.Button):
-    """Persiste l'ensemble du pending puis rafraîchit (le bouton disparaît)."""
+    """Persiste tout le pending puis revient à la page principale."""
 
     def __init__(self):
         super().__init__(label="Valider", emoji="💾", style=discord.ButtonStyle.success)
@@ -131,23 +173,24 @@ class ValidateButton(ui.Button):
             )
         log.info(f"[Guild {gid}] Configuration des alertes mise à jour par {interaction.user}")
 
-        # persisted = pending → plus de diff → bouton Valider masqué
+        # persisted ← pending, retour accueil (page « propre »)
+        from bot.discord.configbot_view import ConfigView
         saved = copy.deepcopy(view.pending)
-        new_view = _rebuild(view, saved)
-        new_view.persisted = saved
+        new_view = ConfigView(view.user, guild, saved, copy.deepcopy(saved), current_topic=None)
         await interaction.response.edit_message(view=new_view)
-        await interaction.followup.send(
-            "✅ Configuration enregistrée.", ephemeral=True
-        )
+        await interaction.followup.send("✅ Configuration enregistrée.", ephemeral=True)
 
 
 class ResetButton(ui.Button):
-    """Annule les changements non validés (pending ← persisted)."""
+    """Annule les changements non validés (pending ← persisted) et revient
+    à la page principale."""
 
     def __init__(self):
         super().__init__(label="Annuler", emoji="↩️", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
-        pending = copy.deepcopy(view.persisted)
-        await interaction.response.edit_message(view=_rebuild(view, pending))
+        reverted = copy.deepcopy(view.persisted)
+        await interaction.response.edit_message(
+            view=_rebuild(view, reverted, current_topic=None)
+        )

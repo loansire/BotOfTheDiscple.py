@@ -7,7 +7,7 @@ import discord
 def build_embed(
     *,
     description: str | None = None,
-    color: int | discord.Color = discord.Color.default(),
+    color: int | discord.Color = discord.Color.dark_red(),
     author: str | None = None,
     author_url: str | None = None,
     author_icon_url: str | None = None,

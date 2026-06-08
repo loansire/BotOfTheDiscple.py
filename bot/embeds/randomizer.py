@@ -20,7 +20,7 @@ def build_randomizer_embed(
     """Construit l'embed du tirage + la liste des fichiers à attacher."""
     embed = discord.Embed(
         title=f"{title} Aléatoire Sélectionné",
-        colour=0xFFAE00,
+        colour=discord.Color.dark_red(),
         timestamp=datetime.now(),
     )
 
