@@ -2,9 +2,9 @@
 """État persistant anti-spam, par jeu."""
 import json
 
-from bot.config import RESOURCES_DIR
+from bot.config import ALERTS_DIR
 
-STATE_PATH = RESOURCES_DIR / "Maintenance" / "state.json"
+STATE_PATH = ALERTS_DIR / "state.json"
 
 
 class MaintenanceState:

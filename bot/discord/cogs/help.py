@@ -5,8 +5,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-# Commandes réservées aux admins (abonnements) → masquées du /help public
-HIDDEN_COMMANDS = {"alerte"}
+# Commandes réservées aux admins → masquées du /help public
+HIDDEN_COMMANDS = {"botconfig"}
 
 
 class Help(commands.Cog):
