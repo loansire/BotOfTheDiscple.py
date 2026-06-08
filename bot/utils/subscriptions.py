@@ -41,19 +41,19 @@ STORE_PATH = ALERTS_DIR / "subscriptions.json"
 # ──────────────────────────────────────────────────────────────────────
 TOPICS: dict[str, dict] = {
     "maintenance_destiny": {
-        "label": "Maintenance Destiny 2",
-        "emoji": "<:destlogo:710283624619966484>",
+        "label": "Maintenance - Destiny 2",
+        "emoji": "<:D2:1270042220627497020>",
     },
     "maintenance_marathon": {
-        "label": "Maintenance Marathon",
-        "emoji": "<:marathon:1111270580923142164>",
+        "label": "Maintenance - Marathon",
+        "emoji": "<:Marathon:1513347065881559273>",
     },
     "news_patch_note": {
-        "label": "Patch Note D2",
+        "label": "Patch Note - Destiny 2",
         "emoji": "📝",
     },
     "news_twid": {
-        "label": "TWID/TWAB",
+        "label": "This Week in Destiny",
         "emoji": "📰",
     },
 }
