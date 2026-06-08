@@ -15,7 +15,7 @@ FOOTER_ICON_PATH = RESOURCES_DIR / "footer_icon.png"
 GAME_META = {
     "destiny": {
         "article_locale": "en-us",
-        "author_name": "@help.bungie.net",
+        "author_name": "@help.bungie.net | Généré par BotOfTheDisciple",
         "author_url": "https://help.bungie.net",
         "emoji_id": "710283624619966484",
         "thumb_dir": "Destiny2",
@@ -23,7 +23,7 @@ GAME_META = {
     },
     "marathon": {
         "article_locale": "en-us",
-        "author_name": "@help.marathonthegame",
+        "author_name": "@help.marathonthegame | Généré par BotOfTheDisciple",
         "author_url": "https://help.marathonthegame.com",
         "emoji_id": "1111270580923142164",
         "thumb_dir": "Marathon",
