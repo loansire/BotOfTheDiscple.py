@@ -63,13 +63,13 @@ def _build_main_page(persisted: dict, pending: dict) -> list:
     dirty = is_dirty(persisted, pending)
     container = ui.Container(
         ui.TextDisplay(
-            "# ⚙️ Configuration des alertes\n"
-            "-# Clique sur ⚙️ à droite d'un type d'alerte pour le configurer."
+            "# Configuration des alertes\n"
+            "-# Clique sur ⚙️ pour le configurer chaque topic."
         ),
-        ui.Separator(),
         accent_color=_ACCENT_DIRTY if dirty else _ACCENT,
     )
     for topic in TOPICS:
+        container.add_item(ui.Separator())
         container.add_item(_summary_section(persisted, pending, topic))
     return [container]
 
