@@ -56,6 +56,14 @@ TOPICS: dict[str, dict] = {
         "label": "This Week in Destiny",
         "emoji": "📰",
     },
+    "weekly_raid_dungeon": {
+        "label": "Raids & Donjons de la semaine",
+        "emoji": "<:Raid:1338595321319788595>",
+    },
+    "daily_lost_sector": {
+        "label": "Secteurs Oubliés du jour",
+        "emoji": "<:Secteur:1270042203577778246>",
+    },
 }
 
 

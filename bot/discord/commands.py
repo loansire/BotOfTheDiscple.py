@@ -13,6 +13,7 @@ COGS = (
     "bot.discord.cogs.wishwall",
     "bot.discord.cogs.alerts",
     "bot.discord.cogs.configbot",
+    "bot.discord.cogs.weekly",
 )
 
 
