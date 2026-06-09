@@ -45,8 +45,13 @@
         "image": "Ressources/DungeonRandomizer/DungeonImage/Vesper.webp"
     },
     "Dogme fragmenté": {
-        "emoji": "<:Donjon:1338595206706233458>",
+        "emoji": "<:Dogme:1341339537221353492>",
         "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Dogme.webp",
         "image": "Ressources/DungeonRandomizer/DungeonImage/Dogme.webp"
+    }
+	"Équilibre": {
+        "emoji": "<:Equilibre:1513709145348509726>",
+        "thumbnail": "Ressources/DungeonRandomizer/DungeonEmotes/Equilibre.webp",
+        "image": "Ressources/DungeonRandomizer/DungeonImage/Equilibre.webp"
     }
 }
