@@ -4,12 +4,14 @@
 Deux régimes de publication :
 - publish_to_subscribers : événementiel — un nouveau message par événement
   (news, maintenance). Conserve l'historique.
-- publish_persistent_view : persistant — UN message édité en place
-  (weekly/daily). Pas de re-ping (le rôle éventuel est ignoré).
+- publish_persistent_view : persistant — UN message par abonné, supprimé puis
+  reposté à chaque actualisation. Le repost (et non l'édition) permet de
+  déclencher une notification et donc de ré-activer le ping rôle.
 """
 from typing import Awaitable, Callable, Optional
 
 import discord
+from discord import ui
 
 from bot.utils.logger import log
 from bot.utils.subscriptions import iter_subscribers
@@ -55,14 +57,19 @@ async def publish_persistent_view(
     content_hash: str,
     state,
 ):
-    """Publie/édite UN message persistant par abonné du topic.
+    """Publie/reposte UN message persistant par abonné du topic.
 
     `build_view()` est une factory asynchrone renvoyant (view, files) NEUFS à
     chaque appel. `content_hash` identifie le contenu : si identique au dernier
-    publié, on n'édite pas. `state` est un WeeklyMessageState.
+    publié, on ne fait rien. `state` est un WeeklyMessageState.
 
-    Message Components V2 : à l'édition, on remet explicitement content/embeds
-    à vide et on ré-attache les fichiers (contrainte discord.py)."""
+    Comportement : si un message précédent existe, il est SUPPRIMÉ avant le
+    repost — c'est ce repost qui (re)déclenche la notification et le ping rôle.
+
+    Ping rôle (Components V2) : un message LayoutView ne peut pas porter de
+    `content` (rejeté par l'API Discord). La mention est donc ajoutée comme
+    `TextDisplay` dans la vue, et `allowed_mentions` n'autorise QUE la mention
+    de rôle voulue (aucun ping parasite si aucun rôle n'est configuré)."""
     for guild_id, dest_id, info in iter_subscribers(topic):
         guild = bot.get_guild(int(guild_id))
         if not guild:
@@ -74,23 +81,32 @@ async def publish_persistent_view(
         saved = state.get(guild_id, topic)
         message_id = saved.get("message_id")
         if message_id and saved.get("hash") == content_hash:
-            continue  # contenu inchangé → rien à éditer
+            continue  # contenu inchangé → rien à faire
 
+        # 1) Suppression de l'ancien message (s'il existe encore)
+        if message_id:
+            try:
+                old_msg = await dest.fetch_message(int(message_id))
+                await old_msg.delete()
+            except discord.NotFound:
+                pass  # déjà supprimé → on reposte simplement
+            except discord.DiscordException as e:
+                log.warning(
+                    f"[Publisher] Suppression ancien message échouée ({topic}) : {e}"
+                )
+
+        # 2) Construction de la vue neuve + injection éventuelle du ping rôle
         view, files = await build_view()
-        try:
-            if message_id:
-                try:
-                    msg = await dest.fetch_message(int(message_id))
-                    await msg.edit(
-                        view=view, attachments=files, content=None, embeds=[]
-                    )
-                    state.set(guild_id, topic, message_id=message_id, content_hash=content_hash)
-                    state.save()
-                    continue
-                except discord.NotFound:
-                    pass  # message supprimé entre-temps → on reposte
+        role_id = info.get("role")
+        if role_id:
+            view.add_item(ui.TextDisplay(f"<@&{role_id}>"))
+            allowed = discord.AllowedMentions(roles=True)
+        else:
+            allowed = discord.AllowedMentions.none()
 
-            sent = await dest.send(view=view, files=files)
+        # 3) Repost et mémorisation du nouvel état
+        try:
+            sent = await dest.send(view=view, files=files, allowed_mentions=allowed)
             state.set(guild_id, topic, message_id=str(sent.id), content_hash=content_hash)
             state.save()
         except discord.DiscordException as e:

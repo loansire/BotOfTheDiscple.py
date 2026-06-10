@@ -13,8 +13,9 @@ de la configuration déclarative (subscriptions.json). Fichier unique :
   "last_reset": "<iso>"   # dernier reset quotidien déjà traité
 }
 
-Le `hash` évite de ré-éditer un message dont le contenu n'a pas changé
+Le `hash` évite de reposter un message dont le contenu n'a pas changé
 (le tableau raids/donjons est statique ; les secteurs changent chaque jour).
+Le refresh manuel passe par `invalidate()` pour forcer un repost.
 """
 import json
 
@@ -51,6 +52,17 @@ class WeeklyMessageState:
         guilds = self._data.setdefault("guilds", {})
         guild = guilds.setdefault(str(guild_id), {})
         guild[topic] = {"message_id": message_id, "hash": content_hash}
+
+    def invalidate(self):
+        """Efface tous les hashes pour forcer un repost au prochain publish.
+
+        Les `message_id` sont CONSERVÉS : le publisher en a besoin pour
+        supprimer les anciens messages avant de reposter. Utilisé par le
+        refresh manuel (/weekly-refresh)."""
+        for guild in self._data.get("guilds", {}).values():
+            for topic_data in guild.values():
+                topic_data.pop("hash", None)
+        self.save()
 
     # ── Dernier reset traité ──────────────────────────────────────────
     @property

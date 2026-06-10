@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Cog weekly/daily : publie un message persistant (édité) par topic,
-calé sur la détection du reset quotidien Bungie.
+"""Cog weekly/daily : publie un message persistant (supprimé puis reposté)
+par topic, calé sur la détection du reset quotidien Bungie.
 
-- weekly_raid_dungeon : liste raids/donjons (statique → édité seulement si change)
-- daily_lost_sector   : secteurs du jour (change chaque reset → édité)
+- weekly_raid_dungeon : liste raids/donjons (statique → reposté seulement si change)
+- daily_lost_sector   : secteurs du jour (change chaque reset → reposté)
+
+Le repost (et non l'édition) permet de re-déclencher le ping rôle. Le poll
+automatique conserve la comparaison de hash (pas de repost si rien ne change,
+donc pas de spam ping) ; /weekly-refresh force le repost via state.invalidate().
 """
 import hashlib
 
@@ -34,7 +38,7 @@ class Weekly(commands.Cog):
     def cog_unload(self):
         self.poll.cancel()
 
-    # ---------- Détection du reset ----------
+    # ---------- Détection du reset (automatique) ----------
     @tasks.loop(minutes=1)
     async def poll(self):
         current = last_reset().isoformat()
@@ -87,7 +91,7 @@ class Weekly(commands.Cog):
     async def _build_ls(self, ls):
         return await build_lost_sectors_view(ls)
 
-    # ---------- Commande admin ----------
+    # ---------- Commande admin (manuelle) ----------
     @app_commands.command(
         name="weekly-refresh",
         description="Republie/actualise les activités weekly & daily.",
@@ -97,6 +101,9 @@ class Weekly(commands.Cog):
     async def weekly_refresh(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         try:
+            # Force le repost : on invalide les hashes pour que publish
+            # supprime + reposte systématiquement (réactive le ping rôle).
+            self.state.invalidate()
             await self._publish_all()
         except Exception as e:
             log.error(f"[Weekly] /weekly-refresh a échoué : {e}")
