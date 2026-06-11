@@ -23,6 +23,9 @@ from bot.features.weekly import get_lost_sectors, get_raid_dungeon
 from bot.features.weekly.state import WeeklyMessageState
 from bot.utils.logger import log
 
+# Seul utilisateur autorisé à déclencher /weekly-refresh (auteur du bot).
+OWNER_ID = 222465158075777035
+
 
 def _content_hash(parts) -> str:
     """Hash court et stable d'une liste de chaînes (ordre indépendant)."""
@@ -102,6 +105,12 @@ class Weekly(commands.Cog):
     @app_commands.guild_only()
     @app_commands.default_permissions(administrator=True)
     async def weekly_refresh(self, interaction: discord.Interaction):
+        if interaction.user.id != OWNER_ID:
+            await interaction.response.send_message(
+                "🚫 Cette commande est réservée à l'auteur du bot.", ephemeral=True
+            )
+            return
+
         await interaction.response.defer(ephemeral=True)
         try:
             # Force le repost : on invalide les hashes pour que publish
