@@ -123,15 +123,14 @@ _MAX_RAIDS = 4
 _MAX_DUNGEONS = 3
 
 
-async def _build_activity_container(
-    title: str, groups: list[WeeklyActivity], files: list[discord.File], ratio: float
-) -> ui.Container:
-    """Un container : titre + (par activité) nom puis bandeau pgcr recadré."""
-    container = ui.Container(accent_color=_ACCENT)
-    container.add_item(ui.TextDisplay(title))
-
+async def _add_activities(
+    container: ui.Container,
+    groups: list[WeeklyActivity],
+    files: list[discord.File],
+    ratio: float,
+) -> None:
+    """Ajoute (par activité) le nom puis le bandeau pgcr recadré au container."""
     for g in groups:
-        container.add_item(ui.Separator())
         container.add_item(ui.TextDisplay(f"### {_activity_emoji(g)} {g.base_name}"))
         if g.pgcr_image:
             banner = await get_banner(g.pgcr_image, ratio)
@@ -142,15 +141,44 @@ async def _build_activity_container(
                     ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
                 )
 
+
+async def _build_activity_container(
+    title: str,
+    rotation: list[WeeklyActivity],
+    permanent: list[WeeklyActivity],
+    permanent_label: str,
+    files: list[discord.File],
+    ratio: float,
+) -> ui.Container:
+    """Un container : titre, sous-section « En rotation » PUIS sous-section
+    permanente (rotation au-dessus). Chaque sous-section : séparateur + en-tête
+    + (par activité) nom puis bandeau pgcr."""
+    container = ui.Container(accent_color=_ACCENT)
+    container.add_item(ui.TextDisplay(title))
+
+    if rotation:
+        container.add_item(ui.Separator())
+        container.add_item(ui.TextDisplay("**En rotation**"))
+        await _add_activities(container, rotation, files, ratio)
+
+    if permanent:
+        container.add_item(ui.Separator())
+        container.add_item(ui.TextDisplay(f"**{permanent_label}**"))
+        await _add_activities(container, permanent, files, ratio)
+
     return container
 
 
 async def build_raid_dungeon_view(
     groups: list[WeeklyActivity], ratio: float = BANNER_RATIO
 ) -> tuple[WeeklyView, list[discord.File]]:
-    """Deux containers (Raids puis Donjons), chacun avec liste + bandeaux."""
-    raids = [g for g in groups if g.activity_type == "Raid"]
-    dungeons = [g for g in groups if g.activity_type == "Donjon"]
+    """Deux containers (Raids puis Donjons), chacun avec liste + bandeaux.
+
+    On n'affiche QUE les activités *featured* de la semaine (challenges actifs,
+    farmables) — cf. WeeklyActivity.featured."""
+    featured = [g for g in groups if g.featured]
+    raids = [g for g in featured if g.activity_type == "Raid"]
+    dungeons = [g for g in featured if g.activity_type == "Donjon"]
 
     if _MAX_RAIDS is not None:
         raids = raids[:_MAX_RAIDS]
@@ -162,12 +190,29 @@ async def build_raid_dungeon_view(
 
     if raids:
         children.append(await _build_activity_container(
-            f"# {_RD_EMOJI} Raids de la semaine", raids, files, ratio
+            f"# {_RD_EMOJI} Raids de la semaine",
+            [g for g in raids if not g.permanent],
+            [g for g in raids if g.permanent],
+            "Raid permanent",
+            files, ratio,
         ))
     if dungeons:
         children.append(await _build_activity_container(
-            f"# {_DJ_EMOJI} Donjons de la semaine", dungeons, files, ratio
+            f"# {_DJ_EMOJI} Donjons de la semaine",
+            [g for g in dungeons if not g.permanent],
+            [g for g in dungeons if g.permanent],
+            "Donjon permanent",
+            files, ratio,
         ))
+
+    # Repli : aucune activité featured détectée → on évite une vue vide.
+    if not children:
+        fallback = ui.Container(accent_color=_ACCENT)
+        fallback.add_item(ui.TextDisplay(
+            f"# {_RD_EMOJI} Raids & Donjons de la semaine\n"
+            "-# Aucune activité featured détectée pour le moment."
+        ))
+        children.append(fallback)
 
     return WeeklyView(*children), files
 

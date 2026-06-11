@@ -41,11 +41,17 @@ def _def_modifier_hashes(adef: dict) -> list[int]:
 # ── Raids & Donjons ────────────────────────────────────────────────────
 
 
-def group_raid_dungeon(activities: list[dict], manifest) -> list[WeeklyActivity]:
+def group_raid_dungeon(
+    activities: list[dict], manifest, permanent_hashes: set[int] | None = None
+) -> list[WeeklyActivity]:
     """Filtre les raids/donjons et regroupe par nom de base.
 
     Les variantes (Standard/Maîtrise) sont conservées avec leurs infos
-    (lumière, palier de difficulté, modifiers) issues du profil."""
+    (lumière, palier de difficulté, modifiers, nb de challenges actifs) issues
+    du profil. `active_challenges` sert de signal "featured" (cf.
+    WeeklyActivity.featured). `permanent_hashes` (set d'activity_hash) marque les
+    groupes "permanents" (contenu le plus récent, défini hors code)."""
+    permanent_hashes = permanent_hashes or set()
     groups: dict[str, WeeklyActivity] = {}
 
     for raw in activities:
@@ -74,7 +80,11 @@ def group_raid_dungeon(activities: list[dict], manifest) -> list[WeeklyActivity]
             recommended_light=_norm_light(raw.get("recommendedLight")),
             difficulty_tier=raw.get("difficultyTier"),
             modifier_hashes=list(raw.get("modifierHashes", [])),
+            active_challenges=len(raw.get("challenges", [])),
         ))
+
+        if ah in permanent_hashes:
+            group.permanent = True
 
     return list(groups.values())
 

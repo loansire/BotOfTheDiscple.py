@@ -2,7 +2,8 @@
 """Cog weekly/daily : publie un message persistant (supprimé puis reposté)
 par topic, calé sur la détection du reset quotidien Bungie.
 
-- weekly_raid_dungeon : liste raids/donjons (statique → reposté seulement si change)
+- weekly_raid_dungeon : raids/donjons *featured* de la semaine (reposté quand
+  le set featured change)
 - daily_lost_sector   : secteurs du jour (change chaque reset → reposté)
 
 Le repost (et non l'édition) permet de re-déclencher le ping rôle. Le poll
@@ -63,7 +64,9 @@ class Weekly(commands.Cog):
     async def _publish_all(self):
         rd = await get_raid_dungeon()
         if rd:
-            rd_hash = _content_hash(g.base_name for g in rd)
+            # On n'affiche que les featured → le hash ne dépend QUE d'eux, pour
+            # reposter lorsque la rotation featured change (et seulement alors).
+            rd_hash = _content_hash(g.base_name for g in rd if g.featured)
             await publish_persistent_view(
                 self.bot,
                 "weekly_raid_dungeon",

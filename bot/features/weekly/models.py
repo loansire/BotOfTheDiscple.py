@@ -20,6 +20,7 @@ class ActivityVariant:
     recommended_light: int | None = None
     difficulty_tier: int | None = None
     modifier_hashes: list[int] = field(default_factory=list)
+    active_challenges: int = 0  # nb de challenges actifs (signal "featured")
     extra: dict = field(default_factory=dict)  # greffe maison par activity_hash
 
     def to_dict(self) -> dict:
@@ -32,6 +33,8 @@ class ActivityVariant:
             d["recommended_light"] = self.recommended_light
         if self.difficulty_tier is not None:
             d["difficulty_tier"] = self.difficulty_tier
+        if self.active_challenges:
+            d["active_challenges"] = self.active_challenges
         if self.extra:
             d["extra"] = self.extra
         return d
@@ -44,8 +47,19 @@ class WeeklyActivity:
     activity_type: str          # "Raid" / "Donjon"
     type_hash: int
     pgcr_image: str | None = None
+    permanent: bool = False     # contenu permanent (le plus récent), défini via JSON
     variants: list[ActivityVariant] = field(default_factory=list)
     extra: dict = field(default_factory=dict)
+
+    @property
+    def featured(self) -> bool:
+        """Featured cette semaine si au moins une variante a un challenge actif.
+
+        Heuristique : l'API n'expose pas de drapeau "featured" sur le contenu
+        Director ; en revanche seuls les raids/donjons featured (et le contenu
+        le plus récent) ont des challenges actifs (`challenges` non vide dans le
+        composant 204). Seul point à toucher si Bungie change la mécanique."""
+        return any(v.active_challenges > 0 for v in self.variants)
 
     def to_dict(self) -> dict:
         return {
@@ -53,6 +67,8 @@ class WeeklyActivity:
             "activity_type": self.activity_type,
             "type_hash": self.type_hash,
             "pgcr_image": self.pgcr_image,
+            "permanent": self.permanent,
+            "featured": self.featured,
             "variants": [v.to_dict() for v in self.variants],
             "extra": self.extra,
         }

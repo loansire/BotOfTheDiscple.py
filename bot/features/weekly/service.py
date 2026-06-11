@@ -18,6 +18,10 @@ from .models import LostSector, WeeklyActivity
 # Greffe maison (vide par défaut) : { "<activity_hash>": { ... } }
 EXTRA_PATH = RESOURCES_DIR / "Weekly" / "lost_sector_extra.json"
 
+# Activités "permanentes" (contenu le plus récent, toujours actif) : liste de
+# hashes (str) affichés dans une sous-section dédiée. Maintenu hors code.
+PERMANENT_PATH = RESOURCES_DIR / "Weekly" / "permanent_activities.json"
+
 
 def _load_extra() -> dict:
     if EXTRA_PATH.exists():
@@ -27,6 +31,17 @@ def _load_extra() -> dict:
         except (json.JSONDecodeError, OSError) as e:
             log.warning(f"[Weekly] lost_sector_extra.json illisible : {e}")
     return {}
+
+
+def _load_permanent() -> set[int]:
+    """Hashes d'activités permanentes (set d'int). Vide si fichier absent/illisible."""
+    if PERMANENT_PATH.exists():
+        try:
+            with open(PERMANENT_PATH, "r", encoding="utf-8") as f:
+                return {int(h) for h in json.load(f)}
+        except (json.JSONDecodeError, OSError, ValueError, TypeError) as e:
+            log.warning(f"[Weekly] permanent_activities.json illisible : {e}")
+    return set()
 
 
 async def _profile_block() -> dict | None:
@@ -44,7 +59,11 @@ async def get_raid_dungeon() -> list[WeeklyActivity]:
     block = await _profile_block()
     if block is None:
         return []
-    return filters.group_raid_dungeon(block.get("availableActivities", []), manifest)
+    return filters.group_raid_dungeon(
+        block.get("availableActivities", []),
+        manifest,
+        permanent_hashes=_load_permanent(),
+    )
 
 
 async def get_lost_sectors() -> list[LostSector]:
