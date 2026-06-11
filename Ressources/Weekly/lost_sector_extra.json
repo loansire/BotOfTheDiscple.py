@@ -1,3 +1,491 @@
 {
-
+  "2571435841": {
+    "shields": {
+      "Abyssaux": 11
+    },
+    "champions": {
+      "Perturbation": 2,
+      "Chancellement": 2
+    }
+  },
+  "2571435846": {
+    "shields": {
+      "Abyssaux": 10
+    },
+    "champions": {
+      "Perturbation": 4,
+      "Chancellement": 3
+    }
+  },
+  "457172842": {
+    "shields": {
+      "Solaires": 2,
+      "Abyssaux": 18
+    },
+    "champions": {
+      "Perturbation": 1,
+      "Chancellement": 3
+    }
+  },
+  "457172845": {
+    "shields": {
+      "Solaires": 2,
+      "Abyssaux": 28
+    },
+    "champions": {
+      "Perturbation": 3,
+      "Chancellement": 5
+    }
+  },
+  "628527324": {
+    "shields": {
+      "Abyssaux": 1
+    },
+    "champions": {
+      "Perturbation": 2,
+      "Chancellement": 3
+    }
+  },
+  "628527323": {
+    "shields": {
+      "Abyssaux": 1
+    },
+    "champions": {
+      "Perturbation": 3,
+      "Chancellement": 4
+    }
+  },
+  "1344654780": {
+    "shields": {
+      "Solaires": 1,
+      "Abyssaux": 1
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Chancellement": 2
+    }
+  },
+  "1344654779": {
+    "shields": {
+      "Solaires": 1
+    },
+    "champions": {
+      "Brise-bouclier": 4,
+      "Chancellement": 4
+    }
+  },
+  "55186263": {
+    "shields": {
+      "Abyssaux": 4
+    },
+    "champions": {
+      "Brise-bouclier": 1,
+      "Chancellement": 3
+    }
+  },
+  "55186256": {
+    "shields": {
+      "Abyssaux": 2
+    },
+    "champions": {
+      "Brise-bouclier": 1,
+      "Chancellement": 5
+    }
+  },
+  "3350278559": {
+    "shields": {
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 1,
+      "Chancellement": 3
+    }
+  },
+  "3350278552": {
+    "shields": {
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Chancellement": 5
+    }
+  },
+  "144485114": {
+    "shields": {
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Perturbation": 3
+    }
+  },
+  "144485117": {
+    "shields": {
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Perturbation": 5
+    }
+  },
+  "2983905025": {
+    "shields": {
+      "Solaires": 2,
+      "Abyssaux": 4
+    },
+    "champions": {
+      "Brise-bouclier": 1,
+      "Chancellement": 2
+    }
+  },
+  "2983905030": {
+    "shields": {
+      "Abyssaux": 5
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Chancellement": 3
+    }
+  },
+  "1869786712": {
+    "champions": {
+      "Brise-bouclier": 2,
+      "Chancellement": 2
+    }
+  },
+  "1869786719": {
+    "champions": {
+      "Brise-bouclier": 2,
+      "Chancellement": 4
+    }
+  },
+  "584726932": {
+    "shields": {
+      "Abyssaux": 6,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Perturbation": 2
+    }
+  },
+  "584726931": {
+    "shields": {
+      "Abyssaux": 5,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 4,
+      "Perturbation": 3
+    }
+  },
+  "4269987990": {
+    "shields": {
+      "Abyssaux": 10
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Chancellement": 2
+    }
+  },
+  "4269987985": {
+    "shields": {
+      "Abyssaux": 10
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Chancellement": 3
+    }
+  },
+  "1962464165": {
+    "shields": {
+      "Abyssaux": 2,
+      "Cryo-électriques": 22
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Perturbation": 2
+    }
+  },
+  "1962464162": {
+    "shields": {
+      "Abyssaux": 2,
+      "Cryo-électriques": 22
+    },
+    "champions": {
+      "Brise-bouclier": 4,
+      "Perturbation": 2
+    }
+  },
+  "3981864036": {
+    "shields": {
+      "Abyssaux": 2
+    },
+    "champions": {
+      "Brise-bouclier": 1,
+      "Perturbation": 3
+    }
+  },
+  "3981864035": {
+    "shields": {
+      "Abyssaux": 2
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Perturbation": 5
+    }
+  },
+  "4044885806": {
+    "shields": {
+      "Solaires": 2,
+      "Abyssaux": 3
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Perturbation": 1
+    }
+  },
+  "4044885801": {
+    "shields": {
+      "Solaires": 2,
+      "Abyssaux": 3
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Perturbation": 5
+    }
+  },
+  "2310698359": {
+    "shields": {
+      "Solaires": 2,
+      "Cryo-électriques": 4
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Chancellement": 1
+    }
+  },
+  "2310698352": {
+    "shields": {
+      "Solaires": 2,
+      "Cryo-électriques": 2
+    },
+    "champions": {
+      "Brise-bouclier": 5,
+      "Chancellement": 5
+    }
+  },
+  "2504276275": {
+    "shields": {
+      "Abyssaux": 4
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Perturbation": 2
+    }
+  },
+  "2504276276": {
+    "shields": {
+      "Abyssaux": 3
+    },
+    "champions": {
+      "Brise-bouclier": 5,
+      "Perturbation": 4
+    }
+  },
+  "1174061510": {
+    "shields": {
+      "Cryo-électriques": 4
+    },
+    "champions": {
+      "Brise-bouclier": 4,
+      "Chancellement": 3
+    }
+  },
+  "1174061505": {
+    "shields": {
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 7,
+      "Chancellement": 3
+    }
+  },
+  "1525311382": {
+    "shields": {
+      "Solaires": 10
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Perturbation": 2
+    }
+  },
+  "1525311377": {
+    "shields": {
+      "Solaires": 10
+    },
+    "champions": {
+      "Brise-bouclier": 4,
+      "Perturbation": 6
+    }
+  },
+  "3229581111": {
+    "shields": {
+      "Solaires": 8,
+      "Cryo-électriques": 3
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Perturbation": 2
+    }
+  },
+  "3229581104": {
+    "shields": {
+      "Solaires": 8,
+      "Cryo-électriques": 3
+    },
+    "champions": {
+      "Brise-bouclier": 4,
+      "Perturbation": 6
+    }
+  },
+  "1956131630": {
+    "shields": {
+      "Solaires": 1,
+      "Abyssaux": 2
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Perturbation": 2
+    }
+  },
+  "1956131625": {
+    "shields": {
+      "Solaires": 1
+    },
+    "champions": {
+      "Brise-bouclier": 4,
+      "Perturbation": 6
+    }
+  },
+  "212477861": {
+    "shields": {
+      "Solaires": 2,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 3,
+      "Chancellement": 1
+    }
+  },
+  "212477858": {
+    "shields": {
+      "Solaires": 2,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 5,
+      "Chancellement": 3
+    }
+  },
+  "1509764568": {
+    "shields": {
+      "Abyssaux": 5,
+      "Cryo-électriques": 7
+    },
+    "champions": {
+      "Perturbation": 1,
+      "Chancellement": 3
+    }
+  },
+  "1509764575": {
+    "shields": {
+      "Abyssaux": 5,
+      "Cryo-électriques": 2
+    },
+    "champions": {
+      "Perturbation": 4,
+      "Chancellement": 3
+    }
+  },
+  "283251614": {
+    "shields": {
+      "Solaires": 1,
+      "Cryo-électriques": 2
+    },
+    "champions": {
+      "Perturbation": 3,
+      "Chancellement": 2
+    }
+  },
+  "283251609": {
+    "shields": {
+      "Solaires": 1,
+      "Cryo-électriques": 4
+    },
+    "champions": {
+      "Perturbation": 3,
+      "Chancellement": 4
+    }
+  },
+  "2875391872": {
+    "shields": {
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Perturbation": 3,
+      "Chancellement": 3
+    }
+  },
+  "2875391879": {
+    "shields": {
+      "Cryo-électriques": 0
+    },
+    "champions": {
+      "Perturbation": 5,
+      "Chancellement": 3
+    }
+  },
+  "3995113176": {
+    "shields": {
+      "Solaires": 1,
+      "Abyssaux": 15,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Perturbation": 2,
+      "Chancellement": 3
+    }
+  },
+  "3995113183": {
+    "shields": {
+      "Solaires": 1,
+      "Abyssaux": 15,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Perturbation": 3,
+      "Chancellement": 6
+    }
+  },
+  "699527776": {
+    "shields": {
+      "Solaires": 1,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Chancellement": 2
+    }
+  },
+  "699527783": {
+    "shields": {
+      "Solaires": 1,
+      "Cryo-électriques": 1
+    },
+    "champions": {
+      "Brise-bouclier": 2,
+      "Chancellement": 2
+    }
+  }
 }
