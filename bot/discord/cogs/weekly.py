@@ -86,7 +86,7 @@ class Weekly(commands.Cog):
             )
 
     async def _build_rd(self, rd):
-        return build_raid_dungeon_view(rd), []
+        return await build_raid_dungeon_view(rd)
 
     async def _build_ls(self, ls):
         return await build_lost_sectors_view(ls)
