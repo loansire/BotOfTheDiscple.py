@@ -14,6 +14,7 @@ COGS = (
     "bot.discord.cogs.alerts",
     "bot.discord.cogs.configbot",
     "bot.discord.cogs.weekly",
+    "bot.discord.cogs.xur",
 )
 
 

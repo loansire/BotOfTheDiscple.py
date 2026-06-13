@@ -64,6 +64,10 @@ TOPICS: dict[str, dict] = {
         "label": "Secteurs Oubliés du jour",
         "emoji": "<:Secteur:1270042203577778246>",
     },
+    "xur": {
+        "label": "Xûr - Agent des Neuf",
+        "emoji": "<:Xur:1270042203577778246>",
+    },
 }
 
 

@@ -15,6 +15,14 @@ BUNGIE_MEMBERSHIP_TYPE = os.getenv("BUNGIE_MEMBERSHIP_TYPE")
 BUNGIE_MEMBERSHIP_ID = os.getenv("BUNGIE_MEMBERSHIP_ID")
 BUNGIE_CHARACTER_ID = os.getenv("BUNGIE_CHARACTER_ID")
 
+# Identifiants OAuth (client Confidential) — requis UNIQUEMENT pour les
+# endpoints authentifiés (GetVendor → Xûr). Volontairement OPTIONNELS : le bot
+# démarre sans eux ; seule la feature Xûr loggue une erreur si elle tourne sans
+# tokens. Le refresh_token n'est PAS ici (il change à chaque refresh) : il vit
+# dans bungie_tokens.json, géré par bot/bungie/oauth.py.
+BUNGIE_CLIENT_ID = os.getenv("BUNGIE_CLIENT_ID")
+BUNGIE_CLIENT_SECRET = os.getenv("BUNGIE_CLIENT_SECRET")
+
 # Validation au démarrage : on échoue tôt et clairement
 _missing = [
     name
