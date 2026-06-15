@@ -11,9 +11,9 @@ from bot.config import MANIFEST_DIR
 
 # clé interne → (vendor_hash, libellé affiché, emoji custom de catégorie)
 XUR_VENDORS: dict[str, tuple[int, str, str]] = {
-    "weapons": (3751514131, "Armes", "🔫"),
-    "materials": (537912098, "Ressources", "✨"),
-    "armor": (2190858386, "Armures", "🛡️"),
+    "weapons": (3751514131, "Armes", "<:Pistoletmitrailleur:1305317813094711416>"),
+    "materials": (537912098, "Matériaux", "<:Matrice:1270042340324544604>"),
+    "armor": (2190858386, "Armures", "<:Casque:1352430820802957403>"),
 }
 
 # Composant Vendors à demander (sales = items en vente).

@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Cog Xûr : publie l'inventaire hebdomadaire du marchand exotique.
+"""Cog Xûr : publie l'inventaire hebdomadaire du marchand exotique (4 messages).
 
-Multi-message : Xûr peut occuper plusieurs messages (limite Discord 10
-images/message). La publication est gérée ici (pas par publish_persistent_view,
-mono-message) : on supprime les anciens messages mémorisés, on poste les
-nouveaux, et on enregistre tous leurs IDs.
+Structure des messages par guild :
+- Message 1 (STATUT) : « Xûr est là / n'est pas là » + date départ/retour.
+  Persistant — édité in-place, jamais supprimé. Porte le ping rôle au repost
+  du vendredi.
+- Messages 2-4 (CATÉGORIES) : Armes / Armures / Matériaux. Supprimés puis
+  republiés le vendredi ; supprimés le mardi.
 
 Logique calée sur le reset quotidien Bungie (cf. weekly.py) :
-- VENDREDI -> résout les vendors et REPOSTE la série de messages (le repost
-  ré-active la notification + le ping rôle, sur le 1er message seulement).
-- MARDI    -> ÉDITE le 1er message en « Xûr est reparti » et SUPPRIME les
-  autres (édition in-place -> pas de notification).
-- Autres jours -> skip.
+- VENDREDI -> « est là » : édite/poste le statut (+ ping rôle), supprime puis
+  republie les 3 catégories (le repost ré-active la notification).
+- MARDI    -> « n'est pas là » : édite le statut (pas de notif) et supprime
+  les catégories.
+- Autres jours -> skip (Xûr inchangé).
 
 /xur-reset (réservé à l'auteur) force le repost via state.invalidate().
 """
@@ -22,7 +24,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from bot.bungie.reset import last_reset
-from bot.embeds.xur import build_xur_departed_view, build_xur_views
+from bot.embeds.xur import build_xur_category_views, build_xur_status_view
 from bot.features.xur import get_xur, next_arrival_unix, next_departure_unix
 from bot.features.xur.constants import FRIDAY, TUESDAY
 from bot.features.xur.state import TOPIC, XurMessageState
@@ -70,7 +72,7 @@ class Xur(commands.Cog):
                 log.info("[Xûr] Reset du vendredi — publication de l'inventaire.")
                 await self._publish()
             elif weekday == TUESDAY:
-                log.info("[Xûr] Reset du mardi — Xûr est parti, édition.")
+                log.info("[Xûr] Reset du mardi — Xûr est parti.")
                 await self._mark_departed()
             else:
                 log.debug("[Xûr] Reset ordinaire — rien à faire.")
@@ -84,6 +86,56 @@ class Xur(commands.Cog):
     @poll.before_loop
     async def _before_poll(self):
         await self.bot.wait_until_ready()
+
+    # ---------- Helpers messages ----------
+    async def _delete_messages(self, dest, ids) -> None:
+        """Supprime une liste de messages (ignore ceux déjà absents)."""
+        for mid in ids:
+            try:
+                msg = await dest.fetch_message(int(mid))
+                await msg.delete()
+            except discord.NotFound:
+                pass
+            except discord.DiscordException as e:
+                log.warning(f"[Xûr] Suppression message {mid} échouée : {e}")
+
+    async def _upsert_status(
+        self, dest, guild_id, view, role_id, *, repost: bool
+    ) -> None:
+        """Édite le message statut s'il existe, sinon le poste.
+
+        `repost=True` (vendredi) → si le message existe on l'édite (donc pas de
+        nouvelle notif d'arrivée portée par le statut lui-même) ; à la première
+        publication on le poste avec le ping rôle. `repost=False` (mardi) →
+        édition simple, jamais de ping."""
+        status_id = self.state.status_id(guild_id)
+
+        # Tentative d'édition si un message statut est connu.
+        if status_id:
+            try:
+                msg = await dest.fetch_message(int(status_id))
+                await msg.edit(view=view)
+                return
+            except discord.NotFound:
+                log.warning(
+                    f"[Xûr] Message statut {status_id} introuvable (guild {guild_id}) "
+                    "— repost."
+                )
+            except discord.DiscordException as e:
+                log.error(f"[Xûr] Édition statut échouée (guild {guild_id}) : {e}")
+                return
+
+        # Pas de statut connu (ou disparu) → on le poste.
+        if repost and role_id:
+            view.add_item(discord.ui.TextDisplay(f"<@&{role_id}>"))
+            allowed = discord.AllowedMentions(roles=True)
+        else:
+            allowed = discord.AllowedMentions.none()
+        try:
+            sent = await dest.send(view=view, allowed_mentions=allowed)
+            self.state.set(guild_id, status_id=str(sent.id))
+        except discord.DiscordException as e:
+            log.error(f"[Xûr] Envoi statut échoué (guild {guild_id}) : {e}")
 
     # ---------- Publication (vendredi) ----------
     async def _publish(self):
@@ -104,53 +156,56 @@ class Xur(commands.Cog):
             if dest is None:
                 continue
 
-            entry = self.state.get(guild_id)
-            if entry.get("message_ids") and entry.get("hash") == xur_hash:
-                continue  # contenu inchangé -> rien à faire
+            # Contenu inchangé ET catégories déjà présentes → rien à faire.
+            if (
+                self.state.content_hash(guild_id) == xur_hash
+                and self.state.category_ids(guild_id)
+            ):
+                # On rafraîchit tout de même le statut (date de départ).
+                status_view = build_xur_status_view(True, departure_unix=departure)
+                await self._upsert_status(
+                    dest, guild_id, status_view, info.get("role"), repost=True
+                )
+                self.state.save()
+                continue
 
             await self._repost_guild(guild, dest, vendors, departure, info, xur_hash)
 
     async def _repost_guild(self, guild, dest, vendors, departure, info, xur_hash):
-        """Supprime les anciens messages du guild puis poste la nouvelle série."""
-        # 1) Suppression des anciens messages mémorisés.
-        for mid in self.state.get_message_ids(guild.id):
-            try:
-                old = await dest.fetch_message(int(mid))
-                await old.delete()
-            except discord.NotFound:
-                pass
-            except discord.DiscordException as e:
-                log.warning(f"[Xûr] Suppression ancien message échouée : {e}")
-
-        # 2) Construction des vues (1+ par vendor) et post séquentiel.
-        views = await build_xur_views(vendors, departure_unix=departure)
+        """Statut « est là » + suppression/repost des 3 messages catégories."""
+        guild_id = str(guild.id)
         role_id = info.get("role")
-        new_ids: list = []
 
-        for idx, (view, files) in enumerate(views):
-            # Ping rôle uniquement sur le PREMIER message de la série.
-            if idx == 0 and role_id:
-                view.add_item(discord.ui.TextDisplay(f"<@&{role_id}>"))
-                allowed = discord.AllowedMentions(roles=True)
-            else:
-                allowed = discord.AllowedMentions.none()
+        # 1) Message statut « est là » (édité si présent, sinon posté + ping).
+        status_view = build_xur_status_view(True, departure_unix=departure)
+        await self._upsert_status(dest, guild_id, status_view, role_id, repost=True)
+
+        # 2) Suppression des anciens messages catégories.
+        await self._delete_messages(dest, self.state.category_ids(guild_id))
+
+        # 3) Repost des catégories (sans ping : le statut porte la notif).
+        views = await build_xur_category_views(vendors)
+        new_ids: list = []
+        for view, files in views:
             try:
-                sent = await dest.send(view=view, files=files, allowed_mentions=allowed)
+                sent = await dest.send(
+                    view=view, files=files, allowed_mentions=discord.AllowedMentions.none()
+                )
                 new_ids.append(str(sent.id))
             except discord.DiscordException as e:
-                log.error(f"[Xûr] Envoi message {idx} échoué dans {dest} : {e}")
+                log.error(f"[Xûr] Envoi catégorie échoué dans {dest} : {e}")
 
-        if new_ids:
-            self.state.set(guild.id, message_ids=new_ids, content_hash=xur_hash)
-            self.state.save()
-            log.info(f"[Xûr] {len(new_ids)} message(s) publié(s) dans {guild.name}.")
+        self.state.set(guild_id, category_ids=new_ids, content_hash=xur_hash)
+        self.state.save()
+        log.info(
+            f"[Xûr] Statut + {len(new_ids)} catégorie(s) publié(s) dans {guild.name}."
+        )
 
-    # ---------- Départ (mardi) : édition in-place ----------
+    # ---------- Départ (mardi) ----------
     async def _mark_departed(self):
-        """Édite le 1er message de chaque guild en « Xûr est reparti » et
-        supprime les autres. Édition -> aucune notification."""
+        """Édite le statut en « n'est pas là » (+ date de retour) et supprime
+        les messages catégories. Édition du statut -> aucune notification."""
         return_unix = next_arrival_unix()
-        view = build_xur_departed_view(return_unix)
 
         # Résolution salon par guild via les abonnements.
         dest_by_guild: dict = {}
@@ -158,9 +213,6 @@ class Xur(commands.Cog):
             dest_by_guild[guild_id] = (dest_id, info.get("is_thread", False))
 
         for guild_id, entry in self.state.iter_guilds():
-            message_ids = entry.get("message_ids", [])
-            if not message_ids:
-                continue
             guild = self.bot.get_guild(int(guild_id))
             if not guild:
                 continue
@@ -171,30 +223,16 @@ class Xur(commands.Cog):
             if dest is None:
                 continue
 
-            # 1er message -> édité « parti ».
-            first_id = message_ids[0]
-            try:
-                msg = await dest.fetch_message(int(first_id))
-                await msg.edit(view=view, attachments=[])
-            except discord.NotFound:
-                log.warning(f"[Xûr] 1er message {first_id} introuvable (guild {guild_id}).")
-            except discord.DiscordException as e:
-                log.error(f"[Xûr] Édition départ échouée (guild {guild_id}) : {e}")
-
-            # Autres messages -> supprimés.
-            for mid in message_ids[1:]:
-                try:
-                    extra = await dest.fetch_message(int(mid))
-                    await extra.delete()
-                except discord.NotFound:
-                    pass
-                except discord.DiscordException as e:
-                    log.warning(f"[Xûr] Suppression message {mid} échouée : {e}")
-
-            # On ne conserve que le 1er message dans le state.
-            self.state.set(
-                guild_id, message_ids=[first_id], content_hash=entry.get("hash", "")
+            # Statut → « n'est pas là » (édition in-place, pas de ping).
+            status_view = build_xur_status_view(False, return_unix=return_unix)
+            await self._upsert_status(
+                dest, guild_id, status_view, role_id=None, repost=False
             )
+
+            # Catégories → supprimées.
+            await self._delete_messages(dest, entry["category_ids"])
+            self.state.clear_categories(guild_id)
+
         self.state.save()
 
     # ---------- Commande admin (manuelle) ----------

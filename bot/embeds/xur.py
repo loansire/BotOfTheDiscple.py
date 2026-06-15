@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
-"""Rendu Components V2 de Xûr (multi-message).
+"""Rendu Components V2 de Xûr (4 messages).
 
-Contrainte Discord : 10 fichiers (images) max par message. Comme Xûr peut
-afficher plus de 10 items au total, on poste PLUSIEURS messages :
-- 1 message par vendor (Armes / Ressources / Armures) ;
-- si un vendor dépasse 10 images, il est re-découpé en paquets de 10.
+Structure de publication (gérée par le cog) :
+- Message 1 : STATUT — « Xûr est là » / « Xûr n'est pas là » (+ date de
+  départ/retour). Persistant : édité in-place, jamais supprimé.
+- Messages 2-4 : une CATÉGORIE par message (Armes / Armures / Matériaux),
+  supprimés puis republiés.
 
-build_xur_views renvoie une LISTE de (vue, fichiers), une entrée par message.
-Le PREMIER message porte l'en-tête global « Xûr est là » ; le ping rôle (géré
-par le cog) n'est ajouté qu'à ce premier message.
+Rendu d'une catégorie : un Container (titre + une `ui.Section` par item).
+Chaque Section porte, à gauche, un `TextDisplay` (nom + ligne de coût
+`<:PiecesEtranges:…> x{quantity}`) et, à droite, l'image combinée de l'item en
+accessoire `ui.Thumbnail`. Un `ui.Separator` sépare chaque item.
 
-build_xur_departed_view : message « Xûr est parti », édité in-place le mardi
-(pas de repost -> pas de notification).
-"""
+Builders :
+- build_xur_status_view  → vue du message statut (présent ou absent).
+- build_xur_category_views → liste de (vue, fichiers), une par vendor non vide.
+
+La publication (post/édition/suppression) est gérée dans le cog."""
 from __future__ import annotations
 
 from io import BytesIO
@@ -25,12 +29,15 @@ from bot.features.xur.models import XurVendor
 
 _ACCENT = discord.Color.gold()
 
-# Limite dure Discord : 10 fichiers attachés par message.
-_FILES_PER_MESSAGE = 10
-# MediaGallery : 10 items max par composant.
-_GALLERY_MAX = 10
+_TITLE = "<:Xur:1516172178905759844>"  # emoji custom Xûr
+# Emoji de la monnaie de coût (Pièces étranges).
+_PIECES_EMOJI = "<:PiecesEtranges:1516155586755166338>"
 
-_TITLE = "<:Xur:1270042203577778246>"  # emoji custom Xûr (ajuste l'ID au besoin)
+# Plafond CV2 : 40 composants top-level par message. Un item « plein » coûte
+# 3 composants (Separator + Section + Thumbnail ; le TextDisplay est un enfant
+# de la Section). Avec le titre + container on reste très en dessous, mais on
+# garde une limite de sécurité par message catégorie.
+_MAX_ITEMS_PER_MESSAGE = 9
 
 
 class XurView(ui.LayoutView):
@@ -48,107 +55,119 @@ def _chunk(seq: list, size: int):
         yield seq[i:i + size]
 
 
-async def _vendor_galleries(
-    vendor: XurVendor, files: list, start_index: int
-) -> list:
-    """Construit les MediaGalleryItem d'un vendor + ajoute les fichiers.
-
-    `start_index` sert à nommer les fichiers de façon unique au sein du
-    message courant. Renvoie la liste de MediaGalleryItem."""
-    gallery_items = []
-    for item in vendor.items:
-        icon_bytes = await get_item_icon(item.item_hash, item.icon, item.watermark)
-        if icon_bytes is None:
-            continue
-        fname = f"xur_{vendor.key}_{item.item_hash}.webp"
-        files.append(discord.File(BytesIO(icon_bytes), filename=fname))
-        gallery_items.append(
-            discord.MediaGalleryItem(f"attachment://{fname}", description=item.name)
-        )
-    return gallery_items
+# ── Message statut (présent / absent) ──────────────────────────────────
 
 
-async def _build_vendor_messages(
-    vendor: XurVendor, header: str | None
-) -> list:
-    """Un vendor -> 1+ messages (vue, fichiers). Re-découpe en paquets de 10
-    images si le vendor dépasse la limite. `header` (optionnel) est un
-    TextDisplay placé en tête du tout premier message global."""
-    # Résolution des icônes une seule fois (dans un buffer de fichiers commun
-    # qu'on redécoupera ensuite par paquets de 10).
-    all_files: list = []
-    gallery_items = await _vendor_galleries(vendor, all_files, 0)
+def build_xur_status_view(
+    present: bool,
+    *,
+    departure_unix: int | None = None,
+    return_unix: int | None = None,
+) -> XurView:
+    """Vue du message statut persistant.
 
-    messages: list = []
-    if not gallery_items:
-        return messages
-
-    # Découpe items ET fichiers en paquets alignés de 10.
-    item_chunks = list(_chunk(gallery_items, _FILES_PER_MESSAGE))
-    file_chunks = list(_chunk(all_files, _FILES_PER_MESSAGE))
-
-    for part, (items_part, files_part) in enumerate(zip(item_chunks, file_chunks)):
-        children: list = []
-        # En-tête global seulement sur le tout premier message (part 0 + header).
-        if header and part == 0:
-            children.append(ui.TextDisplay(header))
-
-        container = ui.Container(accent_color=_ACCENT)
-        suffix = "" if len(item_chunks) == 1 else f" ({part + 1}/{len(item_chunks)})"
-        container.add_item(ui.TextDisplay(f"## {vendor.emoji} {vendor.label}{suffix}"))
-        for gchunk in _chunk(items_part, _GALLERY_MAX):
-            container.add_item(ui.MediaGallery(*gchunk))
-        children.append(container)
-
-        messages.append((XurView(*children), files_part))
-
-    return messages
+    - present=True  → « Xûr est là » + (si departure_unix) date de départ.
+    - present=False → « Xûr n'est pas là » + (si return_unix) date de retour.
+    """
+    container = ui.Container(accent_color=_ACCENT)
+    if present:
+        text = f"# {_TITLE} XÛR EST LÀ"
+        if departure_unix:
+            text += (
+                f"\nDisponible jusqu'au <t:{departure_unix}:F> "
+                f"(<t:{departure_unix}:R>)"
+            )
+    else:
+        text = f"# {_TITLE} XÛR N'EST PAS LÀ"
+        if return_unix:
+            text += (
+                f"\n-# Il reviendra le <t:{return_unix}:F> "
+                f"(<t:{return_unix}:R>)"
+            )
+    container.add_item(ui.TextDisplay(text))
+    return XurView(container)
 
 
-async def build_xur_views(
-    vendors: list, departure_unix: int | None = None
-) -> list:
-    """Renvoie une LISTE de (vue, fichiers), un par message à poster.
+# ── Messages catégories (Armes / Armures / Matériaux) ──────────────────
 
-    Le tout premier message porte l'en-tête « Xûr est là » (+ date de départ).
-    Chaque vendor occupe au moins un message ; un vendor de plus de 10 items
-    est réparti sur plusieurs messages."""
-    header = f"# {_TITLE} Xûr est là !"
-    if departure_unix:
-        header += (
-            f"\n-# Disponible jusqu'au <t:{departure_unix}:F> "
-            f"(<t:{departure_unix}:R>)"
-        )
 
-    messages: list = []
+def _cost_line(item) -> str:
+    """Ligne de coût d'un item : '<:PiecesEtranges:…> x29', ou '' si inconnu."""
+    if item.cost_quantity is None:
+        return ""
+    return f"{_PIECES_EMOJI} x{item.cost_quantity}"
+
+
+async def _item_section(
+    item, vendor_key: str, files: list[discord.File]
+) -> ui.Section | None:
+    """Construit la Section d'un item (texte à gauche, vignette à droite).
+
+    Ajoute le fichier image à `files`. Renvoie None si l'icône composée est
+    indisponible (item ignoré)."""
+    icon_bytes = await get_item_icon(item.item_hash, item.icon, item.watermark)
+    if icon_bytes is None:
+        return None
+
+    fname = f"xur_{vendor_key}_{item.item_hash}.webp"
+    files.append(discord.File(BytesIO(icon_bytes), filename=fname))
+
+    lines = [f"**{item.name}**"]
+    cost = _cost_line(item)
+    if cost:
+        lines.append(cost)
+
+    return ui.Section(
+        ui.TextDisplay("\n".join(lines)),
+        accessory=ui.Thumbnail(f"attachment://{fname}"),
+    )
+
+
+async def _build_vendor_message(vendor: XurVendor, part: int, total: int) -> tuple:
+    """Construit (vue, fichiers) pour un paquet d'items d'un vendor.
+
+    `part`/`total` numérotent les messages si un vendor déborde le plafond
+    (suffixe « (1/2) »). En pratique Xûr tient toujours sur un seul message
+    par catégorie."""
+    files: list[discord.File] = []
+    container = ui.Container(accent_color=_ACCENT)
+    suffix = "" if total == 1 else f" ({part + 1}/{total})"
+    container.add_item(ui.TextDisplay(f"## {vendor.emoji} {vendor.label}{suffix}"))
+
     first = True
+    for item in vendor.items:
+        section = await _item_section(item, vendor.key, files)
+        if section is None:
+            continue
+        if not first:
+            container.add_item(ui.Separator())
+        container.add_item(section)
+        first = False
+
+    # Aucun item résoluble dans ce paquet → pas de message.
+    if first:
+        return None
+    return XurView(container), files
+
+
+async def build_xur_category_views(vendors: list) -> list:
+    """Renvoie une LISTE de (vue, fichiers), une entrée par message catégorie.
+
+    Un vendor = un message (re-découpé seulement s'il dépasse le plafond de
+    sécurité). Les vendors sans item sont ignorés."""
+    messages: list = []
     for vendor in vendors:
         if not vendor.items:
             continue
-        vendor_msgs = await _build_vendor_messages(
-            vendor, header if first else None
-        )
-        if vendor_msgs:
-            messages.extend(vendor_msgs)
-            first = False
-
-    # Repli : rien à afficher -> un unique message d'information.
-    if not messages:
-        fallback = ui.Container(accent_color=_ACCENT)
-        fallback.add_item(ui.TextDisplay(
-            f"# {_TITLE} Xûr est là !\n"
-            "-# Impossible de récupérer son inventaire pour le moment."
-        ))
-        messages.append((XurView(fallback), []))
-
+        chunks = list(_chunk(vendor.items, _MAX_ITEMS_PER_MESSAGE))
+        for part, chunk in enumerate(chunks):
+            sub = XurVendor(
+                key=vendor.key,
+                label=vendor.label,
+                emoji=vendor.emoji,
+                items=chunk,
+            )
+            built = await _build_vendor_message(sub, part, len(chunks))
+            if built:
+                messages.append(built)
     return messages
-
-
-def build_xur_departed_view(return_unix: int) -> XurView:
-    """Vue « Xûr est parti » (éditée in-place le mardi, sans fichiers)."""
-    container = ui.Container(accent_color=_ACCENT)
-    container.add_item(ui.TextDisplay(
-        f"# {_TITLE} Xûr est reparti\n"
-        f"Il reviendra le <t:{return_unix}:F> (<t:{return_unix}:R>)."
-    ))
-    return XurView(container)

@@ -60,8 +60,8 @@ def next_departure_unix(now: datetime | None = None) -> int:
 
 # ── Résolution de l'inventaire ─────────────────────────────────────────
 
-async def _resolve_item(item_hash: int) -> XurItem | None:
-    """itemHash → XurItem (icon + watermark) via DestinyInventoryItemDefinition."""
+async def _resolve_item(item_hash: int, cost_quantity: int | None) -> XurItem | None:
+    """itemHash → XurItem (icon + watermark + coût) via DestinyInventoryItemDefinition."""
     defn = await bungie.get_item_definition(item_hash)
     if defn is None:
         return None
@@ -71,6 +71,7 @@ async def _resolve_item(item_hash: int) -> XurItem | None:
         name=display.get("name", f"Item {item_hash}"),
         icon=display.get("icon") or None,
         watermark=defn.get("iconWatermark") or None,
+        cost_quantity=cost_quantity,
     )
 
 
@@ -94,8 +95,21 @@ def _sorted_keys(sales: dict) -> list[str]:
     return sorted(sales.keys(), key=lambda k: int(k) if str(k).isdigit() else 0)
 
 
-def _filtered_item_hashes(sales: dict, allowed: list | None) -> list[int]:
-    """itemHash uniques d'un bloc sales.data, filtrés par POSITION (1-based).
+def _first_cost_quantity(sale: dict) -> int | None:
+    """Quantité du 1er coût d'une case sales.data (costs[0].quantity), ou None.
+
+    Tous les items Xûr ont un coût unique (Éclats/Pièces étranges) : seule la
+    valeur nous intéresse, pas la nature de la monnaie."""
+    costs = sale.get("costs") or []
+    if not costs:
+        return None
+    qty = costs[0].get("quantity")
+    return qty if isinstance(qty, int) else None
+
+
+def _filtered_items(sales: dict, allowed: list | None) -> list[tuple[int, int | None]]:
+    """Paires (itemHash, cost_quantity) d'un bloc sales.data, filtrées par
+    POSITION (1-based).
 
     `allowed` = liste de positions de « cases » à conserver (1 = 1ère case) :
         - None  → on garde TOUT (vendor absent de la whitelist)
@@ -118,14 +132,15 @@ def _filtered_item_hashes(sales: dict, allowed: list | None) -> list[int]:
             if rank in allowed_positions
         ]
 
-    hashes: list[int] = []
+    pairs: list[tuple[int, int | None]] = []
     seen: set[int] = set()
     for key in selected_keys:
-        ih = sales[key].get("itemHash")
+        sale = sales[key]
+        ih = sale.get("itemHash")
         if isinstance(ih, int) and ih not in seen:
             seen.add(ih)
-            hashes.append(ih)
-    return hashes
+            pairs.append((ih, _first_cost_quantity(sale)))
+    return pairs
 
 
 async def _log_vendor_indices(key: str, label: str, sales: dict) -> None:
@@ -156,8 +171,8 @@ async def _build_vendor(
         await _log_vendor_indices(key, label, sales)
 
     allowed = whitelist.get(key)  # None si vendor absent → tout garder
-    for item_hash in _filtered_item_hashes(sales, allowed):
-        item = await _resolve_item(item_hash)
+    for item_hash, cost_quantity in _filtered_items(sales, allowed):
+        item = await _resolve_item(item_hash, cost_quantity)
         if item:
             vendor.items.append(item)
     return vendor
