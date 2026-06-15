@@ -66,7 +66,7 @@ TOPICS: dict[str, dict] = {
     },
     "xur": {
         "label": "Xûr - Agent des Neuf",
-        "emoji": "<:Xur:1270042203577778246>",
+        "emoji": "<:Xur:1516172178905759844>",
     },
 }
 
