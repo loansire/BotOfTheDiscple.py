@@ -18,6 +18,7 @@ class XurItem:
     icon: str | None = None            # displayProperties.icon (chemin relatif)
     watermark: str | None = None       # iconWatermark (chemin relatif), si présent
     cost_quantity: int | None = None   # quantité du 1er coût (sales.data[].costs[0].quantity)
+    quantity: int = 1                  # nb d'occurrences du même itemHash (cases retenues)
 
     def to_dict(self) -> dict:
         return {
@@ -26,6 +27,7 @@ class XurItem:
             "icon": self.icon,
             "watermark": self.watermark,
             "cost_quantity": self.cost_quantity,
+            "quantity": self.quantity,
         }
 
 

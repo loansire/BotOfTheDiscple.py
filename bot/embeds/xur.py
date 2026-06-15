@@ -98,6 +98,14 @@ def _cost_line(item) -> str:
     return f"{_PIECES_EMOJI} x{item.cost_quantity}"
 
 
+def _name_line(item) -> str:
+    """Nom de l'item, suffixé '- x{n}' si l'item apparaît en plusieurs cases."""
+    name = f"**{item.name}**"
+    if getattr(item, "quantity", 1) > 1:
+        name += f" - x{item.quantity}"
+    return name
+
+
 async def _item_section(
     item, vendor_key: str, files: list[discord.File]
 ) -> ui.Section | None:
@@ -112,7 +120,7 @@ async def _item_section(
     fname = f"xur_{vendor_key}_{item.item_hash}.webp"
     files.append(discord.File(BytesIO(icon_bytes), filename=fname))
 
-    lines = [f"**{item.name}**"]
+    lines = [_name_line(item)]
     cost = _cost_line(item)
     if cost:
         lines.append(cost)

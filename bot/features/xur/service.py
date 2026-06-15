@@ -60,8 +60,12 @@ def next_departure_unix(now: datetime | None = None) -> int:
 
 # ── Résolution de l'inventaire ─────────────────────────────────────────
 
-async def _resolve_item(item_hash: int, cost_quantity: int | None) -> XurItem | None:
-    """itemHash → XurItem (icon + watermark + coût) via DestinyInventoryItemDefinition."""
+async def _resolve_item(
+    item_hash: int, cost_quantity: int | None, quantity: int = 1
+) -> XurItem | None:
+    """itemHash → XurItem (icon + watermark + coût) via DestinyInventoryItemDefinition.
+
+    `quantity` = nb d'occurrences du même itemHash parmi les cases retenues."""
     defn = await bungie.get_item_definition(item_hash)
     if defn is None:
         return None
@@ -72,6 +76,7 @@ async def _resolve_item(item_hash: int, cost_quantity: int | None) -> XurItem | 
         icon=display.get("icon") or None,
         watermark=defn.get("iconWatermark") or None,
         cost_quantity=cost_quantity,
+        quantity=quantity,
     )
 
 
@@ -107,9 +112,11 @@ def _first_cost_quantity(sale: dict) -> int | None:
     return qty if isinstance(qty, int) else None
 
 
-def _filtered_items(sales: dict, allowed: list | None) -> list[tuple[int, int | None]]:
-    """Paires (itemHash, cost_quantity) d'un bloc sales.data, filtrées par
-    POSITION (1-based).
+def _filtered_items(
+    sales: dict, allowed: list | None
+) -> list[tuple[int, int | None, int]]:
+    """Triplets (itemHash, cost_quantity, count) d'un bloc sales.data, filtrés
+    par POSITION (1-based).
 
     `allowed` = liste de positions de « cases » à conserver (1 = 1ère case) :
         - None  → on garde TOUT (vendor absent de la whitelist)
@@ -119,7 +126,11 @@ def _filtered_items(sales: dict, allowed: list | None) -> list[tuple[int, int | 
     Les cases sont ordonnées par clé numérique croissante (cf. _sorted_keys) ;
     on sélectionne ensuite par rang, pas par clé — la case n°6 reste la n°6
     même si sa clé Bungie change. Le filtrage opère AVANT toute résolution :
-    on ne résout ni ne télécharge les items écartés."""
+    on ne résout ni ne télécharge les items écartés.
+
+    Déduplication par itemHash : les occurrences multiples (parmi les cases
+    retenues) sont COMPTÉES (`count`) au lieu d'être écartées. Le 1er coût
+    rencontré est conservé ; l'ordre de première apparition est préservé."""
     keys = _sorted_keys(sales)
 
     if allowed is None:
@@ -132,15 +143,19 @@ def _filtered_items(sales: dict, allowed: list | None) -> list[tuple[int, int | 
             if rank in allowed_positions
         ]
 
-    pairs: list[tuple[int, int | None]] = []
-    seen: set[int] = set()
+    # itemHash → [cost_quantity, count], dans l'ordre de 1ère apparition.
+    agg: dict[int, list] = {}
     for key in selected_keys:
         sale = sales[key]
         ih = sale.get("itemHash")
-        if isinstance(ih, int) and ih not in seen:
-            seen.add(ih)
-            pairs.append((ih, _first_cost_quantity(sale)))
-    return pairs
+        if not isinstance(ih, int):
+            continue
+        if ih in agg:
+            agg[ih][1] += 1
+        else:
+            agg[ih] = [_first_cost_quantity(sale), 1]
+
+    return [(ih, cost, count) for ih, (cost, count) in agg.items()]
 
 
 async def _log_vendor_indices(key: str, label: str, sales: dict) -> None:
@@ -171,8 +186,8 @@ async def _build_vendor(
         await _log_vendor_indices(key, label, sales)
 
     allowed = whitelist.get(key)  # None si vendor absent → tout garder
-    for item_hash, cost_quantity in _filtered_items(sales, allowed):
-        item = await _resolve_item(item_hash, cost_quantity)
+    for item_hash, cost_quantity, count in _filtered_items(sales, allowed):
+        item = await _resolve_item(item_hash, cost_quantity, count)
         if item:
             vendor.items.append(item)
     return vendor
