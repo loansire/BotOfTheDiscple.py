@@ -14,6 +14,7 @@ import os
 from datetime import datetime, timedelta
 
 from bot.bungie.client import bungie
+from bot.bungie.manifest import manifest
 from bot.bungie.reset import last_reset
 from bot.utils.logger import log
 
@@ -65,14 +66,20 @@ async def _resolve_item(
 ) -> XurItem | None:
     """itemHash → XurItem (icon + watermark + coût) via DestinyInventoryItemDefinition.
 
+    Le nom est résolu en anglais via l'API live, puis surchargé en FR si
+    l'extrait manifest local (item_names_fr.json) contient une traduction.
     `quantity` = nb d'occurrences du même itemHash parmi les cases retenues."""
     defn = await bungie.get_item_definition(item_hash)
     if defn is None:
         return None
     display = defn.get("displayProperties", {})
+    # Source principale = API EN (icon + watermark + nom). Surcouche de
+    # traduction : si un nom FR existe dans l'extrait manifest local, il
+    # remplace le nom EN ; sinon on garde l'EN (fallback naturel).
+    name = manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}")
     return XurItem(
         item_hash=item_hash,
-        name=display.get("name", f"Item {item_hash}"),
+        name=name,
         icon=display.get("icon") or None,
         watermark=defn.get("iconWatermark") or None,
         cost_quantity=cost_quantity,
