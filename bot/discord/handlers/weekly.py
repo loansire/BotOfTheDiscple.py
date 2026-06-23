@@ -3,7 +3,11 @@
 
 Appelés par la pipeline (cogs/pipeline.py) et par le routeur /botconfig
 (handlers/topics.py) :
-- publish_lost_sectors / publish_raid_dungeon : publication au reset (avec ping).
+- publish_lost_sectors : publication des secteurs au reset (avec ping).
+- publish_raid / publish_dungeon : publication d'UN type au reset (avec ping),
+  SANS purge de cache (la purge est orchestrée par publish_raid_dungeon).
+- publish_raid_dungeon : orchestrateur reset hebdo (mardi) — purge le cache
+  bandeaux UNE seule fois puis publie raids puis donjons.
 - restore             : répare les messages disparus (sans ping), au reset.
 - on_added            : publie le contenu courant dans un salon nouvellement
   configuré (avec ping).
@@ -20,7 +24,10 @@ du Lot 4 transformera l'indisponibilité API en attente).
 
 Cache d'images : la publication au reset PURGE d'abord le cache de bandeaux de
 la feature concernée (à sa cadence : quotidienne pour les secteurs, hebdo pour
-raids/donjons), puis régénère. `restore` et `on_added` ne purgent PAS (ils
+raids/donjons), puis régénère. Raids et donjons PARTAGENT le dossier de cache
+`raid_donjon` : la purge est donc faite une seule fois par publish_raid_dungeon
+AVANT de publier les deux types (jamais entre les deux, pour ne pas effacer un
+bandeau fraîchement généré). `restore` et `on_added` ne purgent PAS (ils
 réutilisent le cache existant) — ainsi un reset quotidien (secteurs) n'efface
 jamais les bandeaux hebdo (raids/donjons)."""
 from __future__ import annotations
@@ -35,16 +42,21 @@ from bot.discord.publisher import (
     send_view,
 )
 from bot.embeds.banner import purge_banner_cache
-from bot.embeds.weekly import build_lost_sectors_view, build_raid_dungeon_view
+from bot.embeds.weekly import (
+    build_dungeon_view,
+    build_lost_sectors_view,
+    build_raid_view,
+)
 from bot.features.weekly import get_lost_sectors, get_raid_dungeon
 from bot.utils.subscriptions import iter_subscribers
 
 LOST_SECTOR_TOPIC = "daily_lost_sector"
-RAID_DUNGEON_TOPIC = "weekly_raid_dungeon"
+RAID_TOPIC = "weekly_raid"
+DUNGEON_TOPIC = "weekly_dungeon"
 
 # Clés de feature pour la purge du cache d'images (cf. embeds/banner.py).
 _FEATURE_LOST_SECTOR = "secteur_oublie"
-_FEATURE_RAID_DUNGEON = "raid_donjon"
+_FEATURE_RAID_DUNGEON = "raid_donjon"  # partagé raids + donjons
 
 
 # ── Payloads (fetch + hash), partagés par tous les chemins ──────────────
@@ -60,19 +72,45 @@ async def _sectors_payload():
     return sectors, h
 
 
-async def _raid_dungeon_payload():
-    """(groups, hash) ou None si indisponible."""
+def _featured_of_type(groups, activity_type: str):
+    """Sous-liste featured d'un type ('Raid'/'Donjon')."""
+    return [g for g in groups if g.featured and g.activity_type == activity_type]
+
+
+async def _raid_payload():
+    """(groups_complets, hash_raids) ou None si aucun raid featured.
+
+    On renvoie la liste COMPLÈTE (raids + donjons) : le builder filtre par type.
+    Le hash ne porte QUE sur les raids featured (un changement côté donjon ne
+    doit pas forcer le repost du message raid)."""
     groups = await get_raid_dungeon()
     if not groups:
         return None
+    raids = _featured_of_type(groups, "Raid")
+    if not raids:
+        return None
     reset_id = last_reset().isoformat()
-    h = content_hash([reset_id, *(g.base_name for g in groups if g.featured)])
+    h = content_hash([reset_id, "raid", *(g.base_name for g in raids)])
+    return groups, h
+
+
+async def _dungeon_payload():
+    """(groups_complets, hash_donjons) ou None si aucun donjon featured."""
+    groups = await get_raid_dungeon()
+    if not groups:
+        return None
+    dungeons = _featured_of_type(groups, "Donjon")
+    if not dungeons:
+        return None
+    reset_id = last_reset().isoformat()
+    h = content_hash([reset_id, "dungeon", *(g.base_name for g in dungeons)])
     return groups, h
 
 
 _TOPIC_SPECS = {
     LOST_SECTOR_TOPIC: (_sectors_payload, build_lost_sectors_view),
-    RAID_DUNGEON_TOPIC: (_raid_dungeon_payload, build_raid_dungeon_view),
+    RAID_TOPIC: (_raid_payload, build_raid_view),
+    DUNGEON_TOPIC: (_dungeon_payload, build_dungeon_view),
 }
 
 
@@ -99,23 +137,48 @@ async def publish_lost_sectors(bot, state) -> None:
     )
 
 
-async def publish_raid_dungeon(bot, state) -> None:
-    """Raids/donjons featured de la semaine.
-
-    Purge le cache de bandeaux raids/donjons (cadence hebdo, mardi) AVANT
-    régénération."""
-    payload = await _raid_dungeon_payload()
+async def publish_raid(bot, state) -> None:
+    """Raids featured de la semaine (1 message). NE PURGE PAS le cache (la
+    purge est orchestrée par publish_raid_dungeon, partagée avec les donjons)."""
+    payload = await _raid_payload()
     if payload is None:
         return
     groups, h = payload
-    purge_banner_cache(_FEATURE_RAID_DUNGEON)
     await publish_persistent_view(
         bot,
-        RAID_DUNGEON_TOPIC,
-        build_view=lambda data=groups: build_raid_dungeon_view(data),
+        RAID_TOPIC,
+        build_view=lambda data=groups: build_raid_view(data),
         content_hash=h,
         state=state,
     )
+
+
+async def publish_dungeon(bot, state) -> None:
+    """Donjons featured de la semaine (1 message). NE PURGE PAS le cache (la
+    purge est orchestrée par publish_raid_dungeon, partagée avec les raids)."""
+    payload = await _dungeon_payload()
+    if payload is None:
+        return
+    groups, h = payload
+    await publish_persistent_view(
+        bot,
+        DUNGEON_TOPIC,
+        build_view=lambda data=groups: build_dungeon_view(data),
+        content_hash=h,
+        state=state,
+    )
+
+
+async def publish_raid_dungeon(bot, state) -> None:
+    """Orchestrateur reset hebdo (mardi) : purge le cache de bandeaux
+    raids/donjons UNE seule fois (cadence hebdo) PUIS publie raids puis donjons.
+
+    La purge unique en amont évite d'effacer un bandeau fraîchement généré
+    entre les deux publications (raids et donjons partagent le dossier de
+    cache `raid_donjon`)."""
+    purge_banner_cache(_FEATURE_RAID_DUNGEON)
+    await publish_raid(bot, state)
+    await publish_dungeon(bot, state)
 
 
 # ── Réparation des messages disparus (point 4, sans ping) ───────────────

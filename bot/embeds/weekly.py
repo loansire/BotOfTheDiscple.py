@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Rendu Components V2 des activités weekly/daily.
 
-- Raids & Donjons : deux containers (Raids puis Donjons), liste des noms +
-  bandeau pgcr recadré par activité, séparateurs. Chaque nom est précédé de
-  son emoji custom (résolu par nom normalisé, fallback générique sinon).
+- Raids & Donjons : chaque type a désormais SON propre builder (et donc son
+  propre message persistant), liste des noms + bandeau pgcr recadré par
+  activité, séparateurs. Chaque nom est précédé de son emoji custom (résolu par
+  nom normalisé, fallback générique sinon).
 - Secteurs perdus : une carte par secteur, texte (boucliers/champions par
   difficulté) PUIS bandeau pgcr recadré.
 
@@ -16,7 +17,8 @@ surchargeable via `next_refresh_unix` pour laisser la pipeline décider.
 
 Cache d'images isolé par feature (cf. banner.py) : les bandeaux secteurs sont
 mis en cache sous `banners/secteur_oublie/`, ceux des raids/donjons sous
-`banners/raid_donjon/`."""
+`banners/raid_donjon/` (cache PARTAGÉ raids+donjons : la purge est orchestrée
+une seule fois en amont côté handler)."""
 from __future__ import annotations
 
 import unicodedata
@@ -32,6 +34,7 @@ from bot.features.weekly.models import ActivityVariant, LostSector, WeeklyActivi
 _ACCENT = discord.Color.dark_red()
 
 # Clés de feature pour le cache d'images (cf. banner.py / purge_banner_cache).
+# Raids et donjons PARTAGENT le même dossier de cache (purge unique en amont).
 _FEATURE_RAID_DUNGEON = "raid_donjon"
 _FEATURE_LOST_SECTOR = "secteur_oublie"
 
@@ -139,8 +142,8 @@ class WeeklyView(ui.LayoutView):
 
 # ⚙️ Limites temporaires (contrainte des 40 composants CV2 par message).
 #    Mettre à None pour tout afficher.
-_MAX_RAIDS = 4
-_MAX_DUNGEONS = 3
+_MAX_RAIDS = 99
+_MAX_DUNGEONS = 99
 
 
 async def _add_activities(
@@ -189,15 +192,22 @@ async def _build_activity_container(
     return container
 
 
-async def build_raid_dungeon_view(
+async def _build_single_type_view(
     groups: list[WeeklyActivity],
-    ratio: float = BANNER_RATIO,
-    next_refresh_unix: int | None = None,
+    *,
+    activity_type: str,
+    title_emoji: str,
+    title_label: str,
+    permanent_label: str,
+    fallback_label: str,
+    max_items: int | None,
+    ratio: float,
+    next_refresh_unix: int | None,
 ) -> tuple[WeeklyView, list[discord.File]]:
-    """Deux containers (Raids puis Donjons), chacun avec liste + bandeaux.
+    """Construit la vue (1 container) pour UN type d'activité (raid OU donjon).
 
     On n'affiche QUE les activités *featured* de la semaine (challenges actifs,
-    farmables) — cf. WeeklyActivity.featured.
+    farmables) — cf. WeeklyActivity.featured. Repli si rien n'est featured.
 
     `next_refresh_unix` : timestamp de la prochaine actualisation (défaut =
     prochain reset du mardi, les raids/donjons changeant à l'hebdo)."""
@@ -205,46 +215,68 @@ async def build_raid_dungeon_view(
         next_refresh_unix = int(next_weekday_reset(TUESDAY).timestamp())
     refresh = _refresh_line(next_refresh_unix)
 
-    featured = [g for g in groups if g.featured]
-    raids = [g for g in featured if g.activity_type == "Raid"]
-    dungeons = [g for g in featured if g.activity_type == "Donjon"]
-
-    if _MAX_RAIDS is not None:
-        raids = raids[:_MAX_RAIDS]
-    if _MAX_DUNGEONS is not None:
-        dungeons = dungeons[:_MAX_DUNGEONS]
+    featured = [g for g in groups if g.featured and g.activity_type == activity_type]
+    if max_items is not None:
+        featured = featured[:max_items]
 
     files: list[discord.File] = []
-    children: list[ui.Item] = []
 
-    if raids:
-        children.append(await _build_activity_container(
-            f"# {_RD_EMOJI} Raids de la semaine\n{refresh}",
-            [g for g in raids if not g.permanent],
-            [g for g in raids if g.permanent],
-            "Raid permanent",
+    if featured:
+        container = await _build_activity_container(
+            f"# {title_emoji} {title_label}\n{refresh}",
+            [g for g in featured if not g.permanent],
+            [g for g in featured if g.permanent],
+            permanent_label,
             files, ratio,
-        ))
-    if dungeons:
-        children.append(await _build_activity_container(
-            f"# {_DJ_EMOJI} Donjons de la semaine\n{refresh}",
-            [g for g in dungeons if not g.permanent],
-            [g for g in dungeons if g.permanent],
-            "Donjon permanent",
-            files, ratio,
-        ))
-
-    # Repli : aucune activité featured détectée → on évite une vue vide.
-    if not children:
-        fallback = ui.Container(accent_color=_ACCENT)
-        fallback.add_item(ui.TextDisplay(
-            f"# {_RD_EMOJI} Raids & Donjons de la semaine\n"
+        )
+    else:
+        # Repli : aucune activité featured détectée → on évite une vue vide.
+        container = ui.Container(accent_color=_ACCENT)
+        container.add_item(ui.TextDisplay(
+            f"# {title_emoji} {title_label}\n"
             f"{refresh}\n"
-            "-# Aucune activité featured détectée pour le moment."
+            f"-# {fallback_label}"
         ))
-        children.append(fallback)
 
-    return WeeklyView(*children), files
+    return WeeklyView(container), files
+
+
+async def build_raid_view(
+    groups: list[WeeklyActivity],
+    ratio: float = BANNER_RATIO,
+    next_refresh_unix: int | None = None,
+) -> tuple[WeeklyView, list[discord.File]]:
+    """Vue (1 message) des raids featured de la semaine."""
+    return await _build_single_type_view(
+        groups,
+        activity_type="Raid",
+        title_emoji=_RD_EMOJI,
+        title_label="Raids de la semaine",
+        permanent_label="Raid permanent",
+        fallback_label="Aucun raid featured détecté pour le moment.",
+        max_items=_MAX_RAIDS,
+        ratio=ratio,
+        next_refresh_unix=next_refresh_unix,
+    )
+
+
+async def build_dungeon_view(
+    groups: list[WeeklyActivity],
+    ratio: float = BANNER_RATIO,
+    next_refresh_unix: int | None = None,
+) -> tuple[WeeklyView, list[discord.File]]:
+    """Vue (1 message) des donjons featured de la semaine."""
+    return await _build_single_type_view(
+        groups,
+        activity_type="Donjon",
+        title_emoji=_DJ_EMOJI,
+        title_label="Donjons de la semaine",
+        permanent_label="Donjon permanent",
+        fallback_label="Aucun donjon featured détecté pour le moment.",
+        max_items=_MAX_DUNGEONS,
+        ratio=ratio,
+        next_refresh_unix=next_refresh_unix,
+    )
 
 
 # ── Secteurs perdus ────────────────────────────────────────────────────

@@ -96,6 +96,8 @@ class Pipeline(commands.Cog):
             await xur_handler.publish_arrival(self.bot, self.xur_state)
 
         # MARDI : Xûr part + raids/donjons (reset hebdo).
+        # publish_raid_dungeon orchestre la purge unique du cache puis publie
+        # les deux messages distincts (raids puis donjons).
         if weekday == TUESDAY:
             await xur_handler.mark_departed(self.bot, self.xur_state)
             await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state)
@@ -105,9 +107,9 @@ class Pipeline(commands.Cog):
 
     async def _verify_existence(self):
         """Point 4 : republie SANS ping les messages persistants supprimés à la
-        main. Couvre les 3 topics. Une BungieMaintenanceError est RE-LEVÉE pour
-        que le reset entier soit considéré en échec (hold mode) ; les autres
-        erreurs sont seulement loguées."""
+        main. Couvre tous les topics. Une BungieMaintenanceError est RE-LEVÉE
+        pour que le reset entier soit considéré en échec (hold mode) ; les
+        autres erreurs sont seulement loguées."""
         try:
             await weekly_handler.restore(self.bot, self.weekly_state)
             await xur_handler.restore(self.bot, self.xur_state)
@@ -138,6 +140,7 @@ class Pipeline(commands.Cog):
             self.xur_state.invalidate()
 
             await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state)
+            # Orchestrateur : purge unique du cache puis raids + donjons.
             await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state)
 
             if is_xur_active():

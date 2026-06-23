@@ -18,7 +18,7 @@ from bot.features.xur.state import TOPIC as XUR_TOPIC
 from bot.utils.logger import log
 
 # Topics weekly gérés (1 message persistant chacun).
-_WEEKLY_TOPICS = ("daily_lost_sector", "weekly_raid_dungeon")
+_WEEKLY_TOPICS = ("daily_lost_sector", "weekly_raid", "weekly_dungeon")
 
 
 def _channel_changes(before: dict, after: dict, topics) -> list:
@@ -47,7 +47,7 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
     weekly_state = pipeline.weekly_state
     xur_state = pipeline.xur_state
 
-    # Topics weekly (secteurs, raids/donjons).
+    # Topics weekly (secteurs, raids, donjons).
     for topic, old, new in _channel_changes(before, after, _WEEKLY_TOPICS):
         if old is not None:
             await weekly_handler.on_removed(bot, weekly_state, guild_id, topic, before[topic])
