@@ -87,6 +87,17 @@ async def _resolve_item(
     )
 
 
+async def _resolve_vendor_large_icon(vendor_hash: int) -> str | None:
+    """displayProperties.largeIcon d'un vendor (chemin relatif), ou None.
+
+    Image d'en-tête de la catégorie. Résolue via l'API live (le vendor n'est
+    pas dans le cache manifest disque)."""
+    defn = await bungie.get_vendor_definition(vendor_hash)
+    if defn is None:
+        return None
+    return (defn.get("displayProperties") or {}).get("largeIcon") or None
+
+
 def _load_whitelist() -> dict:
     """Charge vendor_whitelist.json. {} si absent/illisible (→ tout garder)."""
     if VENDOR_WHITELIST_PATH.exists():
@@ -184,7 +195,8 @@ async def _build_vendor(
     key: str, vendor_hash: int, label: str, emoji: str, whitelist: dict
 ) -> XurVendor:
     """Fetch un vendor et résout uniquement ses items whitelistés."""
-    vendor = XurVendor(key=key, label=label, emoji=emoji)
+    large_icon = await _resolve_vendor_large_icon(vendor_hash)
+    vendor = XurVendor(key=key, label=label, emoji=emoji, large_icon=large_icon)
     sales = await bungie.get_vendor_sales(vendor_hash)
     if not sales:
         return vendor

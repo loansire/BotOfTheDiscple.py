@@ -52,6 +52,8 @@ class BungieClient:
         self._headers = {"X-API-Key": api_key}
         # Cache mémoire des définitions d'items résolues à la volée (Xûr).
         self._item_def_cache: dict[str, dict] = {}
+        # Cache mémoire des définitions de vendors résolues à la volée (Xûr).
+        self._vendor_def_cache: dict[str, dict] = {}
 
     # ── Bas niveau ────────────────────────────────────────────────────
     async def _auth_headers(self) -> dict | None:
@@ -259,6 +261,31 @@ class BungieClient:
 
         defn = data["Response"]
         self._item_def_cache[key] = defn
+        return defn
+
+    async def get_vendor_definition(self, vendor_hash: int) -> dict | None:
+        """Résout un vendor à la volée via l'API Manifest.
+
+        DestinyVendorDefinition n'est pas dans le cache disque (les 3 vendor
+        hashes Xûr sont connus à l'avance, inutile de cacher tout le manifest).
+        On résout donc chaque hash par un appel dédié, avec petit cache mémoire
+        (appelé seulement au reset du vendredi → 3 appels max).
+
+        Utilisé pour récupérer displayProperties.largeIcon (image d'en-tête de
+        chaque catégorie Xûr)."""
+        key = str(vendor_hash)
+        if key in self._vendor_def_cache:
+            return self._vendor_def_cache[key]
+
+        data = await self._get(
+            f"/Destiny2/Manifest/DestinyVendorDefinition/{vendor_hash}/"
+        )
+        if not data or "Response" not in data:
+            log.warning(f"[Bungie] Définition vendor {vendor_hash} introuvable.")
+            return None
+
+        defn = data["Response"]
+        self._vendor_def_cache[key] = defn
         return defn
 
 

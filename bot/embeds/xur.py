@@ -7,10 +7,11 @@ Structure de publication (gérée par le cog) :
 - Messages 2-4 : une CATÉGORIE par message (Armes / Armures / Matériaux),
   supprimés puis republiés.
 
-Rendu d'une catégorie : un Container (titre + une `ui.Section` par item).
-Chaque Section porte, à gauche, un `TextDisplay` (nom + ligne de coût
-`<:PiecesEtranges:…> x{quantity}`) et, à droite, l'image combinée de l'item en
-accessoire `ui.Thumbnail`. Un `ui.Separator` sépare chaque item.
+Rendu d'une catégorie : un Container (titre + image d'en-tête du vendor
+`largeIcon` + une `ui.Section` par item). Chaque Section porte, à gauche, un
+`TextDisplay` (nom + ligne de coût `<:PiecesEtranges:…> x{quantity}`) et, à
+droite, l'image combinée de l'item en accessoire `ui.Thumbnail`. Un
+`ui.Separator` sépare chaque item.
 
 Builders :
 - build_xur_status_view  → vue du message statut (présent ou absent).
@@ -24,7 +25,7 @@ from io import BytesIO
 import discord
 from discord import ui
 
-from bot.embeds.xur_image import get_item_icon
+from bot.embeds.xur_image import get_item_icon, get_vendor_icon
 from bot.features.xur.models import XurVendor
 
 _ACCENT = discord.Color.gold()
@@ -131,16 +132,40 @@ async def _item_section(
     )
 
 
+async def _add_vendor_header_icon(
+    container: ui.Container, vendor: XurVendor, files: list[discord.File]
+) -> None:
+    """Ajoute l'image d'en-tête (largeIcon) du vendor sous le titre, si dispo.
+
+    Image brute (déjà au bon format), affichée en MediaGallery pleine largeur.
+    Sans danger si le vendor n'a pas de largeIcon ou si le téléchargement
+    échoue (on n'ajoute simplement rien)."""
+    if not vendor.large_icon:
+        return
+    fetched = await get_vendor_icon(vendor.key, vendor.large_icon)
+    if fetched is None:
+        return
+    data, fname = fetched
+    files.append(discord.File(BytesIO(data), filename=fname))
+    container.add_item(
+        ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
+    )
+
+
 async def _build_vendor_message(vendor: XurVendor, part: int, total: int) -> tuple:
     """Construit (vue, fichiers) pour un paquet d'items d'un vendor.
 
     `part`/`total` numérotent les messages si un vendor déborde le plafond
     (suffixe « (1/2) »). En pratique Xûr tient toujours sur un seul message
-    par catégorie."""
+    par catégorie. L'image d'en-tête (largeIcon) est affichée sous le titre,
+    sur chaque message du vendor."""
     files: list[discord.File] = []
     container = ui.Container(accent_color=_ACCENT)
     suffix = "" if total == 1 else f" ({part + 1}/{total})"
     container.add_item(ui.TextDisplay(f"## {vendor.emoji} {vendor.label}{suffix}"))
+
+    # Image d'en-tête du vendor (largeIcon) juste sous le titre.
+    await _add_vendor_header_icon(container, vendor, files)
 
     first = True
     for item in vendor.items:
@@ -173,6 +198,7 @@ async def build_xur_category_views(vendors: list) -> list:
                 key=vendor.key,
                 label=vendor.label,
                 emoji=vendor.emoji,
+                large_icon=vendor.large_icon,
                 items=chunk,
             )
             built = await _build_vendor_message(sub, part, len(chunks))

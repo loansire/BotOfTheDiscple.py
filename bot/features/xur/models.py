@@ -37,6 +37,7 @@ class XurVendor:
     key: str                # "weapons" / "materials" / "armor"
     label: str              # "Armes" / "Ressources" / "Armures"
     emoji: str
+    large_icon: str | None = None   # displayProperties.largeIcon (chemin relatif), image d'en-tête
     items: list[XurItem] = field(default_factory=list)
     extra: dict = field(default_factory=dict)
 
@@ -45,6 +46,7 @@ class XurVendor:
             "key": self.key,
             "label": self.label,
             "emoji": self.emoji,
+            "large_icon": self.large_icon,
             "items": [it.to_dict() for it in self.items],
             "extra": self.extra,
         }
