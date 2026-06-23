@@ -190,6 +190,12 @@ async def _build_vendor(
         item = await _resolve_item(item_hash, cost_quantity, count)
         if item:
             vendor.items.append(item)
+
+    # Vendor Armes : la dernière case retenue est en réalité l'item à afficher
+    # en tête de la catégorie. On la remonte en première position.
+    if key == "weapons" and len(vendor.items) > 1:
+        vendor.items.insert(0, vendor.items.pop())
+
     return vendor
 
 
