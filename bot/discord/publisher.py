@@ -7,7 +7,15 @@ Deux régimes de publication :
 - publish_persistent_view : persistant — UN message par abonné, supprimé puis
   reposté à chaque actualisation. Le repost (et non l'édition) permet de
   déclencher une notification et donc de ré-activer le ping rôle.
+
+Helpers partagés (utilisés aussi par les handlers de la pipeline) :
+- content_hash()       : hash court et stable d'un itérable de chaînes.
+- resolve_destination(): résout un salon texte ou un thread cible.
+- send_view()          : envoie une LayoutView (+ ping rôle optionnel) → id|None.
+- message_exists()     : True si le message existe encore (NotFound → False).
+- delete_message()     : supprime un message (ignore s'il a déjà disparu).
 """
+import hashlib
 from typing import Awaitable, Callable, Optional
 
 import discord
@@ -17,14 +25,74 @@ from bot.utils.logger import log
 from bot.utils.subscriptions import iter_subscribers
 
 
-def _resolve_destination(
+def content_hash(parts) -> str:
+    """Hash court et stable d'un itérable de chaînes (ordre indépendant)."""
+    joined = "|".join(sorted(parts))
+    return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:16]
+
+
+def resolve_destination(
     guild: discord.Guild, dest_id: str, is_thread: bool
 ) -> Optional[discord.abc.Messageable]:
+    """Salon texte ou thread cible, ou None si introuvable/incompatible."""
     if is_thread:
         th = guild.get_thread(int(dest_id))
         return th if isinstance(th, discord.Thread) else None
     ch = guild.get_channel(int(dest_id))
     return ch if isinstance(ch, discord.TextChannel) else None
+
+
+async def send_view(
+    dest,
+    view: discord.ui.LayoutView,
+    files: Optional[list] = None,
+    *,
+    role_id: Optional[str] = None,
+    ping: bool = False,
+) -> Optional[str]:
+    """Envoie une LayoutView. Injecte le ping rôle si `ping` et `role_id`.
+
+    Components V2 : un LayoutView ne peut pas porter de `content` ; la mention
+    est ajoutée comme TextDisplay, et `allowed_mentions` n'autorise QUE le rôle
+    voulu. Renvoie l'id (str) du message envoyé, ou None en cas d'échec."""
+    if ping and role_id:
+        view.add_item(ui.TextDisplay(f"<@&{role_id}>"))
+        allowed = discord.AllowedMentions(roles=True)
+    else:
+        allowed = discord.AllowedMentions.none()
+    try:
+        sent = await dest.send(view=view, files=files or [], allowed_mentions=allowed)
+        return str(sent.id)
+    except discord.DiscordException as e:
+        log.error(f"[Publisher] Envoi échoué dans {dest} : {e}")
+        return None
+
+
+async def message_exists(dest, message_id) -> bool:
+    """True si le message existe encore. NotFound → False. Erreur transitoire
+    → True (on ne reposte pas, pour éviter un doublon en cas de rate-limit)."""
+    if not message_id:
+        return False
+    try:
+        await dest.fetch_message(int(message_id))
+        return True
+    except discord.NotFound:
+        return False
+    except discord.DiscordException:
+        return True
+
+
+async def delete_message(dest, message_id) -> None:
+    """Supprime un message (ignore s'il a déjà disparu)."""
+    if not message_id:
+        return
+    try:
+        msg = await dest.fetch_message(int(message_id))
+        await msg.delete()
+    except discord.NotFound:
+        pass
+    except discord.DiscordException as e:
+        log.warning(f"[Publisher] Suppression échouée : {e}")
 
 
 async def publish_to_subscribers(bot: discord.Client, topic: str, build: Callable):
@@ -34,7 +102,7 @@ async def publish_to_subscribers(bot: discord.Client, topic: str, build: Callabl
         guild = bot.get_guild(int(guild_id))
         if not guild:
             continue
-        dest = _resolve_destination(guild, dest_id, info.get("is_thread", False))
+        dest = resolve_destination(guild, dest_id, info.get("is_thread", False))
         if dest is None:
             continue
 
@@ -61,20 +129,14 @@ async def publish_persistent_view(
 
     `build_view()` est une factory asynchrone renvoyant (view, files) NEUFS à
     chaque appel. `content_hash` identifie le contenu : si identique au dernier
-    publié, on ne fait rien. `state` est un WeeklyMessageState.
-
-    Comportement : si un message précédent existe, il est SUPPRIMÉ avant le
-    repost — c'est ce repost qui (re)déclenche la notification et le ping rôle.
-
-    Ping rôle (Components V2) : un message LayoutView ne peut pas porter de
-    `content` (rejeté par l'API Discord). La mention est donc ajoutée comme
-    `TextDisplay` dans la vue, et `allowed_mentions` n'autorise QUE la mention
-    de rôle voulue (aucun ping parasite si aucun rôle n'est configuré)."""
+    publié (et un message_id est connu), on ne fait rien. Sinon l'ancien message
+    est supprimé puis reposté (avec ping rôle) — ce repost (re)déclenche la
+    notification. `state` est un WeeklyMessageState."""
     for guild_id, dest_id, info in iter_subscribers(topic):
         guild = bot.get_guild(int(guild_id))
         if not guild:
             continue
-        dest = _resolve_destination(guild, dest_id, info.get("is_thread", False))
+        dest = resolve_destination(guild, dest_id, info.get("is_thread", False))
         if dest is None:
             continue
 
@@ -83,31 +145,10 @@ async def publish_persistent_view(
         if message_id and saved.get("hash") == content_hash:
             continue  # contenu inchangé → rien à faire
 
-        # 1) Suppression de l'ancien message (s'il existe encore)
-        if message_id:
-            try:
-                old_msg = await dest.fetch_message(int(message_id))
-                await old_msg.delete()
-            except discord.NotFound:
-                pass  # déjà supprimé → on reposte simplement
-            except discord.DiscordException as e:
-                log.warning(
-                    f"[Publisher] Suppression ancien message échouée ({topic}) : {e}"
-                )
+        await delete_message(dest, message_id)
 
-        # 2) Construction de la vue neuve + injection éventuelle du ping rôle
         view, files = await build_view()
-        role_id = info.get("role")
-        if role_id:
-            view.add_item(ui.TextDisplay(f"<@&{role_id}>"))
-            allowed = discord.AllowedMentions(roles=True)
-        else:
-            allowed = discord.AllowedMentions.none()
-
-        # 3) Repost et mémorisation du nouvel état
-        try:
-            sent = await dest.send(view=view, files=files, allowed_mentions=allowed)
-            state.set(guild_id, topic, message_id=str(sent.id), content_hash=content_hash)
+        new_id = await send_view(dest, view, files, role_id=info.get("role"), ping=True)
+        if new_id:
+            state.set(guild_id, topic, message_id=new_id, content_hash=content_hash)
             state.save()
-        except discord.DiscordException as e:
-            log.error(f"[Publisher] Message persistant échoué dans {dest} ({topic}) : {e}")

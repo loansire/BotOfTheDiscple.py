@@ -149,7 +149,12 @@ class BackButton(ui.Button):
 
 
 class ValidateButton(ui.Button):
-    """Persiste tout le pending puis revient à la page principale."""
+    """Persiste tout le pending puis revient à la page principale.
+
+    Après persistance et acquittement de l'interaction, déclenche le routeur
+    (handlers/topics.py) qui publie/supprime les messages des topics dont le
+    salon a changé. Cette étape est best-effort : l'interaction étant déjà
+    acquittée, une erreur de publication ne casse pas l'UX de config."""
 
     def __init__(self):
         super().__init__(label="Valider", emoji="💾", style=discord.ButtonStyle.success)
@@ -158,6 +163,10 @@ class ValidateButton(ui.Button):
         view = self.view
         guild = view.guild
         gid = str(guild.id)
+
+        # Diff avant/après (forme load_config_state) AVANT de reconstruire la vue.
+        before = copy.deepcopy(view.persisted)
+        after = copy.deepcopy(view.pending)
 
         for topic in TOPICS:
             p = view.pending[topic]
@@ -179,6 +188,13 @@ class ValidateButton(ui.Button):
         new_view = ConfigView(view.user, guild, saved, copy.deepcopy(saved), current_topic=None)
         await interaction.response.edit_message(view=new_view)
         await interaction.followup.send("✅ Configuration enregistrée.", ephemeral=True)
+
+        # Application des changements de salon (publication / suppression ciblées).
+        from bot.discord.handlers.topics import apply_config_change
+        try:
+            await apply_config_change(interaction.client, gid, before, after)
+        except Exception as e:
+            log.error(f"[Config] Application des changements de salon échouée : {e}")
 
 
 class ResetButton(ui.Button):

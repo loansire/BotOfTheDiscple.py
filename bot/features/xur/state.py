@@ -2,9 +2,9 @@
 """État des messages persistants Xûr.
 
 Deux rôles de message distincts par guild :
-- `status_id`   : le message « Xûr est là / n'est pas là » — PERSISTANT.
-  Jamais supprimé, seulement édité (vendredi → « là », mardi → « pas là »).
-  C'est lui qui porte le ping rôle au repost du vendredi.
+- `status_id`   : le message « Xûr est là / n'est pas là » — PERSISTANT entre
+  arrivée et départ. Supprimé+reposté à l'arrivée (vendredi) ; édité in-place
+  au départ (mardi).
 - `category_ids`: les 3 messages catégories (Armes / Armures / Matériaux) —
   JETABLES. Supprimés puis republiés chaque vendredi, supprimés le mardi.
 
@@ -15,9 +15,12 @@ Deux rôles de message distincts par guild :
       "category_ids": ["...", "...", "..."],
       "hash": "..."
     }
-  },
-  "last_reset": "<iso>"   # dernier reset quotidien déjà traité
+  }
 }
+
+Le dernier reset traité ne vit PLUS ici : la pipeline en détient l'unique
+source de vérité (PipelineState). Une éventuelle clé `last_reset` héritée d'un
+ancien fichier est purgée au chargement.
 
 Rétro-compatibilité : l'ancien schéma stockait une liste plate `message_ids`.
 À la lecture, on la convertit (1er ID → status_id, reste → category_ids) pour
@@ -42,6 +45,8 @@ class XurMessageState:
         if self.path.exists():
             with open(self.path, "r", encoding="utf-8") as f:
                 self._data = json.load(f)
+        # Clé obsolète (le dernier reset vit désormais dans PipelineState).
+        self._data.pop("last_reset", None)
 
     def save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -87,7 +92,7 @@ class XurMessageState:
 
     def iter_guilds(self):
         """Itère (guild_id, entry_normalisée) pour tous les guilds connus."""
-        for guild_id in self._data.get("guilds", {}):
+        for guild_id in list(self._data.get("guilds", {})):
             yield guild_id, self.get(guild_id)
 
     # -- Écriture ------------------------------------------------------
@@ -119,21 +124,16 @@ class XurMessageState:
         """Vide la liste des messages catégories (après suppression Discord)."""
         self.set(guild_id, category_ids=[])
 
+    def purge(self, guild_id):
+        """Oublie tout l'état Xûr d'un serveur (retrait du salon)."""
+        self._data.get("guilds", {}).pop(str(guild_id), None)
+
     def invalidate(self):
         """Efface les hashes pour forcer un repost au prochain publish.
 
-        Les IDs (status + catégories) sont CONSERVÉS : le cog en a besoin pour
-        éditer/supprimer les anciens messages avant repost. Utilisé par
-        /xur-reset."""
+        Les IDs (status + catégories) sont CONSERVÉS : le handler en a besoin
+        pour éditer/supprimer les anciens messages avant repost. Utilisé par
+        /refresh-all."""
         for guild_id in list(self._data.get("guilds", {})):
             self.set(guild_id, content_hash="")
         self.save()
-
-    # -- Dernier reset traité ------------------------------------------
-    @property
-    def last_reset_iso(self) -> str:
-        return self._data.get("last_reset", "")
-
-    @last_reset_iso.setter
-    def last_reset_iso(self, value: str):
-        self._data["last_reset"] = value

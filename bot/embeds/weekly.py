@@ -8,7 +8,11 @@
   difficulté) PUIS bandeau pgcr recadré.
 
 Les builders renvoient une LayoutView et la liste des fichiers à joindre.
-La publication (post/édition) est gérée ailleurs."""
+La publication (post/édition) est gérée ailleurs.
+
+Ligne « Prochaine actualisation » : par défaut calculée ici (prochain reset
+quotidien pour les secteurs, prochain reset du mardi pour raids/donjons), mais
+surchargeable via `next_refresh_unix` pour laisser la pipeline décider."""
 from __future__ import annotations
 
 import unicodedata
@@ -17,7 +21,7 @@ from io import BytesIO
 import discord
 from discord import ui
 
-from bot.bungie.reset import last_reset
+from bot.bungie.reset import TUESDAY, next_reset, next_weekday_reset
 from bot.embeds.banner import BANNER_RATIO, get_banner
 from bot.features.weekly.models import ActivityVariant, LostSector, WeeklyActivity
 
@@ -98,6 +102,14 @@ _RAID_EMOJIS = {_norm_name(k): v for k, v in _RAID_EMOJIS_RAW.items()}
 _DUNGEON_EMOJIS = {_norm_name(k): v for k, v in _DUNGEON_EMOJIS_RAW.items()}
 
 
+def _refresh_line(next_refresh_unix: int) -> str:
+    """Ligne « Prochaine actualisation le <date> (dans …) »."""
+    return (
+        f"Prochaine actualisation le <t:{next_refresh_unix}:F> "
+        f"(<t:{next_refresh_unix}:R>)"
+    )
+
+
 def _activity_emoji(group: WeeklyActivity) -> str:
     """Emoji custom de l'activité, avec fallback générique par type."""
     key = _norm_name(group.base_name)
@@ -170,12 +182,21 @@ async def _build_activity_container(
 
 
 async def build_raid_dungeon_view(
-    groups: list[WeeklyActivity], ratio: float = BANNER_RATIO
+    groups: list[WeeklyActivity],
+    ratio: float = BANNER_RATIO,
+    next_refresh_unix: int | None = None,
 ) -> tuple[WeeklyView, list[discord.File]]:
     """Deux containers (Raids puis Donjons), chacun avec liste + bandeaux.
 
     On n'affiche QUE les activités *featured* de la semaine (challenges actifs,
-    farmables) — cf. WeeklyActivity.featured."""
+    farmables) — cf. WeeklyActivity.featured.
+
+    `next_refresh_unix` : timestamp de la prochaine actualisation (défaut =
+    prochain reset du mardi, les raids/donjons changeant à l'hebdo)."""
+    if next_refresh_unix is None:
+        next_refresh_unix = int(next_weekday_reset(TUESDAY).timestamp())
+    refresh = _refresh_line(next_refresh_unix)
+
     featured = [g for g in groups if g.featured]
     raids = [g for g in featured if g.activity_type == "Raid"]
     dungeons = [g for g in featured if g.activity_type == "Donjon"]
@@ -190,7 +211,7 @@ async def build_raid_dungeon_view(
 
     if raids:
         children.append(await _build_activity_container(
-            f"# {_RD_EMOJI} Raids de la semaine",
+            f"# {_RD_EMOJI} Raids de la semaine\n{refresh}",
             [g for g in raids if not g.permanent],
             [g for g in raids if g.permanent],
             "Raid permanent",
@@ -198,7 +219,7 @@ async def build_raid_dungeon_view(
         ))
     if dungeons:
         children.append(await _build_activity_container(
-            f"# {_DJ_EMOJI} Donjons de la semaine",
+            f"# {_DJ_EMOJI} Donjons de la semaine\n{refresh}",
             [g for g in dungeons if not g.permanent],
             [g for g in dungeons if g.permanent],
             "Donjon permanent",
@@ -210,6 +231,7 @@ async def build_raid_dungeon_view(
         fallback = ui.Container(accent_color=_ACCENT)
         fallback.add_item(ui.TextDisplay(
             f"# {_RD_EMOJI} Raids & Donjons de la semaine\n"
+            f"{refresh}\n"
             "-# Aucune activité featured détectée pour le moment."
         ))
         children.append(fallback)
@@ -250,15 +272,22 @@ def _format_variant_line(variant: ActivityVariant) -> str | None:
 
 
 async def build_lost_sectors_view(
-    sectors: list[LostSector], ratio: float = BANNER_RATIO
+    sectors: list[LostSector],
+    ratio: float = BANNER_RATIO,
+    next_refresh_unix: int | None = None,
 ) -> tuple[WeeklyView, list[discord.File]]:
     """Renvoie (vue, fichiers). Chaque secteur : titre, lignes par difficulté
-    (boucliers/champions en emotes), puis bandeau recadré."""
-    reset_unix = int(last_reset().timestamp())
+    (boucliers/champions en emotes), puis bandeau recadré.
+
+    `next_refresh_unix` : timestamp de la prochaine actualisation (défaut =
+    prochain reset quotidien, les secteurs changeant chaque jour)."""
+    if next_refresh_unix is None:
+        next_refresh_unix = int(next_reset().timestamp())
+
     container = ui.Container(accent_color=_ACCENT)
     container.add_item(ui.TextDisplay(
         f"# {_LS_EMOJI} Secteurs Oubliés du jour\n"
-        f"Mis à jour le <t:{reset_unix}:f>"
+        f"{_refresh_line(next_refresh_unix)}"
     ))
 
     files: list[discord.File] = []

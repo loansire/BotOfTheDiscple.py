@@ -7,6 +7,7 @@ code, pas dans le .env.
 
 Ordre de la liste = ordre d'affichage des catégories dans la vue.
 """
+from bot.bungie.reset import FRIDAY, TUESDAY  # noqa: F401  (ré-export — dédup avec reset.py)
 from bot.config import MANIFEST_DIR
 
 # clé interne → (vendor_hash, libellé affiché, emoji custom de catégorie)
@@ -19,9 +20,8 @@ XUR_VENDORS: dict[str, tuple[int, str, str]] = {
 # Composant Vendors à demander (sales = items en vente).
 VENDOR_COMPONENTS = "402"
 
-# Jours de la semaine (Python weekday(): lundi=0 … dimanche=6).
-FRIDAY = 4
-TUESDAY = 1
+# Jours de la semaine : importés de reset.py (source unique de vérité).
+# FRIDAY = 4, TUESDAY = 1 — ré-exportés ci-dessus pour les imports existants.
 
 # Whitelist de POSITIONS par vendor (maintenue à la main, hors code).
 # Clés = clés internes de XUR_VENDORS ; valeurs = liste de positions 1-based

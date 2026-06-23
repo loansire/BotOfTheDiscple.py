@@ -66,7 +66,7 @@ def build_xur_status_view(
 ) -> XurView:
     """Vue du message statut persistant.
 
-    - present=True  → « Xûr est là » + (si departure_unix) date de départ.
+    - present=True  → « Xûr est là » + (si departure_unix) date de disparition.
     - present=False → « Xûr n'est pas là » + (si return_unix) date de retour.
     """
     container = ui.Container(accent_color=_ACCENT)
@@ -74,14 +74,14 @@ def build_xur_status_view(
         text = f"# {_TITLE} XÛR EST LÀ"
         if departure_unix:
             text += (
-                f"\nDisponible jusqu'au <t:{departure_unix}:F> "
+                f"\nXûr disparaîtra le <t:{departure_unix}:F> "
                 f"(<t:{departure_unix}:R>)"
             )
     else:
         text = f"# {_TITLE} XÛR N'EST PAS LÀ"
         if return_unix:
             text += (
-                f"\n-# Il reviendra le <t:{return_unix}:F> "
+                f"\nXûr revient le <t:{return_unix}:F> "
                 f"(<t:{return_unix}:R>)"
             )
     container.add_item(ui.TextDisplay(text))
