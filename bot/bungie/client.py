@@ -4,6 +4,7 @@ from datetime import datetime
 
 import aiohttp
 
+from bot.bungie.errors import BungieMaintenanceError, is_maintenance
 from bot.bungie.reset import last_reset
 from bot.config import BUNGIE_API_KEY, BUNGIE_CHARACTER, MANIFEST_DIR
 from bot.utils.logger import log
@@ -39,7 +40,12 @@ class BungieClient:
     Au-delà du flux RSS news, expose de quoi alimenter les features
     weekly/daily : index du manifest, téléchargement des définitions, et
     activités disponibles du personnage de référence (avec cache aligné
-    sur le reset quotidien)."""
+    sur le reset quotidien).
+
+    Hold mode : les appels /Platform (et le téléchargement des définitions)
+    lèvent BungieMaintenanceError sur 503/SystemDisabled au lieu de renvoyer
+    None, pour que la pipeline distingue « maintenance » de « vraie erreur »
+    et retente au prochain reset-poll."""
 
     def __init__(self, api_key: str = BUNGIE_API_KEY):
         self.api_key = api_key
@@ -67,7 +73,12 @@ class BungieClient:
     ) -> dict | None:
         """GET générique sur /Platform. Renvoie le JSON complet ou None.
 
-        `auth=True` ajoute le Bearer OAuth (requis pour GetVendor → Xûr)."""
+        `auth=True` ajoute le Bearer OAuth (requis pour GetVendor → Xûr).
+
+        Lève BungieMaintenanceError si la réponse traduit une maintenance
+        (HTTP 503, ou enveloppe ErrorStatus='SystemDisabled' / ErrorCode=5).
+        Le corps JSON porte le vrai ErrorStatus Bungie (ApiInvalidOrExpiredKey,
+        InsufficientPrivileges…), bien plus parlant que le seul code HTTP."""
         if auth:
             headers = await self._auth_headers()
             if headers is None:
@@ -78,26 +89,40 @@ class BungieClient:
         url = f"{PLATFORM_BASE}{endpoint}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers, params=params) as resp:
-                if resp.status != 200:
-                    # On lit le corps : c'est lui qui porte le vrai ErrorStatus
-                    # Bungie (ApiInvalidOrExpiredKey, OriginHeaderDoesNotMatchKey,
-                    # InsufficientPrivileges…), bien plus parlant que le code HTTP.
-                    try:
-                        body = await resp.json(content_type=None)
-                        log.error(
-                            f"[Bungie] GET {endpoint} → HTTP {resp.status} | "
-                            f"{body.get('ErrorStatus')} ({body.get('Message')})"
-                        )
-                    except Exception:
-                        log.error(
-                            f"[Bungie] GET {endpoint} → HTTP {resp.status} (corps illisible)"
-                        )
-                    return None
-                data = await resp.json(content_type=None)
+                status_code = resp.status
+                try:
+                    data = await resp.json(content_type=None)
+                except Exception:
+                    data = None
 
-        status = data.get("ErrorStatus")
-        if status and status != "Success":
-            log.error(f"[Bungie] {endpoint} → {status} ({data.get('Message')})")
+        err_status = data.get("ErrorStatus") if isinstance(data, dict) else None
+        err_code = data.get("ErrorCode") if isinstance(data, dict) else None
+        message = data.get("Message") if isinstance(data, dict) else None
+
+        # Maintenance (503 / SystemDisabled / code 5) → hold mode.
+        if is_maintenance(status_code, err_status, err_code):
+            raise BungieMaintenanceError(
+                f"{endpoint} → HTTP {status_code} | {err_status} ({message})"
+            )
+
+        if status_code != 200:
+            if isinstance(data, dict):
+                log.error(
+                    f"[Bungie] GET {endpoint} → HTTP {status_code} | "
+                    f"{err_status} ({message})"
+                )
+            else:
+                log.error(
+                    f"[Bungie] GET {endpoint} → HTTP {status_code} (corps illisible)"
+                )
+            return None
+
+        if not isinstance(data, dict):
+            log.error(f"[Bungie] GET {endpoint} → HTTP 200 mais corps illisible.")
+            return None
+
+        if err_status and err_status != "Success":
+            log.error(f"[Bungie] {endpoint} → {err_status} ({message})")
             return None
         return data
 
@@ -122,7 +147,11 @@ class BungieClient:
 
     # ── Manifest ──────────────────────────────────────────────────────
     async def get_manifest_index(self, lang: str = "fr") -> tuple[str, dict] | None:
-        """Renvoie (version, jsonWorldComponentContentPaths[lang]) ou None."""
+        """Renvoie (version, jsonWorldComponentContentPaths[lang]) ou None.
+
+        Propage BungieMaintenanceError si /Destiny2/Manifest/ est en maintenance
+        (c'est en général le tout premier appel d'un reset → détection au plus
+        tôt)."""
         data = await self._get("/Destiny2/Manifest/")
         if not data or "Response" not in data:
             return None
@@ -136,10 +165,17 @@ class BungieClient:
         return version, paths
 
     async def download_definition(self, path: str) -> dict | None:
-        """Télécharge un fichier de définition (hébergé sur bungie.net)."""
+        """Télécharge un fichier de définition (hébergé sur bungie.net).
+
+        Lève BungieMaintenanceError sur 503 : au reset du mardi, la mise à jour
+        du manifest peut tomber pendant la fenêtre de maintenance."""
         url = f"{BUNGIE_BASE}{path}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
+                if is_maintenance(resp.status):
+                    raise BungieMaintenanceError(
+                        f"download_definition → HTTP {resp.status} ({path})"
+                    )
                 if resp.status != 200:
                     log.error(f"[Bungie] DL définition → HTTP {resp.status} ({path})")
                     return None
@@ -151,7 +187,12 @@ class BungieClient:
         + availableActivityInteractables.
 
         Cache aligné sur le reset : les données restent valides jusqu'au
-        prochain reset quotidien. `force=True` ignore le cache."""
+        prochain reset quotidien. `force=True` ignore le cache.
+
+        Note hold mode : à un reset, le cache est périmé (cached_reset < le
+        nouveau last_reset) → on refait l'appel → _get peut lever
+        BungieMaintenanceError. Le cache ne masque donc jamais la maintenance
+        au moment du reset."""
         if not force:
             cached = _load_json(_CHARACTER_CACHE)
             if cached:
