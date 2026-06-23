@@ -12,7 +12,11 @@ La publication (post/édition) est gérée ailleurs.
 
 Ligne « Prochaine actualisation » : par défaut calculée ici (prochain reset
 quotidien pour les secteurs, prochain reset du mardi pour raids/donjons), mais
-surchargeable via `next_refresh_unix` pour laisser la pipeline décider."""
+surchargeable via `next_refresh_unix` pour laisser la pipeline décider.
+
+Cache d'images isolé par feature (cf. banner.py) : les bandeaux secteurs sont
+mis en cache sous `banners/secteur_oublie/`, ceux des raids/donjons sous
+`banners/raid_donjon/`."""
 from __future__ import annotations
 
 import unicodedata
@@ -26,6 +30,10 @@ from bot.embeds.banner import BANNER_RATIO, get_banner
 from bot.features.weekly.models import ActivityVariant, LostSector, WeeklyActivity
 
 _ACCENT = discord.Color.dark_red()
+
+# Clés de feature pour le cache d'images (cf. banner.py / purge_banner_cache).
+_FEATURE_RAID_DUNGEON = "raid_donjon"
+_FEATURE_LOST_SECTOR = "secteur_oublie"
 
 # Emojis de titre — ajuste librement (emojis custom serveur acceptés).
 _RD_EMOJI = "<:Raid:1338595321319788595>"
@@ -145,7 +153,7 @@ async def _add_activities(
     for g in groups:
         container.add_item(ui.TextDisplay(f"### {_activity_emoji(g)} {g.base_name}"))
         if g.pgcr_image:
-            banner = await get_banner(g.pgcr_image, ratio)
+            banner = await get_banner(g.pgcr_image, _FEATURE_RAID_DUNGEON, ratio)
             if banner:
                 fname = f"rd_{len(files)}.webp"
                 files.append(discord.File(BytesIO(banner), filename=fname))
@@ -311,7 +319,7 @@ async def build_lost_sectors_view(
         container.add_item(ui.TextDisplay("\n".join(lines)))
 
         if sector.pgcr_image:
-            banner = await get_banner(sector.pgcr_image, ratio)
+            banner = await get_banner(sector.pgcr_image, _FEATURE_LOST_SECTOR, ratio)
             if banner:
                 fname = f"ls_{i}.webp"
                 files.append(discord.File(BytesIO(banner), filename=fname))

@@ -4,7 +4,11 @@ l'iconWatermark (si présent), mise en cache disque.
 
 La superposition (Pillow) est synchrone → exécutée dans un thread pour ne pas
 bloquer la boucle Discord. icon et watermark sont normalement 96×96 ; on
-redimensionne le watermark à la taille de l'icon par sécurité avant collage."""
+redimensionne le watermark à la taille de l'icon par sécurité avant collage.
+
+Cache sous `banners/xur/` (aligné avec les autres caches d'images du bot,
+regroupés sous `banners/<feature>/`). Purgé chaque vendredi à l'arrivée de
+Xûr, juste avant régénération."""
 from __future__ import annotations
 
 import asyncio
@@ -18,7 +22,26 @@ from bot.bungie.client import BUNGIE_BASE
 from bot.config import MANIFEST_DIR
 from bot.utils.logger import log
 
-ICON_DIR = MANIFEST_DIR / "xur_icons"
+ICON_DIR = MANIFEST_DIR / "banners" / "xur"
+
+
+def purge_xur_cache() -> None:
+    """Vide intégralement le cache d'icônes Xûr.
+
+    Appelée juste AVANT régénération (vendredi, arrivée de Xûr) : on supprime
+    tous les `.webp` du dossier, recréé au prochain `get_item_icon`. Sans
+    danger si le dossier n'existe pas encore."""
+    if not ICON_DIR.exists():
+        return
+    removed = 0
+    for entry in ICON_DIR.iterdir():
+        if entry.is_file():
+            try:
+                entry.unlink()
+                removed += 1
+            except OSError as e:
+                log.warning(f"[Xûr] Suppression cache échouée ({entry.name}) : {e}")
+    log.info(f"[Xûr] Cache d'icônes purgé ({removed} fichier(s)).")
 
 
 async def _download(path: str) -> bytes | None:
@@ -64,8 +87,8 @@ async def get_item_icon(
 
     L'item_hash + présence du watermark forment la clé de cache : si Bungie
     change le watermark d'un item, le hash reste le même mais le contenu est
-    quasi stable — le cache se régénère naturellement chaque semaine via un
-    nettoyage éventuel (non implémenté ; volume négligeable)."""
+    quasi stable — le cache se régénère naturellement chaque semaine via la
+    purge à l'arrivée de Xûr (purge_xur_cache)."""
     if not icon_path:
         return None
 

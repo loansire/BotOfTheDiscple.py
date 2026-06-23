@@ -3,7 +3,12 @@
 au ratio voulu, redimensionnement, mise en cache disque.
 
 Le recadrage (Pillow) est synchrone : on l'exécute dans un thread pour ne pas
-bloquer la boucle Discord."""
+bloquer la boucle Discord.
+
+Cache isolé PAR FEATURE sous `banners/<feature>/` (ex. `banners/secteur_oublie/`,
+`banners/raid_donjon/`). Cette séparation permet de purger le cache d'une
+feature à SA propre cadence sans toucher aux autres : un reset quotidien
+(secteurs) ne doit jamais effacer les bandeaux hebdo (raids/donjons)."""
 from __future__ import annotations
 
 import asyncio
@@ -27,7 +32,33 @@ BANNER_RATIO = 1920 / 590
 #    1.0 → aucune réduction. Manipulable librement pour les tests.
 BANNER_SCALE = 1 / 4
 
-BANNER_DIR = MANIFEST_DIR / "banners"
+# Racine commune des caches d'images recadrées (un sous-dossier par feature).
+BANNER_BASE_DIR = MANIFEST_DIR / "banners"
+
+
+def _feature_dir(feature: str):
+    """Sous-dossier de cache d'une feature (`banners/<feature>/`)."""
+    return BANNER_BASE_DIR / feature
+
+
+def purge_banner_cache(feature: str) -> None:
+    """Vide intégralement le cache de bandeaux d'une feature.
+
+    Appelée juste AVANT régénération (au reset de la cadence de la feature) :
+    on supprime tous les `.webp` du sous-dossier, qui sera recréé au prochain
+    `get_banner`. Sans danger si le dossier n'existe pas encore."""
+    directory = _feature_dir(feature)
+    if not directory.exists():
+        return
+    removed = 0
+    for entry in directory.iterdir():
+        if entry.is_file():
+            try:
+                entry.unlink()
+                removed += 1
+            except OSError as e:
+                log.warning(f"[Banner] Suppression cache échouée ({entry.name}) : {e}")
+    log.info(f"[Banner] Cache '{feature}' purgé ({removed} fichier(s)).")
 
 
 def _crop(data: bytes, ratio: float, scale: float) -> bytes:
@@ -62,10 +93,16 @@ def _cache_name(pgcr_path: str, ratio: float, scale: float) -> str:
 
 
 async def get_banner(
-    pgcr_path: str, ratio: float = BANNER_RATIO, scale: float = BANNER_SCALE
+    pgcr_path: str,
+    feature: str,
+    ratio: float = BANNER_RATIO,
+    scale: float = BANNER_SCALE,
 ) -> bytes | None:
     """Renvoie les octets WEBP du bandeau recadré et redimensionné (cache
-    disque), ou None.
+    disque sous `banners/<feature>/`), ou None.
+
+    `feature` isole le cache (ex. "secteur_oublie", "raid_donjon") pour
+    permettre une purge ciblée par cadence.
 
     Le ratio ET le scale sont inclus dans le nom de cache : changer
     `BANNER_RATIO` ou `BANNER_SCALE` régénère automatiquement les bandeaux
@@ -73,8 +110,9 @@ async def get_banner(
     if not pgcr_path:
         return None
 
-    BANNER_DIR.mkdir(parents=True, exist_ok=True)
-    cache_file = BANNER_DIR / _cache_name(pgcr_path, ratio, scale)
+    directory = _feature_dir(feature)
+    directory.mkdir(parents=True, exist_ok=True)
+    cache_file = directory / _cache_name(pgcr_path, ratio, scale)
     if cache_file.exists():
         return cache_file.read_bytes()
 

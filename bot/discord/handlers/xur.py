@@ -16,7 +16,11 @@ on_added / restore-actif. Le mardi (mark_departed) ne touche JAMAIS l'API
 vendor — ce qui corrige la publication parasite des sous-vendors.
 
 Phase fetch isolée (via _fetch_vendors) : un fetch vide → on ne touche à rien
-(le hold mode du Lot 4 transformera l'indisponibilité API en attente)."""
+(le hold mode du Lot 4 transformera l'indisponibilité API en attente).
+
+Cache d'images : publish_arrival PURGE le cache d'icônes (banners/xur/, cadence
+hebdo du vendredi) AVANT régénération. restore / on_added ne purgent PAS (ils
+réutilisent le cache existant)."""
 from __future__ import annotations
 
 import discord
@@ -30,6 +34,7 @@ from bot.discord.publisher import (
     send_view,
 )
 from bot.embeds.xur import build_xur_category_views, build_xur_status_view
+from bot.embeds.xur_image import purge_xur_cache
 from bot.features.xur import (
     get_xur,
     is_xur_active,
@@ -86,11 +91,17 @@ def _xur_hash(vendors) -> str:
 async def publish_arrival(bot, state) -> None:
     """Xûr arrive : par serveur, supprime tout puis republie statut (+ ping) et
     catégories. Saute un serveur déjà à jour pour ce reset (évite de re-pinger
-    tout le monde si on republie pour un seul serveur)."""
+    tout le monde si on republie pour un seul serveur).
+
+    Purge le cache d'icônes (cadence hebdo) AVANT toute régénération, une fois
+    le fetch confirmé : on ne supprime donc jamais une icône qu'on vient de
+    composer."""
     vendors = await _fetch_vendors()
     if vendors is None:
         log.warning("[Xûr] Aucun item récupéré — arrivée non publiée.")
         return
+
+    purge_xur_cache()
 
     departure = next_departure_unix()
     xur_hash = _xur_hash(vendors)
@@ -201,7 +212,9 @@ async def restore(bot, state) -> None:
     Xûr actif : si le statut OU une catégorie manque pour un serveur, on
     reconstruit TOUT ce serveur (plus simple et fiable). Le fetch vendor est
     paresseux (aucun fetch si rien ne manque). Xûr inactif : seul le statut
-    « absent » doit exister ; on le rétablit au besoin, sans fetch."""
+    « absent » doit exister ; on le rétablit au besoin, sans fetch.
+
+    Ne purge PAS le cache d'icônes (réparation = réutilisation du cache)."""
     dest_by_guild = _dest_map()
     active = is_xur_active()
     departure = next_departure_unix()
@@ -256,7 +269,7 @@ async def restore(bot, state) -> None:
 async def on_added(bot, state, guild_id, info) -> None:
     """Ajout d'un salon Xûr. `info` = {channel_id, is_thread, role_id}.
     Xûr actif → statut présent (+ ping) + catégories ; inactif → statut absent
-    (sans ping)."""
+    (sans ping). Ne purge PAS le cache d'icônes (réutilisation du cache)."""
     guild = bot.get_guild(int(guild_id))
     if not guild:
         return

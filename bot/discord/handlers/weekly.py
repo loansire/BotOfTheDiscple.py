@@ -16,7 +16,13 @@ l'autre — ce qui garde à jour la ligne « Prochaine actualisation ». Dans un
 même période le hash est stable, donc un serveur déjà à jour n'est pas reposté.
 
 Phase fetch isolée en amont : un fetch vide → on ne publie rien (le hold mode
-du Lot 4 transformera l'indisponibilité API en attente)."""
+du Lot 4 transformera l'indisponibilité API en attente).
+
+Cache d'images : la publication au reset PURGE d'abord le cache de bandeaux de
+la feature concernée (à sa cadence : quotidienne pour les secteurs, hebdo pour
+raids/donjons), puis régénère. `restore` et `on_added` ne purgent PAS (ils
+réutilisent le cache existant) — ainsi un reset quotidien (secteurs) n'efface
+jamais les bandeaux hebdo (raids/donjons)."""
 from __future__ import annotations
 
 from bot.bungie.reset import last_reset
@@ -28,12 +34,17 @@ from bot.discord.publisher import (
     resolve_destination,
     send_view,
 )
+from bot.embeds.banner import purge_banner_cache
 from bot.embeds.weekly import build_lost_sectors_view, build_raid_dungeon_view
 from bot.features.weekly import get_lost_sectors, get_raid_dungeon
 from bot.utils.subscriptions import iter_subscribers
 
 LOST_SECTOR_TOPIC = "daily_lost_sector"
 RAID_DUNGEON_TOPIC = "weekly_raid_dungeon"
+
+# Clés de feature pour la purge du cache d'images (cf. embeds/banner.py).
+_FEATURE_LOST_SECTOR = "secteur_oublie"
+_FEATURE_RAID_DUNGEON = "raid_donjon"
 
 
 # ── Payloads (fetch + hash), partagés par tous les chemins ──────────────
@@ -69,11 +80,16 @@ _TOPIC_SPECS = {
 
 
 async def publish_lost_sectors(bot, state) -> None:
-    """Secteurs oubliés du jour."""
+    """Secteurs oubliés du jour.
+
+    Purge le cache de bandeaux secteurs (cadence quotidienne) AVANT
+    régénération : le fetch n'a lieu qu'ensuite, donc on ne supprime jamais un
+    bandeau qu'on vient de créer."""
     payload = await _sectors_payload()
     if payload is None:
         return
     sectors, h = payload
+    purge_banner_cache(_FEATURE_LOST_SECTOR)
     await publish_persistent_view(
         bot,
         LOST_SECTOR_TOPIC,
@@ -84,11 +100,15 @@ async def publish_lost_sectors(bot, state) -> None:
 
 
 async def publish_raid_dungeon(bot, state) -> None:
-    """Raids/donjons featured de la semaine."""
+    """Raids/donjons featured de la semaine.
+
+    Purge le cache de bandeaux raids/donjons (cadence hebdo, mardi) AVANT
+    régénération."""
     payload = await _raid_dungeon_payload()
     if payload is None:
         return
     groups, h = payload
+    purge_banner_cache(_FEATURE_RAID_DUNGEON)
     await publish_persistent_view(
         bot,
         RAID_DUNGEON_TOPIC,
@@ -104,7 +124,8 @@ async def publish_raid_dungeon(bot, state) -> None:
 async def restore(bot, state) -> None:
     """Pour chaque topic weekly : republie SANS ping les messages sauvegardés
     qui n'existent plus sur Discord. Le fetch de contenu est paresseux (aucun
-    fetch si rien ne manque)."""
+    fetch si rien ne manque). Ne purge PAS le cache d'images (réparation =
+    réutilisation du cache existant)."""
     for topic, (payload_fn, build) in _TOPIC_SPECS.items():
         missing = []
         for guild_id, dest_id, info in iter_subscribers(topic):
@@ -139,7 +160,8 @@ async def restore(bot, state) -> None:
 
 async def on_added(bot, state, guild_id, topic, info) -> None:
     """Publie le contenu courant du topic dans le salon nouvellement configuré
-    (avec ping). `info` = {channel_id, is_thread, role_id} (forme config)."""
+    (avec ping). `info` = {channel_id, is_thread, role_id} (forme config).
+    Ne purge PAS le cache d'images (réutilisation du cache existant)."""
     guild = bot.get_guild(int(guild_id))
     if not guild:
         return
