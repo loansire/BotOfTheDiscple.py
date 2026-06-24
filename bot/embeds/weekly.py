@@ -73,6 +73,7 @@ _RAID_EMOJIS_RAW = {
     "Chute de Cropta": "<:Cropta:1273057968660676790>",
     "Orée du Salut": "<:SE:1273058098818322492>",
     "Désert Perpétuel": "<:DP:1399391431302451300>",
+    "Désert perpétuel (Épique)": "<:DP:1399391431302451300>",
 }
 
 _DUNGEON_EMOJIS_RAW = {
@@ -82,7 +83,7 @@ _DUNGEON_EMOJIS_RAW = {
     "Etreinte de l'Avarice": "<:Etreinte:1275104223016517742>",
     "Dualité": "<:Dualite:1275104177143676948>",
     "Flèche de la Vigie": "<:Fleche:1275104276347359385>",
-    "Fantôme des Profondeurs": "<:Fantome:1275104249700941844>",
+    "Fantômes des Profondeurs": "<:Fantome:1275104249700941844>",
     "Ruine de la Guerrière": "<:Ruine:1275104356387000450>",
     "Hôte Vesper": "<:Vesper:1295144736964870214>",
     "Dogme fragmenté": "<:Dogme:1341339537221353492>",
