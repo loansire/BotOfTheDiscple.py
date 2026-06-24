@@ -62,7 +62,7 @@ TOPICS: dict[str, dict] = {
     },
     "weekly_dungeon": {
         "label": "Donjons de la semaine",
-        "emoji": "<:Donjon:1338595321319788595>",
+        "emoji": "<:Donjon:1338595206706233458>",
     },
     "daily_lost_sector": {
         "label": "Secteurs Oubliés du jour",
