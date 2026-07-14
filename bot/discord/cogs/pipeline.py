@@ -5,7 +5,7 @@ Remplace les cogs weekly et xur (fusionnés). Source de vérité unique du
 dernier reset traité : PipelineState.last_reset_iso (global, pas par serveur).
 
 Arbre de décision (chaque reset est un reset quotidien) :
-- TOUJOURS    → secteurs oubliés (republier)
+- TOUJOURS    → secteurs oubliés + Eververse (republier)
 - VENDREDI    → Xûr arrive : supprime tout + republie tout (statut + catégories)
 - MARDI       → Xûr part (supprime catégories + édite statut) + raids/donjons
 - FIN DE RESET→ vérification d'existence (point 4) : republie SANS ping les
@@ -25,8 +25,10 @@ from discord.ext import commands, tasks
 
 from bot.bungie.errors import BungieMaintenanceError
 from bot.bungie.reset import FRIDAY, TUESDAY, last_reset
+from bot.discord.handlers import eververse as eververse_handler
 from bot.discord.handlers import weekly as weekly_handler
 from bot.discord.handlers import xur as xur_handler
+from bot.features.eververse.state import EververseMessageState
 from bot.features.pipeline_state import PipelineState
 from bot.features.weekly.state import WeeklyMessageState
 from bot.features.xur import is_xur_active
@@ -43,6 +45,7 @@ class Pipeline(commands.Cog):
         self.state = PipelineState()
         self.weekly_state = WeeklyMessageState()
         self.xur_state = XurMessageState()
+        self.eververse_state = EververseMessageState()
         self._hold = False  # True tant que l'API Bungie est en maintenance
         self.poll.start()
 
@@ -88,8 +91,9 @@ class Pipeline(commands.Cog):
         await self.bot.wait_until_ready()
 
     async def _process_reset(self, weekday: int):
-        # TOUJOURS : secteurs oubliés (tout reset est un reset quotidien).
+        # TOUJOURS : secteurs oubliés + Eververse (tout reset est quotidien).
         await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state)
+        await eververse_handler.publish(self.bot, self.eververse_state)
 
         # VENDREDI : Xûr arrive.
         if weekday == FRIDAY:
@@ -113,6 +117,7 @@ class Pipeline(commands.Cog):
         try:
             await weekly_handler.restore(self.bot, self.weekly_state)
             await xur_handler.restore(self.bot, self.xur_state)
+            await eververse_handler.restore(self.bot, self.eververse_state)
         except BungieMaintenanceError:
             raise
         except Exception as e:
@@ -121,7 +126,7 @@ class Pipeline(commands.Cog):
     # ---------- Commande admin (manuelle) ----------
     @app_commands.command(
         name="refresh-all",
-        description="Republie/actualise toutes les features (secteurs, raids/donjons, Xûr).",
+        description="Republie/actualise toutes les features (secteurs, raids/donjons, Xûr, Eververse).",
     )
     @app_commands.guild_only()
     @app_commands.default_permissions(administrator=True)
@@ -134,14 +139,16 @@ class Pipeline(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
         try:
-            # Force le repost : on invalide les hashes des deux états (les IDs de
+            # Force le repost : on invalide les hashes des états (les IDs de
             # messages sont conservés pour pouvoir supprimer les anciens).
             self.weekly_state.invalidate()
             self.xur_state.invalidate()
+            self.eververse_state.invalidate()
 
             await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state)
             # Orchestrateur : purge unique du cache puis raids + donjons.
             await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state)
+            await eververse_handler.publish(self.bot, self.eververse_state)
 
             if is_xur_active():
                 await xur_handler.publish_arrival(self.bot, self.xur_state)

@@ -72,6 +72,10 @@ TOPICS: dict[str, dict] = {
         "label": "Xûr - Agent des Neuf",
         "emoji": "<:Xur:1516172178905759844>",
     },
+    "eververse": {
+        "label": "Eververse - Tess Everis",
+        "emoji": "<:Dust:1526717375833964626>",
+    },
 }
 
 

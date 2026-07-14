@@ -14,6 +14,7 @@ prend effet au prochain repost (reset). Les topics événementiels
 
 Les états sont récupérés en mémoire via le cog Pipeline (mêmes objets que le
 poll → pas de seconde instance qui écrirait le même fichier en parallèle)."""
+from bot.features.eververse import TOPIC as EVERVERSE_TOPIC
 from bot.features.xur.state import TOPIC as XUR_TOPIC
 from bot.utils.logger import log
 
@@ -41,11 +42,13 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
         return
 
     # Import différé : évite tout cycle au chargement du module de config.
+    from bot.discord.handlers import eververse as eververse_handler
     from bot.discord.handlers import weekly as weekly_handler
     from bot.discord.handlers import xur as xur_handler
 
     weekly_state = pipeline.weekly_state
     xur_state = pipeline.xur_state
+    eververse_state = pipeline.eververse_state
 
     # Topics weekly (secteurs, raids, donjons).
     for topic, old, new in _channel_changes(before, after, _WEEKLY_TOPICS):
@@ -60,3 +63,10 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
             await xur_handler.on_removed(bot, xur_state, guild_id, before[topic])
         if new is not None:
             await xur_handler.on_added(bot, xur_state, guild_id, after[topic])
+
+    # Topic Eververse (3 messages de sections).
+    for topic, old, new in _channel_changes(before, after, (EVERVERSE_TOPIC,)):
+        if old is not None:
+            await eververse_handler.on_removed(bot, eververse_state, guild_id, before[topic])
+        if new is not None:
+            await eververse_handler.on_added(bot, eververse_state, guild_id, after[topic])

@@ -12,9 +12,9 @@ from bot.utils.logger import log
 BUNGIE_BASE = "https://www.bungie.net"
 PLATFORM_BASE = f"{BUNGIE_BASE}/Platform"
 
-# Composant Vendors demandé pour Xûr (sales = items en vente). Défini ici (et
-# non importé depuis features/xur) pour éviter un cycle d'import : client.py est
-# importé très tôt, avant le package features.xur.
+# Composant Vendors demandé (sales = items en vente). Défini ici (et non importé
+# depuis features/xur) pour éviter un cycle d'import : client.py est importé très
+# tôt, avant les packages features.
 _VENDOR_COMPONENTS = "402"
 
 # Cache disque des activités du personnage de référence.
@@ -239,6 +239,30 @@ class BungieClient:
         )
         if not data or "Response" not in data:
             log.error(f"[Bungie] Vendor {vendor_hash} indisponible.")
+            return None
+        return data["Response"].get("sales", {}).get("data", {})
+
+    async def get_all_vendor_sales(self) -> dict | None:
+        """Bloc `Response.sales.data` de TOUS les vendors visibles d'un coup
+        (GetVendors PLURIEL, components=402).
+
+        Structure imbriquée (vs get_vendor_sales, singulier) :
+            { "<vendorHash>": { "saleItems": { "<index>": { "itemHash": ..., } } } }
+
+        Auth OAuth requise (même contrainte que Xûr). Utilisé par la feature
+        Eververse : les items en rotation sont éclatés sur plusieurs sous-vendors
+        rotator, tous récupérés en un seul appel. Pas de cache : appelé au reset
+        quotidien (rotation Eververse quotidienne)."""
+        c = BUNGIE_CHARACTER
+        endpoint = (
+            f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
+            f"/Character/{c['character_id']}/Vendors/"
+        )
+        data = await self._get(
+            endpoint, params={"components": _VENDOR_COMPONENTS}, auth=True
+        )
+        if not data or "Response" not in data:
+            log.error("[Bungie] GetVendors (pluriel) indisponible.")
             return None
         return data["Response"].get("sales", {}).get("data", {})
 
