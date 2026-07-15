@@ -111,6 +111,7 @@ def _header_text(section: EververseSection, suffix: str, refresh_unix: int | Non
     text = f"# {section.title}{suffix}"
     if refresh_unix is not None:
         text += (
+            f"\nActualisation: <t:{refresh_unix}:F>"
             f"(<t:{refresh_unix}:R>)"
         )
     return text
