@@ -115,9 +115,9 @@ _DUNGEON_EMOJIS = {_norm_name(k): v for k, v in _DUNGEON_EMOJIS_RAW.items()}
 
 
 def _refresh_line(next_refresh_unix: int) -> str:
-    """Ligne « Prochaine actualisation le <date> (dans …) »."""
+    """Ligne « Actualisation: <date> (dans …) »."""
     return (
-        f"Prochaine actualisation le <t:{next_refresh_unix}:F> "
+        f"Actualisation: <t:{next_refresh_unix}:F> "
         f"(<t:{next_refresh_unix}:R>)"
     )
 
