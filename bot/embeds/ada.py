@@ -7,8 +7,9 @@ Structure de publication (gérée par le handler) :
   (suffixe « (1/2) », comme Xûr/Eververse).
 
 Chaque Section porte à gauche un `TextDisplay` (nom + ligne de coût Glimmer) et à
-droite l'icône composée de l'item en accessoire `ui.Thumbnail`. Un `ui.Separator`
-sépare les items.
+droite l'icône composée de l'item en accessoire `ui.Thumbnail`. Les items
+s'enchaînent SANS séparateur entre eux ; seul un `ui.Separator` sépare le bloc
+d'en-tête (titre + actualisation) du contenu.
 
 Ada-1 étant un vendor PERMANENT, PAS de message statut ni d'image d'en-tête
 (largeIcon) : juste le message de contenu.
@@ -35,9 +36,10 @@ from bot.features.ada.models import AdaItem
 _FEATURE = "ada"  # sous-dossier de cache d'icônes (banners/ada/)
 _ACCENT = discord.Color.dark_gold()
 
-# Plafond de sécurité CV2 (40 composants top-level/message). Un item « plein »
-# coûte ~3 composants (Separator + Section + Thumbnail). On garde de la marge
-# sous 40 (container + titre + séparateur d'entête inclus).
+# Plafond de sécurité CV2 (40 composants top-level/message). Un item coûte ~2
+# composants (Section + Thumbnail), les séparateurs inter-items ayant été
+# retirés. On garde de la marge sous 40 (container + titre + séparateur d'entête
+# inclus).
 _MAX_ITEMS_PER_MESSAGE = 9
 
 
@@ -109,7 +111,10 @@ async def _build_message(
     """Construit (vue, fichiers) pour un paquet d'items.
 
     `part`/`total` numérotent les messages si Ada déborde le plafond (suffixe
-    « (1/2) »). En pratique Ada tient toujours sur un seul message."""
+    « (1/2) »). En pratique Ada tient toujours sur un seul message.
+
+    Les items s'enchaînent sans séparateur entre eux ; seul le séparateur
+    d'en-tête (titre + actualisation → contenu) est conservé."""
     files: list[discord.File] = []
     container = ui.Container(accent_color=_ACCENT)
     suffix = "" if total == 1 else f" ({part + 1}/{total})"
@@ -117,18 +122,16 @@ async def _build_message(
     # Séparation entête (titre + actualisation) → contenu.
     container.add_item(ui.Separator())
 
-    first = True
+    any_item = False
     for item in items:
         section = await _item_section(item, files)
         if section is None:
             continue
-        if not first:
-            container.add_item(ui.Separator())
         container.add_item(section)
-        first = False
+        any_item = True
 
     # Aucun item résoluble → repli (le séparateur d'entête est déjà présent).
-    if first:
+    if not any_item:
         container.add_item(ui.TextDisplay("-# Aucun item pour cette rotation."))
 
     return AdaView(container), files

@@ -19,6 +19,9 @@ SILVER_HASH = 3147280338
 # Emoji custom Discord de la Poussière brillante (coût affiché pour "dust").
 DUST_EMOJI = "<:Dust:1526717375833964626>"
 
+# Emoji custom Discord de Tess Everis (affiché dans le titre de chaque message).
+TESS_EMOJI = "<:Tess:1527021352245268675>"
+
 # Topic d'abonnement unique (un salon, 3 messages persistants).
 TOPIC = "eververse"
 
@@ -27,7 +30,7 @@ TOPIC = "eververse"
 SECTIONS: list[dict] = [
     {
         "id": "main",
-        "title": "Poussière brillante",
+        "title": "Tess - Poussière brillante",
         "currency": "dust",
         "vendors": [
             2168194999,  # exotic_weapon_ornaments
@@ -40,7 +43,7 @@ SECTIONS: list[dict] = [
     },
     {
         "id": "other",
-        "title": "Poussière brillante (autres)",
+        "title": "Tess - Poussière brillante",
         "currency": "dust",
         "vendors": [
             2184482416,  # legendary_and_rare_emotes_and_finishers
@@ -51,7 +54,7 @@ SECTIONS: list[dict] = [
     },
     {
         "id": "silver",
-        "title": "Offres d'Argentum",
+        "title": "Tess - Offres d'Argentum",
         "currency": "silver",
         "vendors": [
             3445703438,  # exotic_emotes

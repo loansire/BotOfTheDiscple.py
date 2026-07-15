@@ -10,8 +10,8 @@ Structure de publication (gérée par le cog) :
 Rendu d'une catégorie : un Container (titre + image d'en-tête du vendor
 `largeIcon` + une `ui.Section` par item). Chaque Section porte, à gauche, un
 `TextDisplay` (nom + ligne de coût `<:PiecesEtranges:…> x{quantity}`) et, à
-droite, l'image combinée de l'item en accessoire `ui.Thumbnail`. Un
-`ui.Separator` sépare chaque item.
+droite, l'image combinée de l'item en accessoire `ui.Thumbnail`. Les items
+s'enchaînent SANS séparateur entre eux.
 
 Builders :
 - build_xur_status_view  → vue du message statut (présent ou absent).
@@ -34,10 +34,11 @@ _TITLE = "<:Xur:1527021351368659205>"  # emoji custom Xûr
 # Emoji de la monnaie de coût (Pièces étranges).
 _PIECES_EMOJI = "<:PiecesEtranges:1516155586755166338>"
 
-# Plafond CV2 : 40 composants top-level par message. Un item « plein » coûte
-# 3 composants (Separator + Section + Thumbnail ; le TextDisplay est un enfant
-# de la Section). Avec le titre + container on reste très en dessous, mais on
-# garde une limite de sécurité par message catégorie.
+# Plafond CV2 : 40 composants top-level par message. Un item coûte ~2 composants
+# (Section + Thumbnail ; le TextDisplay est un enfant de la Section), les
+# séparateurs inter-items ayant été retirés. Avec le titre + l'en-tête vendor +
+# le container on reste très en dessous, mais on garde une limite de sécurité
+# par message catégorie.
 _MAX_ITEMS_PER_MESSAGE = 9
 
 
@@ -158,7 +159,8 @@ async def _build_vendor_message(vendor: XurVendor, part: int, total: int) -> tup
     `part`/`total` numérotent les messages si un vendor déborde le plafond
     (suffixe « (1/2) »). En pratique Xûr tient toujours sur un seul message
     par catégorie. L'image d'en-tête (largeIcon) est affichée sous le titre,
-    sur chaque message du vendor."""
+    sur chaque message du vendor. Les items s'enchaînent sans séparateur entre
+    eux."""
     files: list[discord.File] = []
     container = ui.Container(accent_color=_ACCENT)
     suffix = "" if total == 1 else f" ({part + 1}/{total})"
@@ -167,18 +169,16 @@ async def _build_vendor_message(vendor: XurVendor, part: int, total: int) -> tup
     # Image d'en-tête du vendor (largeIcon) juste sous le titre.
     await _add_vendor_header_icon(container, vendor, files)
 
-    first = True
+    any_item = False
     for item in vendor.items:
         section = await _item_section(item, vendor.key, files)
         if section is None:
             continue
-        if not first:
-            container.add_item(ui.Separator())
         container.add_item(section)
-        first = False
+        any_item = True
 
     # Aucun item résoluble dans ce paquet → pas de message.
-    if first:
+    if not any_item:
         return None
     return XurView(container), files
 
