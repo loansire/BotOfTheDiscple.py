@@ -111,7 +111,6 @@ def _header_text(section: EververseSection, suffix: str, refresh_unix: int | Non
     text = f"# {section.title}{suffix}"
     if refresh_unix is not None:
         text += (
-            f"\nActualisation: <t:{refresh_unix}:F> "
             f"(<t:{refresh_unix}:R>)"
         )
     return text
@@ -128,6 +127,8 @@ async def _build_section_message(
     container = ui.Container(accent_color=_accent(section.currency))
     suffix = "" if total == 1 else f" ({part + 1}/{total})"
     container.add_item(ui.TextDisplay(_header_text(section, suffix, refresh_unix)))
+    # Séparation entête (titre + « Prochaine actualisation ») → contenu.
+    container.add_item(ui.Separator())
 
     first = True
     for item in section.items:
@@ -139,9 +140,8 @@ async def _build_section_message(
         container.add_item(sec)
         first = False
 
-    # Aucun item résoluble → repli (on garde le message pour rester à 3).
+    # Aucun item résoluble → repli (le séparateur d'entête est déjà présent).
     if first:
-        container.add_item(ui.Separator())
         container.add_item(ui.TextDisplay("-# Aucun item pour cette rotation."))
 
     return EververseView(container), files
