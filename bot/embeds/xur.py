@@ -30,7 +30,7 @@ from bot.features.xur.models import XurVendor
 
 _ACCENT = discord.Color.gold()
 
-_TITLE = "<:Xur:1516172178905759844>"  # emoji custom Xûr
+_TITLE = "<:Xur:1527021351368659205>"  # emoji custom Xûr
 # Emoji de la monnaie de coût (Pièces étranges).
 _PIECES_EMOJI = "<:PiecesEtranges:1516155586755166338>"
 

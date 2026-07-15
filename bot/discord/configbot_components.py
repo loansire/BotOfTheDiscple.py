@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 """Composants interactifs de /botconfig (Components V2).
 
-Navigation à 2 niveaux :
-- page principale (current_topic=None) : résumé + bouton ⚙️ par topic
-- page détail (current_topic=<topic>) : listes déroulantes + Valider/Annuler
+Navigation multi-pages pilotée par `node_id` (+ `page`) porté par la ConfigView :
+- nœuds de l'arbre NAV_TREE (racine / jeu / catégorie / feuille)
+- "topic:<topic>" pour la page détail d'un topic (sélecteurs salon + rôle)
 
 Staging : chaque interaction ne modifie QUE l'état `pending` (ou la navigation)
 puis reconstruit une vue neuve. Rien n'est persisté tant que l'utilisateur n'a
 pas cliqué sur « Valider ».
-"""
+
+Ce module ne connaît PAS l'arbre (évite un cycle d'import avec le builder) : le
+builder construit les Sections de navigation et leur passe l'accessoire NavButton
+(flèche) ciblant le nœud ; les boutons Retour reçoivent le nœud parent calculé
+par le builder."""
 import copy
 
 import discord
@@ -32,25 +36,98 @@ _THREAD_TYPES = {
     discord.ChannelType.news_thread,
 }
 
-# Sentinelle : « garder la page courante » lors d'un rebuild.
+# Sentinelle : « garder la valeur courante » lors d'un rebuild.
 _KEEP = object()
 
 
-def _rebuild(view, pending, current_topic=_KEEP):
-    """Instancie une vue neuve avec le même persisted et le nouveau pending.
+def _rebuild(view, pending, node_id=_KEEP, page=_KEEP):
+    """Instancie une vue neuve (même persisted, nouveau pending / navigation).
 
-    `current_topic` :
-        - _KEEP  → on reste sur la page courante (cas des selects)
-        - None   → page principale
-        - <str>  → page détail du topic
+    `node_id` / `page` : _KEEP → conserve la valeur courante de la vue.
     """
     from bot.discord.configbot_view import ConfigView
-    if current_topic is _KEEP:
-        current_topic = view.current_topic
-    return ConfigView(view.user, view.guild, view.persisted, pending, current_topic)
+    if node_id is _KEEP:
+        node_id = view.node_id
+    if page is _KEEP:
+        page = view.page
+    return ConfigView(view.user, view.guild, view.persisted, pending, node_id, page)
 
 
-# ── Selects par topic ──────────────────────────────────────────────────
+# ── Navigation (arbre + pagination) ────────────────────────────────────
+
+
+class NavButton(ui.Button):
+    """Accessoire ➡️ d'une Section de navigation : entre dans un nœud."""
+
+    def __init__(self, target_node: str):
+        super().__init__(emoji="➡️", style=discord.ButtonStyle.secondary)
+        self.target_node = target_node
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        await interaction.response.edit_message(
+            view=_rebuild(view, copy.deepcopy(view.pending), node_id=self.target_node, page=0)
+        )
+
+
+class BackButton(ui.Button):
+    """Retour vers un nœud parent (fourni par le builder)."""
+
+    def __init__(self, target_node: str):
+        super().__init__(label="Retour", emoji="◀️", style=discord.ButtonStyle.secondary)
+        self.target_node = target_node
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        await interaction.response.edit_message(
+            view=_rebuild(view, copy.deepcopy(view.pending), node_id=self.target_node, page=0)
+        )
+
+
+class PrevPageButton(ui.Button):
+    """Page précédente d'une feuille paginée."""
+
+    def __init__(self, disabled: bool = False):
+        super().__init__(emoji="◀️", style=discord.ButtonStyle.secondary, disabled=disabled)
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        await interaction.response.edit_message(
+            view=_rebuild(view, copy.deepcopy(view.pending), page=max(0, view.page - 1))
+        )
+
+
+class NextPageButton(ui.Button):
+    """Page suivante d'une feuille paginée."""
+
+    def __init__(self, disabled: bool = False):
+        super().__init__(emoji="▶️", style=discord.ButtonStyle.secondary, disabled=disabled)
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        await interaction.response.edit_message(
+            view=_rebuild(view, copy.deepcopy(view.pending), page=view.page + 1)
+        )
+
+
+class TopicSettingsButton(ui.Button):
+    """Accessoire ⚙️ d'une Section : ouvre la page détail d'un topic."""
+
+    def __init__(self, topic: str):
+        super().__init__(emoji="⚙️", style=discord.ButtonStyle.secondary)
+        self.topic = topic
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        await interaction.response.edit_message(
+            view=_rebuild(
+                view, copy.deepcopy(view.pending),
+                node_id=f"topic:{self.topic}", page=0,
+            )
+        )
+
+
+# ── Selects par topic (page détail) ────────────────────────────────────
 
 
 class ConfigChannelSelect(ui.ChannelSelect):
@@ -85,6 +162,7 @@ class ConfigChannelSelect(ui.ChannelSelect):
             slot["is_thread"] = False
             slot["role_id"] = None
 
+        # Reste sur la page détail du topic (node_id / page conservés).
         await interaction.response.edit_message(view=_rebuild(view, pending))
 
 
@@ -115,56 +193,27 @@ class ConfigRoleSelect(ui.RoleSelect):
         await interaction.response.edit_message(view=_rebuild(view, pending))
 
 
-# ── Navigation ─────────────────────────────────────────────────────────
-
-
-class TopicSettingsButton(ui.Button):
-    """Accessoire ⚙️ d'une Section : ouvre la page détail du topic."""
-
-    def __init__(self, topic: str):
-        super().__init__(emoji="⚙️", style=discord.ButtonStyle.secondary)
-        self.topic = topic
-
-    async def callback(self, interaction: discord.Interaction):
-        view = self.view
-        await interaction.response.edit_message(
-            view=_rebuild(view, copy.deepcopy(view.pending), current_topic=self.topic)
-        )
-
-
-class BackButton(ui.Button):
-    """Retour à la page principale (conserve le pending tel quel)."""
-
-    def __init__(self):
-        super().__init__(label="Retour", emoji="◀️", style=discord.ButtonStyle.secondary)
-
-    async def callback(self, interaction: discord.Interaction):
-        view = self.view
-        await interaction.response.edit_message(
-            view=_rebuild(view, copy.deepcopy(view.pending), current_topic=None)
-        )
-
-
 # ── Boutons d'action (page détail) ─────────────────────────────────────
 
 
 class ValidateButton(ui.Button):
-    """Persiste tout le pending puis revient à la page principale.
+    """Persiste tout le pending puis revient à la feuille parente du topic.
 
-    Après persistance et acquittement de l'interaction, déclenche le routeur
-    (handlers/topics.py) qui publie/supprime les messages des topics dont le
-    salon a changé. Cette étape est best-effort : l'interaction étant déjà
-    acquittée, une erreur de publication ne casse pas l'UX de config."""
+    Après persistance et acquittement, déclenche le routeur (handlers/topics.py)
+    qui publie/supprime les messages des topics dont le salon a changé. Cette
+    étape est best-effort : l'interaction étant déjà acquittée, une erreur de
+    publication ne casse pas l'UX de config."""
 
-    def __init__(self):
+    def __init__(self, return_node: str):
         super().__init__(label="Valider", emoji="💾", style=discord.ButtonStyle.success)
+        self.return_node = return_node
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
         guild = view.guild
         gid = str(guild.id)
 
-        # Diff avant/après (forme load_config_state) AVANT de reconstruire la vue.
+        # Diff avant/après (forme load_config_state) AVANT de reconstruire.
         before = copy.deepcopy(view.persisted)
         after = copy.deepcopy(view.pending)
 
@@ -182,10 +231,12 @@ class ValidateButton(ui.Button):
             )
         log.info(f"[Guild {gid}] Configuration des alertes mise à jour par {interaction.user}")
 
-        # persisted ← pending, retour accueil (page « propre »)
+        # persisted ← pending, retour à la feuille parente (page « propre »).
         from bot.discord.configbot_view import ConfigView
         saved = copy.deepcopy(view.pending)
-        new_view = ConfigView(view.user, guild, saved, copy.deepcopy(saved), current_topic=None)
+        new_view = ConfigView(
+            view.user, guild, saved, copy.deepcopy(saved), self.return_node, 0
+        )
         await interaction.response.edit_message(view=new_view)
         await interaction.followup.send("✅ Configuration enregistrée.", ephemeral=True)
 
@@ -198,15 +249,16 @@ class ValidateButton(ui.Button):
 
 
 class ResetButton(ui.Button):
-    """Annule les changements non validés (pending ← persisted) et revient
-    à la page principale."""
+    """Annule les changements non validés (pending ← persisted) et revient à la
+    feuille parente du topic."""
 
-    def __init__(self):
+    def __init__(self, return_node: str):
         super().__init__(label="Annuler", emoji="↩️", style=discord.ButtonStyle.secondary)
+        self.return_node = return_node
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
         reverted = copy.deepcopy(view.persisted)
         await interaction.response.edit_message(
-            view=_rebuild(view, reverted, current_topic=None)
+            view=_rebuild(view, reverted, node_id=self.return_node, page=0)
         )

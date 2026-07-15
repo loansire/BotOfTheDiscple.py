@@ -37,44 +37,59 @@ STORE_PATH = ALERTS_DIR / "subscriptions.json"
 
 # ──────────────────────────────────────────────────────────────────────
 # Registre central des topics configurables (source unique de vérité).
-# label/emoji utilisés par l'UI /botconfig.
+# label/emoji utilisés par l'UI /botconfig ; `short` = nom compact affiché
+# dans les aperçus de navigation (listes « preview » des sections).
 # ──────────────────────────────────────────────────────────────────────
 TOPICS: dict[str, dict] = {
     "maintenance_destiny": {
-        "label": "Maintenance - Destiny 2",
+        "label": "Maintenance",
+        "short": "Maintenance",
         "emoji": "<:D2:1270042220627497020>",
     },
     "maintenance_marathon": {
-        "label": "Maintenance - Marathon",
+        "label": "Maintenance",
+        "short": "Maintenance",
         "emoji": "<:Marathon:1513347065881559273>",
-    },
-    "news_patch_note": {
-        "label": "Patch Note - Destiny 2",
-        "emoji": "📝",
     },
     "news_twid": {
         "label": "This Week in Destiny",
+        "short": "TWID",
         "emoji": "📰",
+    },
+    "news_patch_note": {
+        "label": "Patch Note",
+        "short": "Patch note",
+        "emoji": "📝",
     },
     "weekly_raid": {
         "label": "Raids de la semaine",
+        "short": "Raids",
         "emoji": "<:Raid:1338595321319788595>",
     },
     "weekly_dungeon": {
         "label": "Donjons de la semaine",
+        "short": "Donjons",
         "emoji": "<:Donjon:1338595206706233458>",
     },
     "daily_lost_sector": {
         "label": "Secteurs Oubliés du jour",
+        "short": "Secteur oublié",
         "emoji": "<:Secteur:1270042203577778246>",
     },
     "xur": {
         "label": "Xûr - Agent des Neuf",
+        "short": "Xûr",
         "emoji": "<:Xur:1516172178905759844>",
     },
     "eververse": {
         "label": "Eververse - Tess Everis",
-        "emoji": "<:Dust:1526717375833964626>",
+        "short": "Eververse",
+        "emoji": "<:Tess:1527021352245268675>",
+    },
+    "ada": {
+        "label": "Ada-1 - Mods d'armure",
+        "short": "Ada-1",
+        "emoji": "<:Ada:1527021353591374024>",
     },
 }
 
