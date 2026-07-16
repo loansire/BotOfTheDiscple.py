@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 """État des messages persistants weekly/daily.
 
-Sépare l'état runtime (quel message ai-je posté, et quel était son contenu)
-de la configuration déclarative (subscriptions.json). Fichier :
+Sépare l'état runtime (quel(s) message(s) ai-je posté, et quel était leur
+contenu) de la configuration déclarative (subscriptions.json). Fichier :
 
 {
   "guilds": {
     "<guild_id>": {
-      "<topic>": { "message_id": "...", "hash": "..." }
+      "<topic>": { "message_id": "...", "hash": "..." }          # topic mono-message
+      "<topic>": { "message_ids": ["...", ...], "hash": "..." }  # topic multi-message
     }
   }
 }
+
+Deux formes coexistent par topic :
+- mono-message (raids, donjons) : { "message_id", "hash" } via set().
+- multi-message (secteurs oubliés) : { "message_ids", "hash" } via set_ids().
+Le lecteur récupère le dict brut avec get() et lit la clé adaptée au topic.
 
 Le dernier reset traité ne vit PLUS ici : la pipeline en détient l'unique
 source de vérité (PipelineState). Une éventuelle clé `last_reset` héritée d'un
@@ -54,9 +60,19 @@ class WeeklyMessageState:
         )
 
     def set(self, guild_id, topic: str, *, message_id: str, content_hash: str):
+        """Topic MONO-message (raids/donjons) : un seul message_id."""
         guilds = self._data.setdefault("guilds", {})
         guild = guilds.setdefault(str(guild_id), {})
         guild[topic] = {"message_id": message_id, "hash": content_hash}
+
+    def set_ids(self, guild_id, topic: str, *, message_ids: list, content_hash: str):
+        """Topic MULTI-message (secteurs oubliés) : liste de message_ids.
+
+        Remplace intégralement l'entrée du topic (l'éventuelle clé mono-message
+        `message_id` héritée disparaît donc naturellement)."""
+        guilds = self._data.setdefault("guilds", {})
+        guild = guilds.setdefault(str(guild_id), {})
+        guild[topic] = {"message_ids": list(message_ids), "hash": content_hash}
 
     def purge(self, guild_id, topic: str):
         """Oublie l'état d'un topic pour un serveur (retrait d'un salon).
@@ -77,8 +93,8 @@ class WeeklyMessageState:
         vide QUE le hash de ce topic, laissant les autres intacts : c'est ce
         que veut un refresh ciblé, l'état weekly couvrant 3 topics à la fois.
 
-        Les `message_id` sont CONSERVÉS : le publisher en a besoin pour
-        supprimer les anciens messages avant de reposter."""
+        Les `message_id` / `message_ids` sont CONSERVÉS : le publisher en a
+        besoin pour supprimer les anciens messages avant de reposter."""
         for guild in self._data.get("guilds", {}).values():
             for t, topic_data in guild.items():
                 if topic is None or t == topic:

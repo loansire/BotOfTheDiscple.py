@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 """Rendu Components V2 des activités weekly/daily.
 
-- Raids & Donjons : chaque type a désormais SON propre builder (et donc son
-  propre message persistant), liste des noms + bandeau pgcr recadré par
-  activité, séparateurs. Chaque nom est précédé de son emoji custom (résolu par
-  nom normalisé, fallback générique sinon).
-- Secteurs perdus : une carte par secteur, titre (destination en en-tête, nom
-  du secteur en gras dessous), ligne d'icônes des modificateurs (commune aux
-  deux difficultés), texte (boucliers/champions par difficulté) PUIS bandeau
-  pgcr recadré.
+- Raids & Donjons : chaque type a SON propre builder (et donc son propre message
+  persistant), liste des noms + bandeau pgcr recadré par activité, séparateurs.
+  Chaque nom est précédé de son emoji custom (résolu par nom normalisé, fallback
+  générique sinon).
+- Secteurs perdus : UN MESSAGE PAR SECTEUR (build_lost_sectors_view renvoie une
+  liste). Chaque message : destination en en-tête (###), nom du secteur en gras
+  dessous, sa propre ligne d'actualisation, la ligne d'icônes des modificateurs
+  (commune aux deux difficultés), le texte (boucliers/champions par difficulté)
+  PUIS le bandeau pgcr recadré. Ce découpage évite la limite Discord de 4000
+  caractères de texte cumulé par message (CV2).
 
-Les builders renvoient une LayoutView et la liste des fichiers à joindre.
-La publication (post/édition) est gérée ailleurs.
+Les builders raid/donjon renvoient (LayoutView, fichiers). Le builder secteurs
+renvoie une LISTE de (LayoutView, fichiers). La publication (post/édition) est
+gérée ailleurs.
 
 Ligne « Prochaine actualisation » : par défaut calculée ici (prochain reset
 quotidien pour les secteurs, prochain reset du mardi pour raids/donjons), mais
@@ -63,12 +66,9 @@ _EXTRA_EMOJIS = {
 # ── Emojis par modificateur d'activité (secteurs oubliés) ──────────────
 # hash de modificateur (DestinyActivityModifierDefinition) → emoji custom.
 # Sert À LA FOIS de whitelist (seuls les hashes présents sont affichés) et de
-# table de traduction en emoji. À remplir depuis la sortie de
-# scripts/Dump_ls_modifiers.py. Tant que ce dict est vide, aucune ligne
-# d'icônes n'est ajoutée (comportement sûr).
-# Exemple :
-#     3178097715: "<:SurchargeArme:1234567890123456789>",  # Surcharge : Fusil
-#     1546986605: "<:Solaire:1270714993553178624>",         # Brûlure solaire
+# table de traduction en emoji. Le NOM de l'emoji (<:nom:id>) est ignoré par
+# Discord au rendu (seul l'id compte) : on l'abrège pour économiser le budget
+# de 4000 caractères par message.
 _LS_MODIFIER_EMOJIS: dict[int, str] = {
     # Surcharges d'arme.
     95459596: "<:s_LR:1527291256999383060>",
@@ -332,7 +332,7 @@ def _modifier_icons_line(sector: LostSector) -> str | None:
     Union des `modifier_hashes` de toutes les variantes (dédupliquée, dans
     l'ordre de première apparition), filtrée aux hashes connus de
     _LS_MODIFIER_EMOJIS. Renvoie 'emoji | emoji | …' ou None si aucun
-    modificateur connu (dict vide → toujours None)."""
+    modificateur connu."""
     seen: set[int] = set()
     emojis: list[str] = []
     for variant in sector.variants:
@@ -367,32 +367,33 @@ async def build_lost_sectors_view(
     sectors: list[LostSector],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> tuple[WeeklyView, list[discord.File]]:
-    """Renvoie (vue, fichiers). Chaque secteur : titre (destination en en-tête,
-    nom du secteur en gras dessous), ligne d'icônes des modificateurs (commune
-    aux difficultés), lignes par difficulté (boucliers/champions en emotes),
-    puis bandeau recadré.
+) -> list[tuple[WeeklyView, list[discord.File]]]:
+    """Renvoie une LISTE de (vue, fichiers) : UN message par secteur.
+
+    Chaque message : destination en en-tête (###), nom du secteur en gras
+    dessous, sa propre ligne d'actualisation, la ligne d'icônes des
+    modificateurs (commune aux difficultés), les lignes par difficulté
+    (boucliers/champions en emotes), puis le bandeau recadré.
 
     `next_refresh_unix` : timestamp de la prochaine actualisation (défaut =
-    prochain reset quotidien, les secteurs changeant chaque jour)."""
+    prochain reset quotidien, les secteurs changeant chaque jour). Affiché
+    identiquement sur chaque message."""
     if next_refresh_unix is None:
         next_refresh_unix = int(next_reset().timestamp())
 
-    container = ui.Container(accent_color=_ACCENT)
-    container.add_item(ui.TextDisplay(
-        f"# {_LS_EMOJI} Secteurs Oubliés du jour\n"
-        f"{_refresh_line(next_refresh_unix)}"
-    ))
+    messages: list[tuple[WeeklyView, list[discord.File]]] = []
 
-    files: list[discord.File] = []
     for i, sector in enumerate(sectors):
-        container.add_item(ui.Separator())
+        container = ui.Container(accent_color=_ACCENT)
 
         # Titre : destination en en-tête (###), nom du secteur en gras dessous.
         if sector.destination:
-            lines = [f"### {sector.destination}\n**{sector.base_name}**"]
+            header = f"### {_LS_EMOJI} {sector.destination}\n**{sector.base_name}**"
         else:
-            lines = [f"**{sector.base_name}**"]
+            header = f"### {_LS_EMOJI} {sector.base_name}"
+        # Ligne d'actualisation propre à ce message.
+        header += f"\n{_refresh_line(next_refresh_unix)}"
+        lines = [header]
 
         # Ligne d'icônes des modificateurs (commune aux 2 difficultés).
         mod_line = _modifier_icons_line(sector)
@@ -416,6 +417,7 @@ async def build_lost_sectors_view(
 
         container.add_item(ui.TextDisplay("\n".join(lines)))
 
+        files: list[discord.File] = []
         if sector.pgcr_image:
             banner = await get_banner(sector.pgcr_image, _FEATURE_LOST_SECTOR, ratio)
             if banner:
@@ -425,4 +427,6 @@ async def build_lost_sectors_view(
                     ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
                 )
 
-    return WeeklyView(container), files
+        messages.append((WeeklyView(container), files))
+
+    return messages
