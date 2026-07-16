@@ -87,7 +87,7 @@ TOPICS: dict[str, dict] = {
         "emoji": "<:Tess:1527021352245268675>",
     },
     "ada": {
-        "label": "Ada-1 - Mods d'armure",
+        "label": "Ada-1 - Revêtements",
         "short": "Ada-1",
         "emoji": "<:Ada:1527021353591374024>",
     },

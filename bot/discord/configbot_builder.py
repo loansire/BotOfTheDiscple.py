@@ -59,17 +59,17 @@ NAV_TREE: dict[str, dict] = {
     },
     "sec_activites": {
         "label": "Rotations Activités",
-        "emoji": "⚔️",
+        "emoji": "",
         "topics": ["weekly_raid", "weekly_dungeon", "daily_lost_sector"],
     },
     "sec_vendeurs": {
         "label": "Rotations Vendeurs",
-        "emoji": "🛒",
+        "emoji": "",
         "topics": ["ada", "eververse", "xur"],
     },
     "sec_articles": {
         "label": "Articles",
-        "emoji": "📰",
+        "emoji": "",
         "topics": ["news_patch_note", "news_twid", "maintenance_destiny"],
     },
     "game_marathon": {
