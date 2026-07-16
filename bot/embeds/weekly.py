@@ -147,11 +147,19 @@ _DUNGEON_EMOJIS = {_norm_name(k): v for k, v in _DUNGEON_EMOJIS_RAW.items()}
 
 
 def _refresh_line(next_refresh_unix: int) -> str:
-    """Ligne « Actualisation: <date> (dans …) »."""
+    """Ligne « Actualisation: <date> (dans …) » (format complet, raids/donjons)."""
     return (
         f"Actualisation: <t:{next_refresh_unix}:F> "
         f"(<t:{next_refresh_unix}:R>)"
     )
+
+
+def _refresh_line_short(next_refresh_unix: int) -> str:
+    """Ligne courte « Actualisation <relatif> » (secteurs oubliés).
+
+    `<t:…:R>` rend déjà « dans X h » : on n'ajoute pas de « Dans » en dur
+    (sinon « Actualisation Dans dans X h »)."""
+    return f"Actualisation <t:{next_refresh_unix}:R>"
 
 
 def _activity_emoji(group: WeeklyActivity) -> str:
@@ -386,13 +394,12 @@ async def build_lost_sectors_view(
     for i, sector in enumerate(sectors):
         container = ui.Container(accent_color=_ACCENT)
 
-        # Titre : destination en en-tête (###), nom du secteur en gras dessous.
+        # Titre : destination en en-tête (#), nom du secteur (##). PAS de ligne
+        # d'actualisation ici — elle est placée en bas, sous l'image.
         if sector.destination:
-            header = f"### {_LS_EMOJI} {sector.destination}\n**{sector.base_name}**"
+            header = f"# {_LS_EMOJI} {sector.destination}\n## {sector.base_name}"
         else:
             header = f"### {_LS_EMOJI} {sector.base_name}"
-        # Ligne d'actualisation propre à ce message.
-        header += f"\n{_refresh_line(next_refresh_unix)}"
         lines = [header]
 
         # Ligne d'icônes des modificateurs (commune aux 2 difficultés).
@@ -426,6 +433,9 @@ async def build_lost_sectors_view(
                 container.add_item(
                     ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
                 )
+
+        # Ligne d'actualisation (courte), TOUT EN BAS — sous l'image.
+        container.add_item(ui.TextDisplay(_refresh_line_short(next_refresh_unix)))
 
         messages.append((WeeklyView(container), files))
 
