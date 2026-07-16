@@ -403,9 +403,10 @@ async def build_lost_sectors_view(
         lines = [header]
 
         # Ligne d'icônes des modificateurs (commune aux 2 difficultés).
+        # Préfixée '## ' (test d'affichage : agrandit les icônes de surges).
         mod_line = _modifier_icons_line(sector)
         if mod_line:
-            lines.append(mod_line)
+            lines.append(f"## {mod_line}")
 
         # Lignes par difficulté (boucliers/champions greffés).
         variant_lines = []
