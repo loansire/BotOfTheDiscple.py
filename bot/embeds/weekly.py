@@ -350,7 +350,7 @@ def _modifier_icons_line(sector: LostSector) -> str | None:
                 emojis.append(_LS_MODIFIER_EMOJIS[h])
     if not emojis:
         return None
-    return " | ".join(emojis)
+    return " ".join(emojis)
 
 
 def _format_variant_line(variant: ActivityVariant) -> str | None:

@@ -1,27 +1,26 @@
 # -*- coding: utf-8 -*-
-"""Rendu Components V2 de l'Eververse (3 messages).
+"""Rendu Components V2 de l'Eververse.
 
-Structure de publication (gérée par le handler, Lot 3) :
+Structure de publication (gérée par le handler) :
 - Message 1 : « Tess - Poussière brillante »
 - Message 2 : « Tess - Poussière brillante (Autre) »
-- Message 3 : « Tess - Offres d'Argentum »
 
 Chaque message = un Container (titre + un séparateur d'en-tête + une `ui.Section`
-par item). Chaque Section porte à gauche un `TextDisplay` (nom + éventuelle ligne
-de coût) et à droite l'icône composée de l'item en accessoire `ui.Thumbnail`. Les
-items s'enchaînent SANS séparateur entre eux ; seul un `ui.Separator` sépare le
-bloc d'en-tête (titre + actualisation) du contenu. Contrairement à la page web,
-il n'y a PAS de sous-titre par sous-catégorie : les items s'enchaînent dans
-l'ordre défini par SECTIONS.
+par item). Chaque Section porte à gauche un `TextDisplay` (nom + éventuel
+libellé de classe + éventuelle ligne de coût) et à droite l'icône composée de
+l'item en accessoire `ui.Thumbnail`. Les items s'enchaînent SANS séparateur
+entre eux ; seul un `ui.Separator` sépare le bloc d'en-tête (titre +
+actualisation) du contenu.
 
-Coût : affiché UNIQUEMENT pour les sections en Poussière brillante
-(`currency == "dust"`, avec DUST_EMOJI + quantité). Les sections en Argentum
-(`currency == "silver"`) n'affichent AUCUN coût.
+Libellé de classe : pour les ornements d'armure (vendor multi-classe), une ligne
+« Ornement Titan / Arcaniste / Chasseur » est insérée ENTRE le nom et le coût.
+
+Coût : affiché en Poussière brillante (`currency == "dust"`, DUST_EMOJI +
+quantité).
 
 Builder :
-- build_eververse_views → liste de (vue, fichiers), une entrée par message
-  (normalement 3 ; une section qui déborde le plafond CV2 est re-découpée avec
-  un suffixe « (1/2) », comme Xûr).
+- build_eververse_views → liste de (vue, fichiers), une entrée par message. Une
+  section qui déborde le plafond CV2 est re-découpée avec un suffixe « (1/2) ».
 
 La publication (post/suppression) est gérée dans le handler."""
 from __future__ import annotations
@@ -38,9 +37,8 @@ from bot.features.eververse.models import EververseSection
 
 _FEATURE = "eververse"  # sous-dossier de cache d'icônes (banners/eververse/)
 
-# Couleurs d'accent par monnaie (cohérentes avec la page web).
+# Couleur d'accent (Poussière brillante).
 _ACCENT_DUST = discord.Color(0x57C9E6)    # cyan Poussière brillante
-_ACCENT_SILVER = discord.Color(0xC0C6D0)  # argent
 
 # Plafond de sécurité CV2 (40 composants top-level/message). Un item coûte ~2
 # composants (Section + Thumbnail ; le TextDisplay est un enfant de la Section),
@@ -65,17 +63,9 @@ def _chunk(seq: list, size: int):
         yield seq[i:i + size]
 
 
-def _accent(currency: str) -> discord.Color:
-    return _ACCENT_SILVER if currency == "silver" else _ACCENT_DUST
-
-
 def _cost_line(item) -> str:
-    """Ligne de coût d'un item.
-
-    - Poussière brillante (dust) : '<:Dust:…> x1250'.
-    - Argentum (silver) : chaîne vide (coût jamais affiché, cf. spéc).
-    """
-    if item.currency != "dust" or item.cost_quantity is None:
+    """Ligne de coût d'un item : '<:Dust:…> x1250', ou '' si inconnu."""
+    if item.cost_quantity is None:
         return ""
     return f"{DUST_EMOJI} x{item.cost_quantity}"
 
@@ -87,6 +77,7 @@ def _name_line(item) -> str:
 async def _item_section(item, files: list[discord.File]) -> ui.Section | None:
     """Construit la Section d'un item (texte à gauche, vignette à droite).
 
+    Ordre des lignes : nom, (libellé de classe si présent), (coût si connu).
     Ajoute le fichier image à `files`. Renvoie None si l'icône composée est
     indisponible (item ignoré)."""
     icon_bytes = await get_item_icon(
@@ -99,6 +90,9 @@ async def _item_section(item, files: list[discord.File]) -> ui.Section | None:
     files.append(discord.File(BytesIO(icon_bytes), filename=fname))
 
     lines = [_name_line(item)]
+    # Libellé de classe (ornements d'armure multi-classe), au-dessus du coût.
+    if getattr(item, "class_label", None):
+        lines.append(item.class_label)
     cost = _cost_line(item)
     if cost:
         lines.append(cost)
@@ -131,7 +125,7 @@ async def _build_section_message(
     Les items s'enchaînent sans séparateur entre eux ; seul le séparateur
     d'en-tête (titre + actualisation → contenu) est conservé."""
     files: list[discord.File] = []
-    container = ui.Container(accent_color=_accent(section.currency))
+    container = ui.Container(accent_color=_ACCENT_DUST)
     suffix = "" if total == 1 else f" ({part + 1}/{total})"
     container.add_item(ui.TextDisplay(_header_text(section, suffix, refresh_unix)))
     # Séparation entête (titre + « Actualisation ») → contenu.
@@ -158,7 +152,7 @@ async def build_eververse_views(
 ) -> list:
     """Renvoie une LISTE de (vue, fichiers), une entrée par message.
 
-    Normalement 3 messages (un par section, dans l'ordre). Une section qui
+    Normalement 2 messages (un par section, dans l'ordre). Une section qui
     dépasse le plafond CV2 est re-découpée (suffixe « (n/total) »).
 
     La ligne « Actualisation » (prochain reset quotidien par défaut) apparaît sur

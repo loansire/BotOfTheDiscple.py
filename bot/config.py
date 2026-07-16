@@ -15,6 +15,13 @@ BUNGIE_MEMBERSHIP_TYPE = os.getenv("BUNGIE_MEMBERSHIP_TYPE")
 BUNGIE_MEMBERSHIP_ID = os.getenv("BUNGIE_MEMBERSHIP_ID")
 BUNGIE_CHARACTER_ID = os.getenv("BUNGIE_CHARACTER_ID")
 
+# Personnages secondaires (Arcaniste / Chasseur), utilisés UNIQUEMENT quand un
+# vendor a un inventaire spécifique à la classe (ex. ornements d'armure
+# Eververse). Optionnels : le bot démarre sans eux ; seule la feature qui les
+# requiert loggue un warning et saute la classe absente.
+BUNGIE_WARLOCK_ID = os.getenv("BUNGIE_WARLOCK_ID")
+BUNGIE_HUNTER_ID = os.getenv("BUNGIE_HUNTER_ID")
+
 # Identifiants OAuth (client Confidential) — requis UNIQUEMENT pour les
 # endpoints authentifiés (GetVendor → Xûr). Volontairement OPTIONNELS : le bot
 # démarre sans eux ; seule la feature Xûr loggue une erreur si elle tourne sans

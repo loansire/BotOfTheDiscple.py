@@ -223,16 +223,25 @@ class BungieClient:
         return response
 
     # ── Vendors (Xûr) ─────────────────────────────────────────────────
-    async def get_vendor_sales(self, vendor_hash: int) -> dict | None:
+    async def get_vendor_sales(
+        self, vendor_hash: int, character_id: str | None = None
+    ) -> dict | None:
         """Bloc `Response.sales.data` d'un vendor (components=402).
+
+        `character_id` (optionnel) permet d'interroger le vendor avec un
+        personnage AUTRE que le principal — nécessaire pour les vendors dont
+        l'inventaire dépend de la classe (ornements d'armure Eververse :
+        Titan/Arcaniste/Chasseur). Défaut = personnage principal
+        (BUNGIE_CHARACTER_ID).
 
         Renvoie le dict { "<saleItemIndex>": { "itemHash": ..., ... } } ou
         None en cas d'échec. Pas de cache : appelé seulement au reset du
         vendredi (Xûr ne change pas de la semaine)."""
         c = BUNGIE_CHARACTER
+        char = character_id or c["character_id"]
         endpoint = (
             f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
-            f"/Character/{c['character_id']}/Vendors/{vendor_hash}/"
+            f"/Character/{char}/Vendors/{vendor_hash}/"
         )
         data = await self._get(
             endpoint, params={"components": _VENDOR_COMPONENTS}, auth=True
