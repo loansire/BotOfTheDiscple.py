@@ -49,15 +49,15 @@ _LS_EMOJI = "<:Secteur:1270042203577778246>"
 # lost_sector_extra.json (greffée dans variant.extra).
 _EXTRA_EMOJIS = {
     # Boucliers
-    "Solaires": "<:Solaire:1270714993553178624>",
-    "Abyssaux": "<:Abyssale:1270715025660711023>",
-    "Cryo-électriques": "<:Cryo:1270715011781627904>",
-    "Stasiques": "<:Stase:1293381064869285938>",
-    "Filobscures": "<:Filobscur:1293381094774931456>",
+    "Solaires": "<:So:1270714993553178624>",
+    "Abyssaux": "<:Ab:1270715025660711023>",
+    "Cryo-électriques": "<:Cr:1270715011781627904>",
+    "Stasiques": "<:St:1293381064869285938>",
+    "Filobscures": "<:Fi:1293381094774931456>",
     # Champions
-    "Brise-bouclier": "<:Bloqueur:1270042102033678388>",
-    "Perturbation": "<:Surcharge:1270042140944236619>",
-    "Chancellement": "<:Implacable:1270042120857849877>",
+    "Brise-bouclier": "<:Bl:1270042102033678388>",
+    "Perturbation": "<:Su:1270042140944236619>",
+    "Chancellement": "<:Im:1270042120857849877>",
 }
 
 # ── Emojis par modificateur d'activité (secteurs oubliés) ──────────────
@@ -82,12 +82,12 @@ _LS_MODIFIER_EMOJIS: dict[int, str] = {
     795009574: "<:s_M:1527291259130220695>",
     1326581064: "<:s_E:1527291244525654076>",
     # Surcharges élémentaires.
-    426976067: "<:s_Solaire:1527290822595444856>",
-    2691200658: "<:s_Cryo:1527290821307662456>",
-    3196075844: "<:s_Abyssale:1527290819831140413>",
-    2983647439: "<:s_Stase:1527290823912194128>",
-    3809788899: "<:s_Stase:1527290823912194128>",
-    3810297122: "<:s_Filo:1527291156256526558>",
+    426976067: "<:s_S:1527290822595444856>",
+    2691200658: "<:s_C:1527290821307662456>",
+    3196075844: "<:s_A:1527290819831140413>",
+    2983647439: "<:s_St:1527290823912194128>",
+    3809788899: "<:s_St:1527290823912194128>",
+    3810297122: "<:s_F:1527291156256526558>",
 }
 
 # ── Emojis par activité (raids & donjons) ──────────────────────────────
