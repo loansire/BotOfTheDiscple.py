@@ -399,7 +399,7 @@ async def build_lost_sectors_view(
         if sector.destination:
             header = f"# {_LS_EMOJI} {sector.destination}\n## {sector.base_name}"
         else:
-            header = f"### {_LS_EMOJI} {sector.base_name}"
+            header = f"# {_LS_EMOJI} {sector.base_name}"
         lines = [header]
 
         # Ligne d'icônes des modificateurs (commune aux 2 difficultés).

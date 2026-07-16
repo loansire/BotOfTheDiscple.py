@@ -67,12 +67,21 @@ async def get_raid_dungeon() -> list[WeeklyActivity]:
 
 
 async def get_lost_sectors() -> list[LostSector]:
-    """Secteurs perdus du jour (1 par planète, Expert/Maîtrise)."""
+    """Secteurs perdus du jour (1 par planète, Expert/Maîtrise).
+
+    Les 2 surcharges élémentaires de la semaine (globales) sont lues sur
+    availableActivities (activité globale des surges) puis injectées dans chaque
+    variante, en plus de la surcharge d'arme propre au secteur (cf.
+    filters.collect_lost_sectors)."""
     block = await _profile_block()
     if block is None:
         return []
+    elemental_surges = filters.weekly_elemental_surges(
+        block.get("availableActivities", [])
+    )
     return filters.collect_lost_sectors(
         block.get("availableActivityInteractables", []),
         manifest,
         extra=_load_extra(),
+        elemental_surges=elemental_surges,
     )
