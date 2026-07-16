@@ -8,10 +8,17 @@ Appelés par la pipeline (cogs/pipeline.py) et par le routeur /botconfig
   SANS purge de cache (la purge est orchestrée par publish_raid_dungeon).
 - publish_raid_dungeon : orchestrateur reset hebdo (mardi) — purge le cache
   bandeaux UNE seule fois puis publie raids puis donjons.
+- refresh_raid / refresh_dungeon : refresh CIBLÉ (/refresh) d'un seul type —
+  purge le cache bandeaux PUIS publie ce type SANS ping (forcer = régénérer les
+  images, mais sans re-notifier).
 - restore             : répare les messages disparus (sans ping), au reset.
 - on_added            : publie le contenu courant dans un salon nouvellement
   configuré (avec ping).
 - on_removed          : supprime le message d'un salon retiré + purge l'état.
+
+`ping` (défaut True) est threadé jusqu'au publisher : le reset automatique
+notifie (repost = ping), mais un refresh manuel passe `ping=False` — exception
+assumée à la règle « repost = ping ».
 
 Le hash de contenu inclut l'identifiant du reset courant (last_reset) : un
 repost a donc lieu à chaque cadence (quotidienne pour les secteurs, hebdo pour
@@ -114,15 +121,16 @@ _TOPIC_SPECS = {
 }
 
 
-# ── Publication au reset (avec ping) ────────────────────────────────────
+# ── Publication au reset (ping par défaut) ──────────────────────────────
 
 
-async def publish_lost_sectors(bot, state) -> None:
+async def publish_lost_sectors(bot, state, *, ping: bool = True) -> None:
     """Secteurs oubliés du jour.
 
     Purge le cache de bandeaux secteurs (cadence quotidienne) AVANT
     régénération : le fetch n'a lieu qu'ensuite, donc on ne supprime jamais un
-    bandeau qu'on vient de créer."""
+    bandeau qu'on vient de créer. `ping=False` reposte sans re-notifier
+    (refresh manuel)."""
     payload = await _sectors_payload()
     if payload is None:
         return
@@ -134,10 +142,11 @@ async def publish_lost_sectors(bot, state) -> None:
         build_view=lambda data=sectors: build_lost_sectors_view(data),
         content_hash=h,
         state=state,
+        ping=ping,
     )
 
 
-async def publish_raid(bot, state) -> None:
+async def publish_raid(bot, state, *, ping: bool = True) -> None:
     """Raids featured de la semaine (1 message). NE PURGE PAS le cache (la
     purge est orchestrée par publish_raid_dungeon, partagée avec les donjons)."""
     payload = await _raid_payload()
@@ -150,10 +159,11 @@ async def publish_raid(bot, state) -> None:
         build_view=lambda data=groups: build_raid_view(data),
         content_hash=h,
         state=state,
+        ping=ping,
     )
 
 
-async def publish_dungeon(bot, state) -> None:
+async def publish_dungeon(bot, state, *, ping: bool = True) -> None:
     """Donjons featured de la semaine (1 message). NE PURGE PAS le cache (la
     purge est orchestrée par publish_raid_dungeon, partagée avec les raids)."""
     payload = await _dungeon_payload()
@@ -166,19 +176,42 @@ async def publish_dungeon(bot, state) -> None:
         build_view=lambda data=groups: build_dungeon_view(data),
         content_hash=h,
         state=state,
+        ping=ping,
     )
 
 
-async def publish_raid_dungeon(bot, state) -> None:
+async def publish_raid_dungeon(bot, state, *, ping: bool = True) -> None:
     """Orchestrateur reset hebdo (mardi) : purge le cache de bandeaux
     raids/donjons UNE seule fois (cadence hebdo) PUIS publie raids puis donjons.
 
     La purge unique en amont évite d'effacer un bandeau fraîchement généré
     entre les deux publications (raids et donjons partagent le dossier de
-    cache `raid_donjon`)."""
+    cache `raid_donjon`). `ping` est propagé aux deux publications."""
     purge_banner_cache(_FEATURE_RAID_DUNGEON)
-    await publish_raid(bot, state)
-    await publish_dungeon(bot, state)
+    await publish_raid(bot, state, ping=ping)
+    await publish_dungeon(bot, state, ping=ping)
+
+
+# ── Refresh ciblé (/refresh) : purge PUIS publie un seul type, SANS ping ─
+
+
+async def refresh_raid(bot, state) -> None:
+    """Refresh ciblé des raids : purge le cache bandeaux (raids/donjons) PUIS
+    republie les raids SANS ping. On purge car « refresh » = forcer la
+    régénération des images. Le cache étant partagé avec les donjons, leurs
+    bandeaux sont aussi supprimés — sans effet sur le message donjon existant
+    (ses images sont déjà attachées côté Discord ; le cache est juste régénéré
+    à sa prochaine publication)."""
+    purge_banner_cache(_FEATURE_RAID_DUNGEON)
+    await publish_raid(bot, state, ping=False)
+
+
+async def refresh_dungeon(bot, state) -> None:
+    """Refresh ciblé des donjons : purge le cache bandeaux (raids/donjons) PUIS
+    republie les donjons SANS ping. Voir refresh_raid pour la note sur le cache
+    partagé."""
+    purge_banner_cache(_FEATURE_RAID_DUNGEON)
+    await publish_dungeon(bot, state, ping=False)
 
 
 # ── Réparation des messages disparus (point 4, sans ping) ───────────────

@@ -18,7 +18,11 @@ Hold mode (point 9) : si un fetch Bungie lève BungieMaintenanceError (API en
 maintenance, typiquement au reset du mardi), on N'AVANCE PAS l'état et on
 retente au poll suivant — chaque minute jusqu'au rétablissement. Le poll/min
 EST la boucle de retry ; le hash-skip évite de reposter ce qui a déjà été
-publié avant l'échec (seule la partie en échec est réellement retentée)."""
+publié avant l'échec (seule la partie en échec est réellement retentée).
+
+Refresh manuel (/refresh) : publication forcée SANS ping (`ping=False`) —
+exception assumée à la règle « repost = ping ». Le reset automatique, lui,
+notifie toujours (ping par défaut)."""
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -37,8 +41,35 @@ from bot.features.xur import is_xur_active
 from bot.features.xur.state import XurMessageState
 from bot.utils.logger import log
 
-# Seul utilisateur autorisé à déclencher /refresh-all (auteur du bot).
+# Seul utilisateur autorisé à déclencher /refresh (auteur du bot).
 OWNER_ID = 222465158075777035
+
+# Valeur spéciale « toutes les publications ».
+_REFRESH_ALL = "all"
+
+# Choix proposés par /refresh (value = clé interne de dispatch). Seules les
+# features PERSISTANTES sont listées : les topics événementiels (news_*,
+# maintenance_*) n'ont rien à « rafraîchir » (publiés sur nouvel article/event).
+_REFRESH_CHOICES = [
+    app_commands.Choice(name="Tout", value=_REFRESH_ALL),
+    app_commands.Choice(name="Secteurs Oubliés", value="daily_lost_sector"),
+    app_commands.Choice(name="Raids", value="weekly_raid"),
+    app_commands.Choice(name="Donjons", value="weekly_dungeon"),
+    app_commands.Choice(name="Xûr", value="xur"),
+    app_commands.Choice(name="Eververse", value="eververse"),
+    app_commands.Choice(name="Ada-1", value="ada"),
+]
+
+# Libellés pour le message de confirmation (par value).
+_REFRESH_LABELS = {
+    _REFRESH_ALL: "Toutes les publications",
+    "daily_lost_sector": "Secteurs Oubliés",
+    "weekly_raid": "Raids",
+    "weekly_dungeon": "Donjons",
+    "xur": "Xûr",
+    "eververse": "Eververse",
+    "ada": "Ada-1",
+}
 
 
 class Pipeline(commands.Cog):
@@ -129,40 +160,103 @@ class Pipeline(commands.Cog):
         except Exception as e:
             log.error(f"[Pipeline] Vérification d'existence échouée : {e}")
 
-    # ---------- Commande admin (manuelle) ----------
+    # ---------- Refresh manuel (ciblé ou global) ----------
+    # Chaque coroutine invalide l'état CIBLÉ (les IDs de messages sont conservés
+    # pour pouvoir supprimer les anciens) puis republie uniquement sa feature,
+    # SANS ping (refresh = forcer, mais sans re-notifier les rôles). « Forcer »
+    # régénère aussi les images : raids/donjons passent par refresh_raid/
+    # refresh_dungeon (purge du cache bandeaux) ; les autres features purgent
+    # déjà leur cache en interne dans publish_*.
+
+    async def _refresh_sectors(self):
+        self.weekly_state.invalidate("daily_lost_sector")
+        await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, ping=False)
+
+    async def _refresh_raid(self):
+        self.weekly_state.invalidate("weekly_raid")
+        await weekly_handler.refresh_raid(self.bot, self.weekly_state)
+
+    async def _refresh_dungeon(self):
+        self.weekly_state.invalidate("weekly_dungeon")
+        await weekly_handler.refresh_dungeon(self.bot, self.weekly_state)
+
+    async def _refresh_xur(self):
+        self.xur_state.invalidate()
+        if is_xur_active():
+            await xur_handler.publish_arrival(self.bot, self.xur_state, ping=False)
+        else:
+            # Édition in-place du statut « absent » → aucune notification.
+            await xur_handler.refresh_absent_status(self.bot, self.xur_state)
+
+    async def _refresh_eververse(self):
+        self.eververse_state.invalidate()
+        await eververse_handler.publish(self.bot, self.eververse_state, ping=False)
+
+    async def _refresh_ada(self):
+        self.ada_state.invalidate()
+        await ada_handler.publish(self.bot, self.ada_state, ping=False)
+
+    async def _refresh_all(self):
+        # Invalide tout (les IDs sont conservés pour supprimer les anciens).
+        self.weekly_state.invalidate()
+        self.xur_state.invalidate()
+        self.eververse_state.invalidate()
+        self.ada_state.invalidate()
+
+        await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, ping=False)
+        # Orchestrateur : purge unique du cache puis raids + donjons (sans ping).
+        await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state, ping=False)
+        await eververse_handler.publish(self.bot, self.eververse_state, ping=False)
+        # Ada-1 : vendor permanent → on republie quel que soit le jour.
+        await ada_handler.publish(self.bot, self.ada_state, ping=False)
+
+        if is_xur_active():
+            await xur_handler.publish_arrival(self.bot, self.xur_state, ping=False)
+        else:
+            await xur_handler.refresh_absent_status(self.bot, self.xur_state)
+
+    def _dispatch(self):
+        """Table {value → coroutine de refresh}."""
+        return {
+            _REFRESH_ALL: self._refresh_all,
+            "daily_lost_sector": self._refresh_sectors,
+            "weekly_raid": self._refresh_raid,
+            "weekly_dungeon": self._refresh_dungeon,
+            "xur": self._refresh_xur,
+            "eververse": self._refresh_eververse,
+            "ada": self._refresh_ada,
+        }
+
     @app_commands.command(
-        name="refresh-all",
-        description="Republie/actualise toutes les features (secteurs, raids/donjons, Xûr, Eververse, Ada-1).",
+        name="refresh",
+        description="Republie/actualise une publication (ou toutes par défaut), sans ping.",
     )
+    @app_commands.describe(
+        publication="Publication à actualiser (par défaut : toutes)."
+    )
+    @app_commands.choices(publication=_REFRESH_CHOICES)
     @app_commands.guild_only()
     @app_commands.default_permissions(administrator=True)
-    async def refresh_all(self, interaction: discord.Interaction):
+    async def refresh(
+        self, interaction: discord.Interaction, publication: str = _REFRESH_ALL
+    ):
         if interaction.user.id != OWNER_ID:
             await interaction.response.send_message(
                 "🚫 Cette commande est réservée à l'auteur du bot.", ephemeral=True
             )
             return
 
+        fn = self._dispatch().get(publication)
+        if fn is None:  # garde-fou (les choices contraignent déjà la valeur)
+            await interaction.response.send_message(
+                f":x: Publication inconnue : `{publication}`.", ephemeral=True
+            )
+            return
+
         await interaction.response.defer(ephemeral=True)
+        label = _REFRESH_LABELS.get(publication, publication)
         try:
-            # Force le repost : on invalide les hashes des états (les IDs de
-            # messages sont conservés pour pouvoir supprimer les anciens).
-            self.weekly_state.invalidate()
-            self.xur_state.invalidate()
-            self.eververse_state.invalidate()
-            self.ada_state.invalidate()
-
-            await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state)
-            # Orchestrateur : purge unique du cache puis raids + donjons.
-            await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state)
-            await eververse_handler.publish(self.bot, self.eververse_state)
-            # Ada-1 : vendor permanent → on republie quel que soit le jour.
-            await ada_handler.publish(self.bot, self.ada_state)
-
-            if is_xur_active():
-                await xur_handler.publish_arrival(self.bot, self.xur_state)
-            else:
-                await xur_handler.refresh_absent_status(self.bot, self.xur_state)
+            await fn()
         except BungieMaintenanceError:
             await interaction.followup.send(
                 "🔧 L'API Bungie est en maintenance. Réessaie plus tard — "
@@ -171,11 +265,14 @@ class Pipeline(commands.Cog):
             )
             return
         except Exception as e:
-            log.error(f"[Pipeline] /refresh-all a échoué : {e}")
-            await interaction.followup.send(":x: Échec de la republication.", ephemeral=True)
+            log.error(f"[Pipeline] /refresh ({publication}) a échoué : {e}")
+            await interaction.followup.send(
+                ":x: Échec de la republication.", ephemeral=True
+            )
             return
+
         await interaction.followup.send(
-            "✅ Toutes les features ont été actualisées.", ephemeral=True
+            f"✅ {label} : actualisation effectuée (sans ping).", ephemeral=True
         )
 
 

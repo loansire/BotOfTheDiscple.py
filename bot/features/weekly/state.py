@@ -69,13 +69,18 @@ class WeeklyMessageState:
         if not guild:
             guilds.pop(str(guild_id), None)
 
-    def invalidate(self):
-        """Efface tous les hashes pour forcer un repost au prochain publish.
+    def invalidate(self, topic: str | None = None):
+        """Efface les hashes pour forcer un repost au prochain publish.
+
+        `topic=None` (défaut) → tous les topics (comportement historique,
+        utilisé par un refresh global). `topic="weekly_raid"` (par ex.) → ne
+        vide QUE le hash de ce topic, laissant les autres intacts : c'est ce
+        que veut un refresh ciblé, l'état weekly couvrant 3 topics à la fois.
 
         Les `message_id` sont CONSERVÉS : le publisher en a besoin pour
-        supprimer les anciens messages avant de reposter. Utilisé par le
-        refresh manuel (/refresh-all)."""
+        supprimer les anciens messages avant de reposter."""
         for guild in self._data.get("guilds", {}).values():
-            for topic_data in guild.values():
-                topic_data.pop("hash", None)
+            for t, topic_data in guild.items():
+                if topic is None or t == topic:
+                    topic_data.pop("hash", None)
         self.save()

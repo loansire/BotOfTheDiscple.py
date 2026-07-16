@@ -5,7 +5,8 @@ Appelés par la pipeline (cogs/pipeline.py) et le routeur /botconfig
 (handlers/topics.py) :
 - publish        : au reset QUOTIDIEN — supprime tout puis republie les 3
   messages de sections par serveur, suivis d'un message de ping rôle SEUL en
-  dernier (si un rôle est défini).
+  dernier (si un rôle est défini). `ping=False` (refresh manuel) reposte sans
+  notifier.
 - restore        : répare les messages disparus (sans ping), au reset.
 - on_added       : publie le contenu courant dans un salon nouvellement
   configuré (avec message de ping rôle seul en dernier).
@@ -128,12 +129,12 @@ async def _repost_guild(
 # ── Reset quotidien : publication ────────────────────────────────────────
 
 
-async def publish(bot, state) -> None:
+async def publish(bot, state, *, ping: bool = True) -> None:
     """Publie/reposte les 3 messages Eververse au reset quotidien.
 
     Saute un serveur déjà à jour pour ce reset (même hash + messages présents).
     Purge le cache d'icônes (cadence quotidienne) AVANT toute régénération, une
-    fois le fetch confirmé."""
+    fois le fetch confirmé. `ping=False` (refresh manuel) reposte sans notifier."""
     sections = await _fetch_sections()
     if sections is None:
         log.warning("[Eververse] Aucun item récupéré — publication annulée.")
@@ -155,7 +156,7 @@ async def publish(bot, state) -> None:
             continue  # déjà publié pour ce reset
 
         await _repost_guild(
-            guild, dest, sections, info.get("role"), ev_hash, state, ping=True
+            guild, dest, sections, info.get("role"), ev_hash, state, ping=ping
         )
 
     state.save()

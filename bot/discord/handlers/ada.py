@@ -5,7 +5,8 @@ Appelés par la pipeline (cogs/pipeline.py) et le routeur /botconfig
 (handlers/topics.py) :
 - publish        : au reset du MARDI — supprime tout puis republie le(s)
   message(s) de contenu par serveur, suivis d'un message de ping rôle SEUL en
-  dernier (si un rôle est défini).
+  dernier (si un rôle est défini). `ping=False` (refresh manuel) reposte sans
+  notifier.
 - restore        : répare les messages disparus (sans ping), au reset.
 - on_added       : publie le contenu courant dans un salon nouvellement
   configuré (avec message de ping rôle seul en dernier).
@@ -128,12 +129,12 @@ async def _repost_guild(
 # ── Reset hebdo (mardi) : publication ────────────────────────────────────
 
 
-async def publish(bot, state) -> None:
+async def publish(bot, state, *, ping: bool = True) -> None:
     """Publie/reposte le contenu Ada-1 au reset du mardi.
 
     Saute un serveur déjà à jour pour ce reset (même hash + messages présents).
     Purge le cache d'icônes (cadence hebdo) AVANT toute régénération, une fois le
-    fetch confirmé."""
+    fetch confirmé. `ping=False` (refresh manuel) reposte sans notifier."""
     items = await _fetch_items()
     if items is None:
         log.warning("[Ada-1] Aucun item récupéré — publication annulée.")
@@ -155,7 +156,7 @@ async def publish(bot, state) -> None:
             continue  # déjà publié pour ce reset
 
         await _repost_guild(
-            guild, dest, items, info.get("role"), ada_hash, state, ping=True
+            guild, dest, items, info.get("role"), ada_hash, state, ping=ping
         )
 
     state.save()

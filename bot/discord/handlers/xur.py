@@ -5,12 +5,12 @@ Appelés par la pipeline (cogs/pipeline.py) et le routeur /botconfig
 (handlers/topics.py) :
 - publish_arrival       : VENDREDI — supprime TOUT puis republie TOUT (statut +
   catégories) par serveur, suivi d'un message de ping rôle SEUL en dernier (si
-  un rôle est défini).
+  un rôle est défini). `ping=False` (refresh manuel) reposte sans notifier.
 - mark_departed         : MARDI — supprime les catégories (et le ping), édite le
   statut en « n'est pas là » (édition in-place → aucune notification).
 - restore               : répare les messages disparus (sans ping), au reset.
 - on_added / on_removed : ajout/retrait d'un salon via /botconfig.
-- refresh_absent_status : utilitaire /refresh-all hors fenêtre Xûr.
+- refresh_absent_status : utilitaire /refresh hors fenêtre Xûr.
 
 IMPORTANT : aucun appel vendor n'est fait en dehors de publish_arrival /
 on_added / restore-actif. Le mardi (mark_departed) ne touche JAMAIS l'API
@@ -95,11 +95,13 @@ def _xur_hash(vendors) -> str:
 # ── VENDREDI : arrivée ──────────────────────────────────────────────────
 
 
-async def publish_arrival(bot, state) -> None:
+async def publish_arrival(bot, state, *, ping: bool = True) -> None:
     """Xûr arrive : par serveur, supprime tout puis republie statut, catégories,
     puis un message de ping rôle seul en dernier. Saute un serveur déjà à jour
     pour ce reset (évite de re-pinger tout le monde si on republie pour un seul
     serveur).
+
+    `ping=False` (refresh manuel) reposte sans envoyer le message de mention.
 
     Purge le cache d'icônes (cadence hebdo) AVANT toute régénération, une fois
     le fetch confirmé : on ne supprime donc jamais une icône qu'on vient de
@@ -127,7 +129,7 @@ async def publish_arrival(bot, state) -> None:
             continue  # déjà publié pour ce reset
 
         await _repost_guild(
-            guild, dest, vendors, departure, info.get("role"), xur_hash, state, ping=True
+            guild, dest, vendors, departure, info.get("role"), xur_hash, state, ping=ping
         )
 
     state.save()
@@ -341,12 +343,12 @@ async def on_removed(bot, state, guild_id, info) -> None:
     state.save()
 
 
-# ── /refresh-all hors fenêtre Xûr ────────────────────────────────────────
+# ── /refresh hors fenêtre Xûr ────────────────────────────────────────────
 
 
 async def refresh_absent_status(bot, state) -> None:
     """Met le statut à « n'est pas là » et purge d'éventuelles catégories
-    (ou ping) résiduelles. Utilisé par /refresh-all quand Xûr est inactif."""
+    (ou ping) résiduelles. Utilisé par /refresh quand Xûr est inactif."""
     return_unix = next_arrival_unix()
     dest_by_guild = _dest_map()
 
