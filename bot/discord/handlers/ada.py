@@ -4,14 +4,20 @@
 Appelés par la pipeline (cogs/pipeline.py) et le routeur /botconfig
 (handlers/topics.py) :
 - publish        : au reset du MARDI — supprime tout puis republie le(s)
-  message(s) de contenu par serveur. Le 1er message porte le ping rôle.
+  message(s) de contenu par serveur, suivis d'un message de ping rôle SEUL en
+  dernier (si un rôle est défini).
 - restore        : répare les messages disparus (sans ping), au reset.
 - on_added       : publie le contenu courant dans un salon nouvellement
-  configuré (avec ping sur le 1er message).
+  configuré (avec message de ping rôle seul en dernier).
 - on_removed     : supprime tous les messages d'un salon retiré + purge l'état.
 
 Ada-1 est un vendor PERMANENT : pas de fenêtre présent/absent, pas de message
-statut, pas de largeIcon — juste le(s) message(s) de contenu (normalement 1).
+statut, pas de largeIcon — juste le(s) message(s) de contenu (normalement 1),
+suivi(s) de l'éventuel message de ping.
+
+Ping rôle : c'est un message à part (mention seule, via send_ping), posté en
+DERNIER et seulement si un rôle est défini. Son id est rangé avec les messages
+de contenu (message_ids) → supprimé/reposté avec eux.
 
 Phase fetch isolée (via _fetch_items) : un fetch indisponible → on ne touche à
 rien (le hold mode de la pipeline transforme l'indisponibilité API en attente).
@@ -29,6 +35,7 @@ from bot.discord.publisher import (
     delete_message,
     message_exists,
     resolve_destination,
+    send_ping,
     send_view,
 )
 from bot.embeds.ada import build_ada_view
@@ -87,28 +94,35 @@ def _ada_hash(items) -> str:
 async def _repost_guild(
     guild, dest, items, role_id, ada_hash, state, *, ping: bool = True
 ) -> None:
-    """Supprime tout puis republie le(s) message(s). `ping` n'agit que sur le
-    1er message (les suivants ne pingent jamais)."""
+    """Supprime tout puis republie le(s) message(s) de contenu, suivis d'un
+    message de ping rôle SEUL en dernier (si demandé et rôle défini).
+
+    Le ping est un message à part (mention seule) : son id est rangé avec les
+    messages de contenu → supprimé/reposté avec eux."""
     guild_id = str(guild.id)
     old = state.get(guild_id)
 
-    # 1) Supprime les anciens messages.
+    # 1) Supprime les anciens messages (contenu + ancien ping).
     await _delete_messages(dest, old["message_ids"])
 
-    # 2) Republie message par message (ping uniquement sur le 1er).
+    # 2) Republie message par message (jamais de ping).
     new_ids: list = []
     views = await build_ada_view(items)
-    for i, (view, files) in enumerate(views):
-        do_ping = ping and i == 0
-        mid = await send_view(
-            dest, view, files, role_id=role_id if do_ping else None, ping=do_ping
-        )
+    for view, files in views:
+        mid = await send_view(dest, view, files)
         if mid:
             new_ids.append(mid)
+    content_count = len(new_ids)
 
-    # 3) Sauvegarde de l'état du serveur.
+    # 3) Ping rôle SEUL, en dernier (si demandé et rôle défini).
+    if ping:
+        ping_id = await send_ping(dest, role_id)
+        if ping_id:
+            new_ids.append(ping_id)
+
+    # 4) Sauvegarde de l'état du serveur.
     state.set(guild_id, message_ids=new_ids, content_hash=ada_hash)
-    log.info(f"[Ada-1] {len(new_ids)} message(s) publié(s) dans {guild.name}.")
+    log.info(f"[Ada-1] {content_count} message(s) publié(s) dans {guild.name}.")
 
 
 # ── Reset hebdo (mardi) : publication ────────────────────────────────────
@@ -193,7 +207,8 @@ async def restore(bot, state) -> None:
 
 async def on_added(bot, state, guild_id, info) -> None:
     """Ajout d'un salon Ada-1. `info` = {channel_id, is_thread, role_id}.
-    Publie le contenu courant (ping sur le 1er message). Ne purge PAS le cache."""
+    Publie le contenu courant (+ message de ping seul en dernier). Ne purge PAS
+    le cache."""
     guild = bot.get_guild(int(guild_id))
     if not guild:
         return

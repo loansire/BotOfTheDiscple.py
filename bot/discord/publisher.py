@@ -12,6 +12,7 @@ Helpers partagés (utilisés aussi par les handlers de la pipeline) :
 - content_hash()       : hash court et stable d'un itérable de chaînes.
 - resolve_destination(): résout un salon texte ou un thread cible.
 - send_view()          : envoie une LayoutView (+ ping rôle optionnel) → id|None.
+- send_ping()          : envoie un message de mention rôle SEUL (hors CV2) → id|None.
 - message_exists()     : True si le message existe encore (NotFound → False).
 - delete_message()     : supprime un message (ignore s'il a déjà disparu).
 """
@@ -54,7 +55,10 @@ async def send_view(
 
     Components V2 : un LayoutView ne peut pas porter de `content` ; la mention
     est ajoutée comme TextDisplay, et `allowed_mentions` n'autorise QUE le rôle
-    voulu. Renvoie l'id (str) du message envoyé, ou None en cas d'échec."""
+    voulu. Renvoie l'id (str) du message envoyé, ou None en cas d'échec.
+
+    NB : pour un ping « en dernier sur un message à part » (cas des vendors),
+    préférer send_ping() plutôt que ce paramètre `ping`."""
     if ping and role_id:
         view.add_item(ui.TextDisplay(f"<@&{role_id}>"))
         allowed = discord.AllowedMentions(roles=True)
@@ -65,6 +69,29 @@ async def send_view(
         return str(sent.id)
     except discord.DiscordException as e:
         log.error(f"[Publisher] Envoi échoué dans {dest} : {e}")
+        return None
+
+
+async def send_ping(dest, role_id: Optional[str]) -> Optional[str]:
+    """Envoie un message de ping rôle SEUL (contenu = mention, hors CV2).
+
+    C'est un message texte classique (PAS une LayoutView) : la mention vit donc
+    dans le champ `content`, ce qui déclenche la notification de façon fiable et
+    standard — contrairement à un `<@&…>` glissé dans un TextDisplay d'un message
+    Components V2.
+
+    Renvoie l'id (str) du message envoyé, ou None si aucun rôle n'est défini
+    (rien n'est alors publié) ou en cas d'échec d'envoi."""
+    if not role_id:
+        return None
+    try:
+        sent = await dest.send(
+            content=f"<@&{role_id}>",
+            allowed_mentions=discord.AllowedMentions(roles=True),
+        )
+        return str(sent.id)
+    except discord.DiscordException as e:
+        log.error(f"[Publisher] Envoi du ping échoué dans {dest} : {e}")
         return None
 
 

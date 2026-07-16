@@ -4,9 +4,10 @@
 Appelés par la pipeline (cogs/pipeline.py) et le routeur /botconfig
 (handlers/topics.py) :
 - publish_arrival       : VENDREDI — supprime TOUT puis republie TOUT (statut +
-  catégories) par serveur. Le nouveau statut porte le ping rôle.
-- mark_departed         : MARDI — supprime les catégories, édite le statut en
-  « n'est pas là » (édition in-place → aucune notification).
+  catégories) par serveur, suivi d'un message de ping rôle SEUL en dernier (si
+  un rôle est défini).
+- mark_departed         : MARDI — supprime les catégories (et le ping), édite le
+  statut en « n'est pas là » (édition in-place → aucune notification).
 - restore               : répare les messages disparus (sans ping), au reset.
 - on_added / on_removed : ajout/retrait d'un salon via /botconfig.
 - refresh_absent_status : utilitaire /refresh-all hors fenêtre Xûr.
@@ -17,6 +18,11 @@ vendor — ce qui corrige la publication parasite des sous-vendors.
 
 Phase fetch isolée (via _fetch_vendors) : un fetch vide → on ne touche à rien
 (le hold mode du Lot 4 transformera l'indisponibilité API en attente).
+
+Ping rôle : ce n'est plus le statut qui porte le ping. On envoie, en DERNIER, un
+message à part contenant uniquement la mention (send_ping), et seulement si un
+rôle est défini. Son id est rangé dans `category_ids` (messages jetables) : il
+est donc supprimé au repost et au départ du mardi, comme les catégories.
 
 Cache d'images : publish_arrival PURGE le cache d'icônes (banners/xur/, cadence
 hebdo du vendredi) AVANT régénération. restore / on_added ne purgent PAS (ils
@@ -31,6 +37,7 @@ from bot.discord.publisher import (
     delete_message,
     message_exists,
     resolve_destination,
+    send_ping,
     send_view,
 )
 from bot.embeds.xur import build_xur_category_views, build_xur_status_view
@@ -89,9 +96,10 @@ def _xur_hash(vendors) -> str:
 
 
 async def publish_arrival(bot, state) -> None:
-    """Xûr arrive : par serveur, supprime tout puis republie statut (+ ping) et
-    catégories. Saute un serveur déjà à jour pour ce reset (évite de re-pinger
-    tout le monde si on republie pour un seul serveur).
+    """Xûr arrive : par serveur, supprime tout puis republie statut, catégories,
+    puis un message de ping rôle seul en dernier. Saute un serveur déjà à jour
+    pour ce reset (évite de re-pinger tout le monde si on republie pour un seul
+    serveur).
 
     Purge le cache d'icônes (cadence hebdo) AVANT toute régénération, une fois
     le fetch confirmé : on ne supprime donc jamais une icône qu'on vient de
@@ -128,39 +136,53 @@ async def publish_arrival(bot, state) -> None:
 async def _repost_guild(
     guild, dest, vendors, departure, role_id, xur_hash, state, *, ping: bool = True
 ) -> None:
-    """Supprime tout (statut + catégories) puis republie. `ping` n'agit que sur
-    le statut (les catégories ne pingent jamais)."""
+    """Supprime tout (statut + catégories + ancien ping) puis republie. `ping`
+    n'agit que sur le message de ping final (jamais sur le statut ni les
+    catégories).
+
+    Le ping est un message à part (mention seule), posté en DERNIER et seulement
+    si un rôle est défini. Son id est rangé avec les catégories (messages
+    jetables) → supprimé/reposté avec elles, et supprimé au départ du mardi."""
     guild_id = str(guild.id)
     old = state.get(guild_id)
 
-    # 1) Supprime TOUT (ancien statut + anciennes catégories).
+    # 1) Supprime TOUT (ancien statut + anciennes catégories + ancien ping).
     to_delete = ([old["status_id"]] if old["status_id"] else []) + old["category_ids"]
     await _delete_messages(dest, to_delete)
 
-    # 2) Nouveau statut « est là » (ping rôle seulement si demandé).
+    # 2) Nouveau statut « est là » (jamais de ping ici).
     status_view = build_xur_status_view(True, departure_unix=departure)
-    status_id = await send_view(dest, status_view, role_id=role_id, ping=ping)
+    status_id = await send_view(dest, status_view)
     if status_id is None:
         return  # rien de cohérent à enregistrer
 
-    # 3) Catégories (jamais de ping : le statut porte la notif).
+    # 3) Catégories (jamais de ping : le ping est un message à part).
     new_ids: list = []
     for view, files in await build_xur_category_views(vendors):
-        mid = await send_view(dest, view, files, ping=False)
+        mid = await send_view(dest, view, files)
         if mid:
             new_ids.append(mid)
+    category_count = len(new_ids)
 
-    # 4) Sauvegarde de l'état du serveur.
+    # 4) Ping rôle SEUL, en dernier (si demandé et rôle défini). Rangé avec les
+    #    catégories → supprimé/reposté avec elles.
+    if ping:
+        ping_id = await send_ping(dest, role_id)
+        if ping_id:
+            new_ids.append(ping_id)
+
+    # 5) Sauvegarde de l'état du serveur.
     state.set(guild_id, status_id=status_id, category_ids=new_ids, content_hash=xur_hash)
-    log.info(f"[Xûr] Statut + {len(new_ids)} catégorie(s) publié(s) dans {guild.name}.")
+    log.info(f"[Xûr] Statut + {category_count} catégorie(s) publié(s) dans {guild.name}.")
 
 
 # ── MARDI : départ ──────────────────────────────────────────────────────
 
 
 async def mark_departed(bot, state) -> None:
-    """Xûr part : supprime les catégories et édite le statut en « n'est pas
-    là » (édition in-place → aucune notification). Aucun appel vendor."""
+    """Xûr part : supprime les catégories (et le message de ping) et édite le
+    statut en « n'est pas là » (édition in-place → aucune notification). Aucun
+    appel vendor."""
     return_unix = next_arrival_unix()
     dest_by_guild = _dest_map()
 
@@ -209,10 +231,10 @@ async def _edit_or_post_status(dest, guild_id, status_view, state) -> None:
 async def restore(bot, state) -> None:
     """Répare les messages Xûr disparus (sans ping).
 
-    Xûr actif : si le statut OU une catégorie manque pour un serveur, on
-    reconstruit TOUT ce serveur (plus simple et fiable). Le fetch vendor est
-    paresseux (aucun fetch si rien ne manque). Xûr inactif : seul le statut
-    « absent » doit exister ; on le rétablit au besoin, sans fetch.
+    Xûr actif : si le statut OU une catégorie (ou le ping) manque pour un
+    serveur, on reconstruit TOUT ce serveur (plus simple et fiable). Le fetch
+    vendor est paresseux (aucun fetch si rien ne manque). Xûr inactif : seul le
+    statut « absent » doit exister ; on le rétablit au besoin, sans fetch.
 
     Ne purge PAS le cache d'icônes (réparation = réutilisation du cache)."""
     dest_by_guild = _dest_map()
@@ -268,8 +290,8 @@ async def restore(bot, state) -> None:
 
 async def on_added(bot, state, guild_id, info) -> None:
     """Ajout d'un salon Xûr. `info` = {channel_id, is_thread, role_id}.
-    Xûr actif → statut présent (+ ping) + catégories ; inactif → statut absent
-    (sans ping). Ne purge PAS le cache d'icônes (réutilisation du cache)."""
+    Xûr actif → statut + catégories + message de ping seul en dernier ; inactif
+    → statut absent (sans ping). Ne purge PAS le cache d'icônes."""
     guild = bot.get_guild(int(guild_id))
     if not guild:
         return
@@ -282,9 +304,11 @@ async def on_added(bot, state, guild_id, info) -> None:
         vendors = await _fetch_vendors()
         departure = next_departure_unix()
         if vendors is None:
-            # Actif mais fetch indisponible : poste au moins le statut présent.
+            # Actif mais fetch indisponible : poste le statut SEUL, sans ping
+            # (inutile de notifier sans items). category_ids reste vide → restore
+            # retentera la publication complète au rétablissement de l'API.
             status_view = build_xur_status_view(True, departure_unix=departure)
-            mid = await send_view(dest, status_view, role_id=role_id, ping=True)
+            mid = await send_view(dest, status_view)
             if mid:
                 state.set(guild_id, status_id=mid, category_ids=[], content_hash="")
                 state.save()
@@ -295,14 +319,15 @@ async def on_added(bot, state, guild_id, info) -> None:
         state.save()
     else:
         status_view = build_xur_status_view(False, return_unix=next_arrival_unix())
-        mid = await send_view(dest, status_view, role_id=role_id, ping=False)
+        mid = await send_view(dest, status_view, ping=False)
         if mid:
             state.set(guild_id, status_id=mid, category_ids=[], content_hash="")
             state.save()
 
 
 async def on_removed(bot, state, guild_id, info) -> None:
-    """Retrait d'un salon Xûr : supprime statut + catégories, purge l'état."""
+    """Retrait d'un salon Xûr : supprime statut + catégories (+ ping), purge
+    l'état."""
     guild = bot.get_guild(int(guild_id))
     if guild:
         dest = resolve_destination(guild, info["channel_id"], info.get("is_thread", False))
@@ -321,7 +346,7 @@ async def on_removed(bot, state, guild_id, info) -> None:
 
 async def refresh_absent_status(bot, state) -> None:
     """Met le statut à « n'est pas là » et purge d'éventuelles catégories
-    résiduelles. Utilisé par /refresh-all quand Xûr est inactif."""
+    (ou ping) résiduelles. Utilisé par /refresh-all quand Xûr est inactif."""
     return_unix = next_arrival_unix()
     dest_by_guild = _dest_map()
 

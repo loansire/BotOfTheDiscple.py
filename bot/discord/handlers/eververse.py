@@ -4,14 +4,19 @@
 Appelés par la pipeline (cogs/pipeline.py) et le routeur /botconfig
 (handlers/topics.py) :
 - publish        : au reset QUOTIDIEN — supprime tout puis republie les 3
-  messages de sections par serveur. Seul le 1er message porte le ping rôle.
+  messages de sections par serveur, suivis d'un message de ping rôle SEUL en
+  dernier (si un rôle est défini).
 - restore        : répare les messages disparus (sans ping), au reset.
 - on_added       : publie le contenu courant dans un salon nouvellement
-  configuré (avec ping sur le 1er message).
+  configuré (avec message de ping rôle seul en dernier).
 - on_removed     : supprime tous les messages d'un salon retiré + purge l'état.
 
 Contrairement à Xûr : pas de fenêtre présent/absent, pas de message « statut »,
-pas de largeIcon — juste les 3 messages de sections.
+pas de largeIcon — juste les 3 messages de sections (+ éventuel ping en dernier).
+
+Ping rôle : c'est un message à part (mention seule, via send_ping), posté en
+DERNIER et seulement si un rôle est défini. Son id est rangé avec les messages
+de sections (message_ids) → supprimé/reposté avec eux.
 
 Phase fetch isolée (via _fetch_sections) : un fetch indisponible → on ne touche
 à rien (le hold mode de la pipeline transforme l'indisponibilité API en attente).
@@ -28,6 +33,7 @@ from bot.discord.publisher import (
     delete_message,
     message_exists,
     resolve_destination,
+    send_ping,
     send_view,
 )
 from bot.embeds.eververse import build_eververse_views
@@ -88,28 +94,35 @@ def _eververse_hash(sections) -> str:
 async def _repost_guild(
     guild, dest, sections, role_id, ev_hash, state, *, ping: bool = True
 ) -> None:
-    """Supprime tout puis republie les 3 messages de sections. `ping` n'agit
-    que sur le 1er message (les suivants ne pingent jamais)."""
+    """Supprime tout puis republie les 3 messages de sections, suivis d'un
+    message de ping rôle SEUL en dernier (si demandé et rôle défini).
+
+    Le ping est un message à part (mention seule) : son id est rangé avec les
+    messages de sections → supprimé/reposté avec eux."""
     guild_id = str(guild.id)
     old = state.get(guild_id)
 
-    # 1) Supprime les anciens messages.
+    # 1) Supprime les anciens messages (sections + ancien ping).
     await _delete_messages(dest, old["message_ids"])
 
-    # 2) Republie section par section (ping uniquement sur le 1er message).
+    # 2) Republie section par section (jamais de ping).
     new_ids: list = []
     views = await build_eververse_views(sections)
-    for i, (view, files) in enumerate(views):
-        do_ping = ping and i == 0
-        mid = await send_view(
-            dest, view, files, role_id=role_id if do_ping else None, ping=do_ping
-        )
+    for view, files in views:
+        mid = await send_view(dest, view, files)
         if mid:
             new_ids.append(mid)
+    section_count = len(new_ids)
 
-    # 3) Sauvegarde de l'état du serveur.
+    # 3) Ping rôle SEUL, en dernier (si demandé et rôle défini).
+    if ping:
+        ping_id = await send_ping(dest, role_id)
+        if ping_id:
+            new_ids.append(ping_id)
+
+    # 4) Sauvegarde de l'état du serveur.
     state.set(guild_id, message_ids=new_ids, content_hash=ev_hash)
-    log.info(f"[Eververse] {len(new_ids)} message(s) publié(s) dans {guild.name}.")
+    log.info(f"[Eververse] {section_count} message(s) publié(s) dans {guild.name}.")
 
 
 # ── Reset quotidien : publication ────────────────────────────────────────
@@ -194,7 +207,8 @@ async def restore(bot, state) -> None:
 
 async def on_added(bot, state, guild_id, info) -> None:
     """Ajout d'un salon Eververse. `info` = {channel_id, is_thread, role_id}.
-    Publie le contenu courant (ping sur le 1er message). Ne purge PAS le cache."""
+    Publie le contenu courant (+ message de ping seul en dernier). Ne purge PAS
+    le cache."""
     guild = bot.get_guild(int(guild_id))
     if not guild:
         return
