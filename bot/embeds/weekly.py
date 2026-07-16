@@ -5,8 +5,10 @@
   propre message persistant), liste des noms + bandeau pgcr recadré par
   activité, séparateurs. Chaque nom est précédé de son emoji custom (résolu par
   nom normalisé, fallback générique sinon).
-- Secteurs perdus : une carte par secteur, texte (boucliers/champions par
-  difficulté) PUIS bandeau pgcr recadré.
+- Secteurs perdus : une carte par secteur, titre (destination en en-tête, nom
+  du secteur en gras dessous), ligne d'icônes des modificateurs (commune aux
+  deux difficultés), texte (boucliers/champions par difficulté) PUIS bandeau
+  pgcr recadré.
 
 Les builders renvoient une LayoutView et la liste des fichiers à joindre.
 La publication (post/édition) est gérée ailleurs.
@@ -56,6 +58,36 @@ _EXTRA_EMOJIS = {
     "Brise-bouclier": "<:Bloqueur:1270042102033678388>",
     "Perturbation": "<:Surcharge:1270042140944236619>",
     "Chancellement": "<:Implacable:1270042120857849877>",
+}
+
+# ── Emojis par modificateur d'activité (secteurs oubliés) ──────────────
+# hash de modificateur (DestinyActivityModifierDefinition) → emoji custom.
+# Sert À LA FOIS de whitelist (seuls les hashes présents sont affichés) et de
+# table de traduction en emoji. À remplir depuis la sortie de
+# scripts/Dump_ls_modifiers.py. Tant que ce dict est vide, aucune ligne
+# d'icônes n'est ajoutée (comportement sûr).
+# Exemple :
+#     3178097715: "<:SurchargeArme:1234567890123456789>",  # Surcharge : Fusil
+#     1546986605: "<:Solaire:1270714993553178624>",         # Brûlure solaire
+_LS_MODIFIER_EMOJIS: dict[int, str] = {
+    # Surcharges d'arme.
+    95459596: "<:surge_LanceRoquettes:1527291256999383060>",
+    1282934989: "<:surge_FusilDePrecision:1527291249705357343>",
+    2178457119: "<:surge_FusilARayon:1527291248094875711>",
+    2626834038: "<:surge_FusilAFusion:1527291245632815105>",
+    2743796883: "<:surge_Glaive:1527291252477923469>",
+    3132780533: "<:surge_FusilAPompe:1527291246987706489>",
+    3320777106: "<:surge_FusionLineaire:1527291250917507163>",
+    3758645512: "<:surge_lg:1527291257980846271>",
+    795009574: "<:surge_Mitrailleuse:1527291259130220695>",
+    1326581064: "<:surge_Epee:1527291244525654076>",
+    # Surcharges élémentaires.
+    426976067: "<:surge_Solaire:1527290822595444856>",
+    2691200658: "<:surge_Cryo:1527290821307662456>",
+    3196075844: "<:surge_Abyssale:1527290819831140413>",
+    2983647439: "<:surge_Stase:1527290823912194128>",
+    3809788899: "<:surge_Stase:1527290823912194128>",
+    3810297122: "<:surge_Filo:1527291156256526558>",
 }
 
 # ── Emojis par activité (raids & donjons) ──────────────────────────────
@@ -294,6 +326,25 @@ def _emote_group(values: dict, sep: str = " ") -> str:
     return sep.join(parts)
 
 
+def _modifier_icons_line(sector: LostSector) -> str | None:
+    """Ligne d'icônes des modificateurs, COMMUNE aux deux difficultés.
+
+    Union des `modifier_hashes` de toutes les variantes (dédupliquée, dans
+    l'ordre de première apparition), filtrée aux hashes connus de
+    _LS_MODIFIER_EMOJIS. Renvoie 'emoji | emoji | …' ou None si aucun
+    modificateur connu (dict vide → toujours None)."""
+    seen: set[int] = set()
+    emojis: list[str] = []
+    for variant in sector.variants:
+        for h in variant.modifier_hashes:
+            if h in _LS_MODIFIER_EMOJIS and h not in seen:
+                seen.add(h)
+                emojis.append(_LS_MODIFIER_EMOJIS[h])
+    if not emojis:
+        return None
+    return " | ".join(emojis)
+
+
 def _format_variant_line(variant: ActivityVariant) -> str | None:
     """Ligne d'une difficulté : '**Maîtrise** - … · …', ou None si
     aucune donnée greffée."""
@@ -317,8 +368,10 @@ async def build_lost_sectors_view(
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
 ) -> tuple[WeeklyView, list[discord.File]]:
-    """Renvoie (vue, fichiers). Chaque secteur : titre, lignes par difficulté
-    (boucliers/champions en emotes), puis bandeau recadré.
+    """Renvoie (vue, fichiers). Chaque secteur : titre (destination en en-tête,
+    nom du secteur en gras dessous), ligne d'icônes des modificateurs (commune
+    aux difficultés), lignes par difficulté (boucliers/champions en emotes),
+    puis bandeau recadré.
 
     `next_refresh_unix` : timestamp de la prochaine actualisation (défaut =
     prochain reset quotidien, les secteurs changeant chaque jour)."""
@@ -335,16 +388,28 @@ async def build_lost_sectors_view(
     for i, sector in enumerate(sectors):
         container.add_item(ui.Separator())
 
-        dest = f" · {sector.destination}" if sector.destination else ""
-        lines = [f"### {sector.base_name}{dest}"]
+        # Titre : destination en en-tête (###), nom du secteur en gras dessous.
+        if sector.destination:
+            lines = [f"### {sector.destination}\n**{sector.base_name}**"]
+        else:
+            lines = [f"**{sector.base_name}**"]
 
+        # Ligne d'icônes des modificateurs (commune aux 2 difficultés).
+        mod_line = _modifier_icons_line(sector)
+        if mod_line:
+            lines.append(mod_line)
+
+        # Lignes par difficulté (boucliers/champions greffés).
+        variant_lines = []
         for variant in sector.variants:
             line = _format_variant_line(variant)
             if line:
-                lines.append(line)
+                variant_lines.append(line)
 
-        # Repli : si aucune donnée greffée, on liste au moins les difficultés.
-        if len(lines) == 1:
+        if variant_lines:
+            lines.extend(variant_lines)
+        else:
+            # Repli : aucune donnée greffée → on liste au moins les difficultés.
             diffs = " · ".join(v.label for v in sector.variants)
             if diffs:
                 lines.append(diffs)
