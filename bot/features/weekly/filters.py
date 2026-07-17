@@ -18,7 +18,8 @@ WEEKLY_TYPES = {RAID: "Raid", DUNGEON: "Donjon"}
 # ── Surcharges (surges) des secteurs oubliés ────────────────────────────
 # Un secteur oublié affiche 1 surcharge d'ARME (spécifique au secteur, présente
 # telle quelle dans sa définition statique) + 2 surcharges ÉLÉMENTAIRES de la
-# semaine (globales, communes à toutes les activités du jour).
+# semaine (globales, communes à toutes les activités du jour) + les MENACES du
+# secteur (spécifiques, présentes dans sa déf statique comme la surge d'arme).
 #
 # La déf statique du secteur liste TOUTES les surges élémentaires possibles :
 # on ne peut donc pas en déduire les 2 actives. Celles-ci se lisent sur
@@ -56,6 +57,16 @@ ELEMENTAL_SURGE_HASHES: set[int] = {
     2983647439,  # s_St
     3809788899,  # s_St
     3810297122,  # s_F
+}
+
+# MENACES (spécifiques au secteur, dans sa déf statique). Filtrées par ensemble
+# connu ; on affiche toutes celles qui matchent.
+THREAT_HASHES: set[int] = {
+    3517267764,  # M_S
+    186409259,   # M_C
+    3652821947,  # M_A
+    512042454,   # M_St
+    1598472557,  # M_F
 }
 
 
@@ -168,9 +179,10 @@ def collect_lost_sectors(
     activity_hash (str) dans la variante correspondante.
 
     Modificateurs affichés par variante = la surcharge d'ARME du secteur (filtrée
-    depuis sa déf statique via WEAPON_SURGE_HASHES, normalement 1 seule) SUIVIE
+    depuis sa déf statique via WEAPON_SURGE_HASHES, normalement 1 seule), SUIVIE
     des 2 surcharges ÉLÉMENTAIRES de la semaine (`elemental_surges`, lues en amont
-    sur l'activité globale). Ordre : arme d'abord, puis élémentaires.
+    sur l'activité globale), SUIVIES des MENACES du secteur (filtrées depuis sa
+    déf statique via THREAT_HASHES). Ordre : arme → élémentaires → menaces.
 
     On n'utilise PLUS toutes les surges élémentaires de la déf statique (elle les
     liste toutes → affichait toutes les surges de tous les éléments)."""
@@ -216,16 +228,18 @@ def collect_lost_sectors(
             )
             groups[base] = group
 
-        # Surcharge d'arme : filtrée depuis la déf statique (spécifique secteur).
-        weapon_surges = [
-            h for h in _def_modifier_hashes(adef) if h in WEAPON_SURGE_HASHES
-        ]
+        # Modificateurs de la déf statique du secteur (spécifiques secteur).
+        def_mods = _def_modifier_hashes(adef)
+        # Surcharge d'arme : filtrée depuis la déf statique.
+        weapon_surges = [h for h in def_mods if h in WEAPON_SURGE_HASHES]
+        # Menaces : filtrées depuis la déf statique (toutes celles qui matchent).
+        threats = [h for h in def_mods if h in THREAT_HASHES]
 
         variant = ActivityVariant(
             activity_hash=ah,
             label=label,
             recommended_light=_norm_light(adef.get("activityLightLevel")),
-            modifier_hashes=weapon_surges + elemental_surges,
+            modifier_hashes=weapon_surges + elemental_surges + threats,
         )
         if str(ah) in extra:
             variant.extra = dict(extra[str(ah)])
