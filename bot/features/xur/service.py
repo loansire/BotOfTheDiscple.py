@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Orchestration Xûr : fetch des 3 vendors → résolution des items → modèles.
+"""Orchestration Xûr : fetch des vendors → résolution des items → modèles.
 
 API publique de la feature. Ne touche ni à Discord ni au rendu.
 
 Fenêtre Xûr : présent du vendredi (reset, 17:00 UTC) au mardi (reset). On
 calcule tout sur le jour du dernier reset (heure de Paris, via reset.py), pour
 rester aligné sur l'affichage FR.
+
+Certaines catégories partagent le même vendor_hash (le vendor « Armes » expose
+armes exotiques / armes légendaires / armures légendaires). Le bloc `sales` et
+le largeIcon d'un hash donné ne sont fetchés qu'UNE SEULE FOIS puis partagés
+entre ses catégories : get_vendor_sales n'a pas de cache, on évite ainsi des
+appels réseau redondants.
 """
 from __future__ import annotations
 
@@ -137,7 +143,7 @@ def _filtered_items(
     par POSITION (1-based).
 
     `allowed` = liste de positions de « cases » à conserver (1 = 1ère case) :
-        - None  → on garde TOUT (vendor absent de la whitelist)
+        - None  → on garde TOUT (catégorie absente de la whitelist)
         - [...]  → on ne garde que ces positions (1-based)
         - []     → on ne garde rien
 
@@ -191,43 +197,76 @@ async def _log_vendor_indices(key: str, label: str, sales: dict) -> None:
         log.info(f"[Xûr][debug]   position {rank} (clé {k}) → {name}")
 
 
-async def _build_vendor(
-    key: str, vendor_hash: int, label: str, emoji: str, whitelist: dict
+async def _build_vendor_from_sales(
+    key: str,
+    vendor_hash: int,
+    label: str,
+    emoji: str,
+    sales: dict | None,
+    large_icon: str | None,
+    whitelist: dict,
 ) -> XurVendor:
-    """Fetch un vendor et résout uniquement ses items whitelistés."""
-    large_icon = await _resolve_vendor_large_icon(vendor_hash)
+    """Construit un XurVendor depuis un bloc `sales` DÉJÀ fetché.
+
+    Plusieurs catégories peuvent partager le même `sales` (même vendor_hash) :
+    chacune est découpée par SA plage de positions (whitelist[key]). Aucun appel
+    réseau ici — le fetch (sales + largeIcon) est mutualisé en amont par get_xur.
+    """
     vendor = XurVendor(key=key, label=label, emoji=emoji, large_icon=large_icon)
-    sales = await bungie.get_vendor_sales(vendor_hash)
     if not sales:
         return vendor
 
     if os.getenv("XUR_DEBUG"):
         await _log_vendor_indices(key, label, sales)
 
-    allowed = whitelist.get(key)  # None si vendor absent → tout garder
+    allowed = whitelist.get(key)  # None si catégorie absente → tout garder
     for item_hash, cost_quantity, count in _filtered_items(sales, allowed):
         item = await _resolve_item(item_hash, cost_quantity, count)
         if item:
             vendor.items.append(item)
 
-    # Vendor Armes : la dernière case retenue est en réalité l'item à afficher
-    # en tête de la catégorie. On la remonte en première position.
-    if key == "weapons" and len(vendor.items) > 1:
+    # Armes exotiques : la dernière case retenue est en réalité l'item à
+    # afficher en tête de la catégorie. On la remonte en première position.
+    # (Auparavant appliqué au vendor « weapons » entier ; désormais ciblé sur
+    # la sous-catégorie exotique — à ajuster si la position réelle diffère.)
+    if key == "exotics-weapons" and len(vendor.items) > 1:
         vendor.items.insert(0, vendor.items.pop())
 
     return vendor
 
 
 async def get_xur() -> list[XurVendor]:
-    """Inventaire de Xûr : un XurVendor par catégorie (ordre fixe), filtré par
-    la whitelist d'index (vendor_whitelist.json).
+    """Inventaire de Xûr : un XurVendor par catégorie (ordre fixe de
+    XUR_VENDORS), filtré par la whitelist de positions (vendor_whitelist.json).
 
-    Renvoie la liste même si certains vendors sont vides (le rendu gère le
+    Fetch mutualisé : les catégories partageant un même vendor_hash (le vendor
+    Armes → exotiques / légendaires / armures légendaires) réutilisent le même
+    bloc `sales` et le même largeIcon, fetchés une seule fois par hash distinct
+    (get_vendor_sales n'a pas de cache).
+
+    Renvoie la liste même si certaines catégories sont vides (le rendu gère le
     cas). Liste vide globale uniquement si tout échoue."""
     whitelist = _load_whitelist()
+    sales_by_hash: dict[int, dict | None] = {}
+    icon_by_hash: dict[int, str | None] = {}
     vendors: list[XurVendor] = []
+
     for key, (vendor_hash, label, emoji) in XUR_VENDORS.items():
-        vendor = await _build_vendor(key, vendor_hash, label, emoji, whitelist)
+        # Un seul appel réseau (sales + largeIcon) par vendor_hash distinct.
+        if vendor_hash not in sales_by_hash:
+            sales_by_hash[vendor_hash] = await bungie.get_vendor_sales(vendor_hash)
+            icon_by_hash[vendor_hash] = await _resolve_vendor_large_icon(vendor_hash)
+
+        vendor = await _build_vendor_from_sales(
+            key,
+            vendor_hash,
+            label,
+            emoji,
+            sales_by_hash[vendor_hash],
+            icon_by_hash[vendor_hash],
+            whitelist,
+        )
         vendors.append(vendor)
         log.info(f"[Xûr] {label} : {len(vendor.items)} item(s) retenu(s).")
+
     return vendors
