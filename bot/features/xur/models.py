@@ -34,6 +34,7 @@ class XurItem:
     cost_quantity: int | None = None   # quantité du 1er coût (sales.data[].costs[0].quantity)
     quantity: int = 1                  # nb d'occurrences du même itemHash (cases retenues)
     perks: list[XurPerk] = field(default_factory=list)  # col 3/4 (armes légendaires uniquement)
+    craftable: bool = False            # arme légendaire façonnable (schéma extractible / Souvenance)
 
     def to_dict(self) -> dict:
         return {
@@ -44,6 +45,7 @@ class XurItem:
             "cost_quantity": self.cost_quantity,
             "quantity": self.quantity,
             "perks": [p.to_dict() for p in self.perks],
+            "craftable": self.craftable,
         }
 
 

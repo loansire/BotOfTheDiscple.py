@@ -34,6 +34,8 @@ _TITLE = "<:Xur:1527021351368659205>"  # emoji custom Xûr
 # Emoji de la monnaie de coût (Pièces étranges).
 _PIECES_EMOJI = "<:PiecesEtranges:1516155586755166338>"
 
+SOUVENANCE_EMOJI = "<:Souvenance:1528569980226895892>"
+
 # Plafond CV2 : 40 composants top-level par message. Un item coûte ~2 composants
 # (Section + Thumbnail ; le TextDisplay est un enfant de la Section), les
 # séparateurs inter-items ayant été retirés. Avec le titre + l'en-tête vendor +
@@ -118,11 +120,9 @@ def _perks_line(item) -> str:
 
 
 def _name_line(item) -> str:
-    """Nom de l'item, suffixé '- x{n}' si l'item apparaît en plusieurs cases."""
-    name = f"**{item.name}**"
-    if getattr(item, "quantity", 1) > 1:
-        name += f" - x{item.quantity}"
-    return name
+    if getattr(item, "craftable", False):
+        return f"**{item.name}** {SOUVENANCE_EMOJI}"
+    return f"**{item.name}**"
 
 
 async def _item_section(

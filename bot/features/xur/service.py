@@ -37,6 +37,12 @@ _TIER_LEGENDARY = 5
 # légendaires : intrinsèque=0, canon/chargeur=1/2, traits=3 et 4).
 _PERK_COL_INDEXES = (3, 4)
 
+# Style de tooltip signalant une arme au schéma extractible (façonnable /
+# « Souvenance »). On matche le displayStyle (stable, indépendant de la langue)
+# et non le displayString EN. Les tooltips ui_display_style_info (niveau
+# instance, parfois contradictoires) sont ignorés.
+_DEEPSIGHT_TOOLTIP_STYLE = "ui_display_style_deepsight"
+
 
 # ── Fenêtre temporelle ─────────────────────────────────────────────────
 
@@ -83,14 +89,15 @@ async def _resolve_item(
     quantity: int = 1,
     sockets: list | None = None,
 ) -> XurItem | None:
-    """itemHash → XurItem (icon + watermark + coût + perks) via DestinyInventoryItemDefinition.
+    """itemHash → XurItem (icon + watermark + coût + perks + craftable) via DestinyInventoryItemDefinition.
 
     Le nom est résolu en anglais via l'API live, puis surchargé en FR si
     l'extrait manifest local (item_names_fr.json) contient une traduction.
     `quantity` = nb d'occurrences du même itemHash parmi les cases retenues.
     `sockets` = liste des sockets du vendor (composant 305) pour cet item, si
     disponible : on en tire les perks col 3/4 UNIQUEMENT pour une arme
-    légendaire (cf. garde-fous)."""
+    légendaire (cf. garde-fous). `craftable` (schéma extractible / Souvenance)
+    est calculé sous le même garde-fou, mais indépendamment des sockets."""
     defn = await bungie.get_item_definition(item_hash)
     if defn is None:
         return None
@@ -100,17 +107,22 @@ async def _resolve_item(
     # remplace le nom EN ; sinon on garde l'EN (fallback naturel).
     name = manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}")
 
-    # Perks col 3/4 : seulement pour une arme légendaire, et seulement si les
-    # sockets du vendor sont fournis. Tout le reste (exotiques, armures,
-    # matériaux) → pas de bloc perks.
+    # Garde-fou commun : arme (itemType 3) de rareté légendaire (tierType 5).
+    inventory = defn.get("inventory") or {}
+    is_legendary_weapon = (
+        defn.get("itemType") == _ITEM_TYPE_WEAPON
+        and inventory.get("tierType") == _TIER_LEGENDARY
+    )
+
+    # Craftable : seulement pour une arme légendaire. Basé sur la définition
+    # (tooltip Souvenance), pas sur l'exemplaire vendu → pas besoin des sockets.
+    craftable = is_legendary_weapon and _is_craftable(defn)
+
+    # Perks col 3/4 : arme légendaire ET sockets du vendor fournis. Tout le
+    # reste (exotiques, armures, matériaux) → pas de bloc perks.
     perks: list[XurPerk] = []
-    if sockets:
-        inventory = defn.get("inventory") or {}
-        if (
-            defn.get("itemType") == _ITEM_TYPE_WEAPON
-            and inventory.get("tierType") == _TIER_LEGENDARY
-        ):
-            perks = _extract_col34_perks(sockets)
+    if sockets and is_legendary_weapon:
+        perks = _extract_col34_perks(sockets)
 
     return XurItem(
         item_hash=item_hash,
@@ -120,6 +132,7 @@ async def _resolve_item(
         cost_quantity=cost_quantity,
         quantity=quantity,
         perks=perks,
+        craftable=craftable,
     )
 
 
@@ -148,6 +161,18 @@ def _extract_col34_perks(sockets: list) -> list[XurPerk]:
         name = manifest.item_name_fr(plug_hash) or f"Perk {plug_hash}"
         perks.append(XurPerk(plug_hash=plug_hash, name=name))
     return perks
+
+
+def _is_craftable(defn: dict) -> bool:
+    """True si la définition d'item porte le tooltip Souvenance (schéma extractible).
+
+    Basé sur DestinyInventoryItemDefinition.tooltipNotifications : on cherche un
+    tooltip dont le displayStyle vaut ui_display_style_deepsight. Le displayString
+    (EN) n'est jamais utilisé. Robuste si le champ est absent ou None."""
+    for tip in defn.get("tooltipNotifications") or []:
+        if tip.get("displayStyle") == _DEEPSIGHT_TOOLTIP_STYLE:
+            return True
+    return False
 
 
 async def _resolve_vendor_large_icon(vendor_hash: int) -> str | None:
