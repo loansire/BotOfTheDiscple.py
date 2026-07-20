@@ -25,7 +25,17 @@ from bot.bungie.reset import last_reset
 from bot.utils.logger import log
 
 from .constants import FRIDAY, TUESDAY, VENDOR_WHITELIST_PATH, XUR_VENDORS
-from .models import XurItem, XurVendor
+from .models import XurItem, XurPerk, XurVendor
+
+# Garde-fou perks : on ne construit le bloc col 3/4 que pour une ARME (itemType
+# 3) de rareté LÉGENDAIRE (tierType 5). Exclut nativement exotiques (tierType 6),
+# armures et matériaux — donc conforme à « armes légendaires uniquement ».
+_ITEM_TYPE_WEAPON = 3
+_TIER_LEGENDARY = 5
+
+# Colonnes 3/4 dans le composant 305 (validé empiriquement sur les armes
+# légendaires : intrinsèque=0, canon/chargeur=1/2, traits=3 et 4).
+_PERK_COL_INDEXES = (3, 4)
 
 
 # ── Fenêtre temporelle ─────────────────────────────────────────────────
@@ -68,13 +78,19 @@ def next_departure_unix(now: datetime | None = None) -> int:
 # ── Résolution de l'inventaire ─────────────────────────────────────────
 
 async def _resolve_item(
-    item_hash: int, cost_quantity: int | None, quantity: int = 1
+    item_hash: int,
+    cost_quantity: int | None,
+    quantity: int = 1,
+    sockets: list | None = None,
 ) -> XurItem | None:
-    """itemHash → XurItem (icon + watermark + coût) via DestinyInventoryItemDefinition.
+    """itemHash → XurItem (icon + watermark + coût + perks) via DestinyInventoryItemDefinition.
 
     Le nom est résolu en anglais via l'API live, puis surchargé en FR si
     l'extrait manifest local (item_names_fr.json) contient une traduction.
-    `quantity` = nb d'occurrences du même itemHash parmi les cases retenues."""
+    `quantity` = nb d'occurrences du même itemHash parmi les cases retenues.
+    `sockets` = liste des sockets du vendor (composant 305) pour cet item, si
+    disponible : on en tire les perks col 3/4 UNIQUEMENT pour une arme
+    légendaire (cf. garde-fous)."""
     defn = await bungie.get_item_definition(item_hash)
     if defn is None:
         return None
@@ -83,6 +99,19 @@ async def _resolve_item(
     # traduction : si un nom FR existe dans l'extrait manifest local, il
     # remplace le nom EN ; sinon on garde l'EN (fallback naturel).
     name = manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}")
+
+    # Perks col 3/4 : seulement pour une arme légendaire, et seulement si les
+    # sockets du vendor sont fournis. Tout le reste (exotiques, armures,
+    # matériaux) → pas de bloc perks.
+    perks: list[XurPerk] = []
+    if sockets:
+        inventory = defn.get("inventory") or {}
+        if (
+            defn.get("itemType") == _ITEM_TYPE_WEAPON
+            and inventory.get("tierType") == _TIER_LEGENDARY
+        ):
+            perks = _extract_col34_perks(sockets)
+
     return XurItem(
         item_hash=item_hash,
         name=name,
@@ -90,7 +119,35 @@ async def _resolve_item(
         watermark=defn.get("iconWatermark") or None,
         cost_quantity=cost_quantity,
         quantity=quantity,
+        perks=perks,
     )
+
+
+def _extract_col34_perks(sockets: list) -> list[XurPerk]:
+    """Perks des colonnes 3/4 depuis les sockets (composant 305) d'une arme.
+
+    Prend les index 3 et 4. Garde-fou : on ne renvoie des perks QUE si les DEUX
+    positions portent un plug visible ET actif — sinon liste vide. Ça protège
+    des layouts atypiques (épée/glaive légendaire) où 3/4 ne seraient pas des
+    traits : au pire aucun bloc, jamais un affichage faux ou un crash.
+
+    Le nom FR est résolu via l'extrait manifest local (item_names_fr.json couvre
+    aussi les plugs) ; fallback lisible si absent."""
+    perks: list[XurPerk] = []
+    for idx in _PERK_COL_INDEXES:
+        if idx >= len(sockets):
+            return []
+        socket = sockets[idx]
+        plug_hash = socket.get("plugHash")
+        if (
+            not plug_hash
+            or not socket.get("isVisible", False)
+            or not socket.get("isEnabled", False)
+        ):
+            return []
+        name = manifest.item_name_fr(plug_hash) or f"Perk {plug_hash}"
+        perks.append(XurPerk(plug_hash=plug_hash, name=name))
+    return perks
 
 
 async def _resolve_vendor_large_icon(vendor_hash: int) -> str | None:
@@ -138,9 +195,9 @@ def _first_cost_quantity(sale: dict) -> int | None:
 
 def _filtered_items(
     sales: dict, allowed: list | None
-) -> list[tuple[int, int | None, int]]:
-    """Triplets (itemHash, cost_quantity, count) d'un bloc sales.data, filtrés
-    par POSITION (1-based).
+) -> list[tuple[int, int | None, int, str]]:
+    """Quadruplets (itemHash, cost_quantity, count, first_key) d'un bloc
+    sales.data, filtrés par POSITION (1-based).
 
     `allowed` = liste de positions de « cases » à conserver (1 = 1ère case) :
         - None  → on garde TOUT (catégorie absente de la whitelist)
@@ -154,7 +211,9 @@ def _filtered_items(
 
     Déduplication par itemHash : les occurrences multiples (parmi les cases
     retenues) sont COMPTÉES (`count`) au lieu d'être écartées. Le 1er coût
-    rencontré est conservé ; l'ordre de première apparition est préservé."""
+    rencontré est conservé ; l'ordre de première apparition est préservé. La
+    `first_key` (clé sales.data de la 1ère occurrence) est renvoyée pour
+    retrouver les sockets correspondants (composant 305, même indexation)."""
     keys = _sorted_keys(sales)
 
     if allowed is None:
@@ -167,7 +226,7 @@ def _filtered_items(
             if rank in allowed_positions
         ]
 
-    # itemHash → [cost_quantity, count], dans l'ordre de 1ère apparition.
+    # itemHash → [cost_quantity, count, first_key], dans l'ordre de 1ère apparition.
     agg: dict[int, list] = {}
     for key in selected_keys:
         sale = sales[key]
@@ -177,9 +236,12 @@ def _filtered_items(
         if ih in agg:
             agg[ih][1] += 1
         else:
-            agg[ih] = [_first_cost_quantity(sale), 1]
+            agg[ih] = [_first_cost_quantity(sale), 1, key]
 
-    return [(ih, cost, count) for ih, (cost, count) in agg.items()]
+    return [
+        (ih, cost, count, first_key)
+        for ih, (cost, count, first_key) in agg.items()
+    ]
 
 
 async def _log_vendor_indices(key: str, label: str, sales: dict) -> None:
@@ -203,6 +265,7 @@ async def _build_vendor_from_sales(
     label: str,
     emoji: str,
     sales: dict | None,
+    sockets: dict | None,
     large_icon: str | None,
     whitelist: dict,
 ) -> XurVendor:
@@ -210,7 +273,9 @@ async def _build_vendor_from_sales(
 
     Plusieurs catégories peuvent partager le même `sales` (même vendor_hash) :
     chacune est découpée par SA plage de positions (whitelist[key]). Aucun appel
-    réseau ici — le fetch (sales + largeIcon) est mutualisé en amont par get_xur.
+    réseau ici — le fetch (sales + sockets + largeIcon) est mutualisé en amont
+    par get_xur. `sockets` (composant 305, même indexation que sales) alimente
+    les perks col 3/4 des armes légendaires ; peut être None/{} (autres vendors).
     """
     vendor = XurVendor(key=key, label=label, emoji=emoji, large_icon=large_icon)
     if not sales:
@@ -220,8 +285,12 @@ async def _build_vendor_from_sales(
         await _log_vendor_indices(key, label, sales)
 
     allowed = whitelist.get(key)  # None si catégorie absente → tout garder
-    for item_hash, cost_quantity, count in _filtered_items(sales, allowed):
-        item = await _resolve_item(item_hash, cost_quantity, count)
+    for item_hash, cost_quantity, count, first_key in _filtered_items(sales, allowed):
+        item_sockets = None
+        if sockets:
+            entry = sockets.get(first_key) or {}
+            item_sockets = entry.get("sockets")
+        item = await _resolve_item(item_hash, cost_quantity, count, item_sockets)
         if item:
             vendor.items.append(item)
 
@@ -248,13 +317,19 @@ async def get_xur() -> list[XurVendor]:
     cas). Liste vide globale uniquement si tout échoue."""
     whitelist = _load_whitelist()
     sales_by_hash: dict[int, dict | None] = {}
+    sockets_by_hash: dict[int, dict] = {}
     icon_by_hash: dict[int, str | None] = {}
     vendors: list[XurVendor] = []
 
     for key, (vendor_hash, label, emoji) in XUR_VENDORS.items():
-        # Un seul appel réseau (sales + largeIcon) par vendor_hash distinct.
+        # Un seul appel réseau (sales + sockets + largeIcon) par vendor_hash distinct.
         if vendor_hash not in sales_by_hash:
-            sales_by_hash[vendor_hash] = await bungie.get_vendor_sales(vendor_hash)
+            fetched = await bungie.get_vendor_sales_sockets(vendor_hash)
+            if fetched is None:
+                sales_by_hash[vendor_hash] = None
+                sockets_by_hash[vendor_hash] = {}
+            else:
+                sales_by_hash[vendor_hash], sockets_by_hash[vendor_hash] = fetched
             icon_by_hash[vendor_hash] = await _resolve_vendor_large_icon(vendor_hash)
 
         vendor = await _build_vendor_from_sales(
@@ -263,6 +338,7 @@ async def get_xur() -> list[XurVendor]:
             label,
             emoji,
             sales_by_hash[vendor_hash],
+            sockets_by_hash[vendor_hash],
             icon_by_hash[vendor_hash],
             whitelist,
         )

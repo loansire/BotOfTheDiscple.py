@@ -17,6 +17,11 @@ PLATFORM_BASE = f"{BUNGIE_BASE}/Platform"
 # tôt, avant les packages features.
 _VENDOR_COMPONENTS = "402"
 
+# Xûr : sales (402) + sockets (305). Le 305 (ItemSockets) porte les plugHash par
+# position, indispensables pour afficher les perks (colonnes 3/4) des armes
+# légendaires. Indexé par la MÊME clé que sales.data.
+_VENDOR_COMPONENTS_SOCKETS = "402,305"
+
 # Cache disque des activités du personnage de référence.
 _CHARACTER_CACHE = MANIFEST_DIR / "character_activities.json"
 
@@ -250,6 +255,38 @@ class BungieClient:
             log.error(f"[Bungie] Vendor {vendor_hash} indisponible.")
             return None
         return data["Response"].get("sales", {}).get("data", {})
+
+    async def get_vendor_sales_sockets(
+        self, vendor_hash: int, character_id: str | None = None
+    ) -> tuple[dict, dict] | None:
+        """(sales.data, itemComponents.sockets.data) d'un vendor (components=402,305).
+
+        Variante de get_vendor_sales dédiée à Xûr : demande EN PLUS le composant
+        305 (ItemSockets) pour obtenir les plugHash par position — nécessaires à
+        l'affichage des perks (colonnes 3/4) des armes légendaires. Le bloc
+        sockets est indexé par la MÊME clé que sales.data.
+
+        Renvoie le tuple (sales, sockets) — `sockets` peut être {} si le vendor
+        n'expose pas de sockets — ou None en cas d'échec. Auth OAuth requise
+        (même contrainte que get_vendor_sales). Pas de cache : appelé au reset du
+        vendredi. Le hold mode est préservé (BungieMaintenanceError remonte via
+        _get)."""
+        c = BUNGIE_CHARACTER
+        char = character_id or c["character_id"]
+        endpoint = (
+            f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
+            f"/Character/{char}/Vendors/{vendor_hash}/"
+        )
+        data = await self._get(
+            endpoint, params={"components": _VENDOR_COMPONENTS_SOCKETS}, auth=True
+        )
+        if not data or "Response" not in data:
+            log.error(f"[Bungie] Vendor {vendor_hash} (sockets) indisponible.")
+            return None
+        resp = data["Response"]
+        sales = resp.get("sales", {}).get("data", {})
+        sockets = resp.get("itemComponents", {}).get("sockets", {}).get("data", {})
+        return sales, sockets
 
     async def get_all_vendor_sales(self) -> dict | None:
         """Bloc `Response.sales.data` de TOUS les vendors visibles d'un coup

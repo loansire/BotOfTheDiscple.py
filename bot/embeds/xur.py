@@ -100,6 +100,23 @@ def _cost_line(item) -> str:
     return f"{_PIECES_EMOJI} x{item.cost_quantity}"
 
 
+# Base des liens perks (glossaire FR communautaire).
+_D2GLOSSARY_PERK = "https://d2glossary.fr/perk.html?id="
+
+
+def _perks_line(item) -> str:
+    """Ligne des perks col 3/4 : '[nom](<url>) • [nom](<url>)', ou '' si aucune.
+
+    Les chevrons autour de l'URL suppriment l'aperçu de lien Discord. Vide pour
+    tout item sans perks (exotiques, armures, matériaux — cf. service.py)."""
+    perks = getattr(item, "perks", None) or []
+    if not perks:
+        return ""
+    return " • ".join(
+        f"[{p.name}](<{_D2GLOSSARY_PERK}{p.plug_hash}>)" for p in perks
+    )
+
+
 def _name_line(item) -> str:
     """Nom de l'item, suffixé '- x{n}' si l'item apparaît en plusieurs cases."""
     name = f"**{item.name}**"
@@ -123,6 +140,9 @@ async def _item_section(
     files.append(discord.File(BytesIO(icon_bytes), filename=fname))
 
     lines = [_name_line(item)]
+    perks = _perks_line(item)
+    if perks:
+        lines.append(perks)
     cost = _cost_line(item)
     if cost:
         lines.append(cost)
