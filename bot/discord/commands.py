@@ -7,9 +7,7 @@ from bot.utils.logger import log
 COGS = (
     "bot.discord.cogs.core",
     "bot.discord.cogs.help",
-    "bot.discord.cogs.news",
     "bot.discord.cogs.maintenance",
-    "bot.discord.cogs.randomizer",
     "bot.discord.cogs.wishwall",
     "bot.discord.cogs.alerts",
     "bot.discord.cogs.configbot",
