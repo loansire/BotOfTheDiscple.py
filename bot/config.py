@@ -30,6 +30,18 @@ BUNGIE_HUNTER_ID = os.getenv("BUNGIE_HUNTER_ID")
 BUNGIE_CLIENT_ID = os.getenv("BUNGIE_CLIENT_ID")
 BUNGIE_CLIENT_SECRET = os.getenv("BUNGIE_CLIENT_SECRET")
 
+# Serveur de contrôle : seul serveur où la commande d'administration /refresh
+# (réservée à l'auteur du bot) est ENREGISTRÉE et VISIBLE. Une commande de
+# guilde n'apparaît que dans ce serveur ; sur tous les autres serveurs où le
+# bot est invité, /refresh est totalement invisible (pas seulement bloquée).
+# OPTIONNEL et fail-safe : si absent/invalide, /refresh n'est enregistrée nulle
+# part — le bot ne peut donc jamais l'exposer publiquement par oubli.
+_control_guild_raw = os.getenv("CONTROL_GUILD_ID")
+try:
+    CONTROL_GUILD_ID = int(_control_guild_raw) if _control_guild_raw else None
+except ValueError:
+    CONTROL_GUILD_ID = None
+
 # Validation au démarrage : on échoue tôt et clairement
 _missing = [
     name
