@@ -229,7 +229,7 @@ class Pipeline(commands.Cog):
 
     @app_commands.command(
         name="refresh",
-        description="Republie/actualise une publication (ou toutes par défaut), sans ping.",
+        description="",
     )
     @app_commands.describe(
         publication="Publication à actualiser (par défaut : toutes)."

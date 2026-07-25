@@ -6,7 +6,6 @@ from bot.utils.logger import log
 # Liste centrale des cogs à charger
 COGS = (
     "bot.discord.cogs.core",
-    "bot.discord.cogs.help",
     "bot.discord.cogs.maintenance",
     "bot.discord.cogs.wishwall",
     "bot.discord.cogs.alerts",
