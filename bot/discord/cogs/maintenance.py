@@ -6,7 +6,6 @@ from discord.ext import commands, tasks
 from bot.discord.publisher import publish_to_subscribers
 from bot.embeds.maintenance import build_maintenance_embed
 from bot.features.maintenance import (
-    GAME_LABELS,
     extract_window,
     format_discord_message,
     get_maintenances,
@@ -15,11 +14,6 @@ from bot.features.maintenance_state import MaintenanceState
 from bot.utils.logger import log
 
 GAMES = ("destiny", "marathon")
-
-_GAME_CHOICES = [
-    app_commands.Choice(name="Destiny 2", value="destiny"),
-    app_commands.Choice(name="Marathon", value="marathon"),
-]
 
 
 class Maintenance(commands.Cog):
@@ -87,26 +81,6 @@ class Maintenance(commands.Cog):
             f"maintenance_{game}",
             build=lambda: build_maintenance_embed(window, copy_text),
         )
-
-    # ---------- Commandes ----------
-    @app_commands.command(
-        name="maintenance",
-        description="Affiche la maintenance à venir d'un jeu.",
-    )
-    @app_commands.describe(jeu="Jeu concerné")
-    @app_commands.choices(jeu=_GAME_CHOICES)
-    async def maintenance(self, interaction: discord.Interaction, jeu: str):
-        await interaction.response.defer()
-        data = await get_maintenances(jeu)
-        window = extract_window(data) if data else None
-        if window is None:
-            await interaction.followup.send(
-                f":x: Aucune maintenance à venir pour **{GAME_LABELS[jeu]}**.", ephemeral=True
-            )
-            return
-        embed, files, view = build_maintenance_embed(window, format_discord_message(data))
-        await interaction.followup.send(embed=embed, files=files, view=view)
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Maintenance(bot))

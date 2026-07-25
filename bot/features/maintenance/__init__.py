@@ -9,7 +9,6 @@ from bot.utils.logger import log
 
 from .fetcher import fetch_article_body
 from .formatter import (
-    GAME_LABELS,
     extract_window,
     format_discord_message,
     offline_iso,
@@ -21,7 +20,6 @@ __all__ = [
     "get_maintenances",
     "extract_window",
     "format_discord_message",
-    "GAME_LABELS",
 ]
 
 
