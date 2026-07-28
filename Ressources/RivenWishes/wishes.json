@@ -20,25 +20,25 @@
     },
     {
       "nom": "Quatrième vœu - Save Shuro-Chi",
-      "description": "Ce vœu **vous téléporte à la 2eme étape du raid** du raid, à l'affrontement avec **Shuro-Chi**. Il permet également de revenir en arrière pour **récupérer le coffre secret sous le pont**.",
+      "description": "Ce vœu **vous téléporte à la 2eme étape** du raid, à l'affrontement avec **Shuro-Chi**. Il permet également de revenir en arrière pour **récupérer le coffre secret sous le pont**.",
       "image": "Voeu4.webp",
       "BoutonName": "4️⃣ - Save Shuro-Chi"
     },
     {
       "nom": "Cinquième vœu - Save Morgeth",
-      "description": "Ce vœu **vous téléporte à la 3eme étape du raid** du raid, à l'affrontement avec **Morgeth**.",
+      "description": "Ce vœu **vous téléporte à la 3eme étape** du raid, à l'affrontement avec **Morgeth**.",
       "image": "Voeu5.webp",
       "BoutonName": "5️⃣ - Save Morgeth"
     },
     {
       "nom": "Sixième vœu - Save Caveau",
-      "description": "Ce vœu **vous téléporte à la 4eme étape du raid** du raid, à l'affrontement du **Caveau**.",
+      "description": "Ce vœu **vous téléporte à la 4eme étape** du raid, à l'affrontement du **Caveau**.",
       "image": "Voeu6.webp",
       "BoutonName": "6️⃣ - Save Caveau"
     },
     {
       "nom": "Septième vœu - Save Riven",
-      "description": "Ce vœu **vous téléporte à la 5eme étape du raid** du raid, à l'affrontement avec **Riven**.",
+      "description": "Ce vœu **vous téléporte à la 5eme étape** du raid, à l'affrontement avec **Riven**.",
       "image": "Voeu7.webp",
       "BoutonName": "7️⃣ - Save Riven"
     },
@@ -86,7 +86,7 @@
     },
     {
       "nom": "Quinzième vœu - Dernier Vœu de Riven",
-      "description": "Ce vœu nous a été offert par Riven, et nous a permis de **suivre le Témoin dans le Voyageur**.",
+      "description": "Ce vœu a été offert par Riven, et nous a permis de **suivre le Témoin dans le Voyageur**.",
       "image": "Voeu15.webp",
       "BoutonName": "1️⃣5️⃣ - Dernier Vœu de Riven"
     }
