@@ -13,6 +13,7 @@ COGS = (
     "bot.discord.cogs.alerts",
     "bot.discord.cogs.configbot",
     "bot.discord.cogs.pipeline",
+    "bot.discord.cogs.distortion",
 )
 
 # Commandes réservées au SEUL serveur de contrôle (CONTROL_GUILD_ID) :

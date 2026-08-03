@@ -80,3 +80,15 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
             await ada_handler.on_removed(bot, ada_state, guild_id, before[topic])
         if new is not None:
             await ada_handler.on_added(bot, ada_state, guild_id, after[topic])
+
+    # Topic Distorsion (cog dédié, édition en place — aucun ping).
+    distortion = bot.get_cog("Distortion")
+    if distortion is not None:
+        from bot.discord.handlers import distortion as distortion_handler
+        d_old = (before.get("distortion") or {}).get("channel_id")
+        d_new = (after.get("distortion") or {}).get("channel_id")
+        if d_old != d_new:
+            if d_old is not None:
+                await distortion_handler.on_removed(bot, distortion.state, guild_id, before["distortion"])
+            if d_new is not None:
+                await distortion_handler.on_added(bot, distortion.state, guild_id, after["distortion"])

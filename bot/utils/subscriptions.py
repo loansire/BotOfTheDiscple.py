@@ -91,6 +91,12 @@ TOPICS: dict[str, dict] = {
         "short": "Ada-1",
         "emoji": "<:Ada:1527021353591374024>",
     },
+    "distortion": {
+        "label": "Distorsion",
+        "short": "Distorsion",
+        "emoji": "<:Distortion:1533753753772097596>",
+        "no_role": True,
+    },
 }
 
 

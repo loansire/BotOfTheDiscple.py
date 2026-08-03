@@ -60,7 +60,7 @@ NAV_TREE: dict[str, dict] = {
     "sec_activites": {
         "label": "Rotations Activités",
         "emoji": "",
-        "topics": ["weekly_raid", "weekly_dungeon", "daily_lost_sector"],
+        "topics": ["weekly_raid", "weekly_dungeon", "daily_lost_sector", "distortion"],
     },
     "sec_vendeurs": {
         "label": "Rotations Vendeurs",
@@ -241,25 +241,24 @@ def _action_row(persisted: dict, pending: dict, topic: str) -> ui.ActionRow:
 def _build_topic_page(guild: discord.Guild, persisted: dict, pending: dict, topic: str) -> list:
     p = pending[topic]
     dirty = _topic_dirty(persisted, pending, topic)
+    no_role = TOPICS[topic].get("no_role", False)
 
     ch_select = ConfigChannelSelect(topic, _resolve_channel(guild, p["channel_id"]))
-    role_select = ConfigRoleSelect(
-        topic,
-        _resolve_role(guild, p["role_id"]),
-        disabled=p["channel_id"] is None,
-    )
 
-    return [
-        ui.Container(
-            ui.TextDisplay(f"# {_page_title(f'topic:{topic}')}"),
-            ui.Separator(),
-            ui.TextDisplay(_status_text(pending, topic, dirty)),
-            ui.ActionRow(ch_select),
-            ui.ActionRow(role_select),
-            _action_row(persisted, pending, topic),
-            accent_color=_ACCENT_DIRTY if dirty else _ACCENT,
-        ),
+    children = [
+        ui.TextDisplay(f"# {_page_title(f'topic:{topic}')}"),
+        ui.Separator(),
+        ui.TextDisplay(_status_text(pending, topic, dirty)),
+        ui.ActionRow(ch_select),
     ]
+    if not no_role:
+        role_select = ConfigRoleSelect(
+            topic, _resolve_role(guild, p["role_id"]), disabled=p["channel_id"] is None
+        )
+        children.append(ui.ActionRow(role_select))
+    children.append(_action_row(persisted, pending, topic))
+
+    return [ui.Container(*children, accent_color=_ACCENT_DIRTY if dirty else _ACCENT)]
 
 
 # ── Aiguillage ─────────────────────────────────────────────────────────
