@@ -84,9 +84,8 @@ def build_distortion_view(now=None) -> tuple[DistortionView, list[discord.File]]
         )
 
     container.add_item(ui.Separator())
-    container.add_item(ui.TextDisplay("### Prochaines distorsions"))
+    container.add_item(ui.TextDisplay("# Prochaines distorsions"))
     for w in nexts:
-        container.add_item(ui.Separator())
         container.add_item(ui.TextDisplay(_upcoming_line(w)))
 
     return DistortionView(container), files

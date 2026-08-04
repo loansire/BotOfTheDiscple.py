@@ -147,11 +147,13 @@ def _topic_dirty(persisted: dict, pending: dict, topic: str) -> bool:
 
 
 def _status_text(pending: dict, topic: str, dirty: bool) -> str:
-    """Ligne d'état salon/rôle (sans en-tête) pour la page détail."""
+    """Ligne d'état salon (+ rôle si applicable) pour la page détail."""
     p = pending[topic]
     ch = f"<#{p['channel_id']}>" if p["channel_id"] else "*aucun*"
-    role = f"<@&{p['role_id']}>" if p["role_id"] else "*aucun*"
     marker = "  🟠 *(non validé)*" if dirty else ""
+    if TOPICS[topic].get("no_role"):
+        return f"Salon : {ch}{marker}"
+    role = f"<@&{p['role_id']}>" if p["role_id"] else "*aucun*"
     return f"Salon : {ch}  •  Rôle : {role}{marker}"
 
 
@@ -162,6 +164,8 @@ def _summary_text(pending: dict, topic: str, dirty: bool) -> str:
     marker = "  🟠 *(non validé)*" if dirty else ""
     p = pending[topic]
     ch = f"<#{p['channel_id']}>" if p["channel_id"] else "*aucun*"
+    if TOPICS[topic].get("no_role"):
+        return f"### {e} {l}{marker}\nSalon : {ch}"
     role = f"<@&{p['role_id']}>" if p["role_id"] else "*aucun*"
     return f"### {e} {l}{marker}\nSalon : {ch}  •  Rôle : {role}"
 
