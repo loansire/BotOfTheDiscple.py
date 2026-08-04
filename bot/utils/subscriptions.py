@@ -97,6 +97,12 @@ TOPICS: dict[str, dict] = {
         "emoji": "<:Distortion:1533753753772097596>",
         "no_role": True,
     },
+    "ascendant": {
+        "label": "Défi ascendant de la semaine",
+        "short": "Défi ascendant",
+        "emoji": "<:Challenge_Ascendant:1534163534970093618>",
+        "no_role": True,
+    },
 }
 
 

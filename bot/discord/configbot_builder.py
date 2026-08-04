@@ -60,7 +60,7 @@ NAV_TREE: dict[str, dict] = {
     "sec_activites": {
         "label": "Rotations Activités",
         "emoji": "",
-        "topics": ["weekly_raid", "weekly_dungeon", "daily_lost_sector", "distortion"],
+        "topics": ["weekly_raid", "weekly_dungeon", "daily_lost_sector", "distortion", "ascendant"],
     },
     "sec_vendeurs": {
         "label": "Rotations Vendeurs",

@@ -92,3 +92,15 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
                 await distortion_handler.on_removed(bot, distortion.state, guild_id, before["distortion"])
             if d_new is not None:
                 await distortion_handler.on_added(bot, distortion.state, guild_id, after["distortion"])
+
+    # Topic Défis ascendants (cog dédié, édition en place — aucun ping).
+    ascendant = bot.get_cog("Ascendant")
+    if ascendant is not None:
+        from bot.discord.handlers import ascendant as ascendant_handler
+        a_old = (before.get("ascendant") or {}).get("channel_id")
+        a_new = (after.get("ascendant") or {}).get("channel_id")
+        if a_old != a_new:
+            if a_old is not None:
+                await ascendant_handler.on_removed(bot, ascendant.state, guild_id, before["ascendant"])
+            if a_new is not None:
+                await ascendant_handler.on_added(bot, ascendant.state, guild_id, after["ascendant"])
