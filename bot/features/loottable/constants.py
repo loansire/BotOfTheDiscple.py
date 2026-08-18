@@ -39,7 +39,7 @@ TIER_EXOTIC = 6
 
 # Note affichée sous la ligne de tags des items exotiques.
 EXOTIC_NOTE = (
-    "-# *Obtenu en terminant l'activité. Son catalyseur se débloque*\n"
+    "-# *Obtenu en terminant l'activité. Les catalyseurs se débloquent*\n"
     "-# *en difficulté Maîtrise ou supérieure.*"
 )
 
