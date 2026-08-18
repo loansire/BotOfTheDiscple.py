@@ -15,6 +15,7 @@ COGS = (
     "bot.discord.cogs.pipeline",
     "bot.discord.cogs.distortion",
     "bot.discord.cogs.ascendant",
+    "bot.discord.cogs.loottable",
 )
 
 # Commandes réservées au SEUL serveur de contrôle (CONTROL_GUILD_ID) :

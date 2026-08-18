@@ -1,0 +1,203 @@
+{
+  "rappel": {
+    "label": "Rappel",
+    "banner": "rappel.png",
+    "items": [
+      3698448090,
+      2198166292,
+      1886840007,
+      2126178511,
+      4195186942,
+      3794274730,
+      1197771438,
+      2350330520,
+      412251536,
+      1058098236,
+      3685470415
+    ]
+  },
+  "chute_du_kall": {
+    "label": "La Chute du Kall",
+    "banner": "chute_du_kall.png",
+    "items": [
+      1047932517,
+      4224667951,
+      414045521,
+      3423493037
+    ]
+  },
+  "vox_obscura": {
+    "label": "Vox Obscura",
+    "banner": "vox_obscura.png",
+    "items": [
+      46125926,
+      4096943616,
+      2097055732,
+      1572896086,
+      1248372789,
+      4067556514,
+      232928045
+    ]
+  },
+  "malchance": {
+    "label": "Malchance",
+    "banner": "malchance.png",
+    "items": [
+      2910326942,
+      2993554824,
+      2045811635,
+      2817683783,
+      1447836603,
+      4153087276,
+      1501688142,
+      3710082365,
+      2558925366,
+      92459755,
+      2563668388
+    ]
+  },
+  "presage": {
+    "label": "Présage",
+    "banner": "presage.png",
+    "items": [
+      3654674561,
+      1959650777,
+      2778013407,
+      2323544076,
+      254636484,
+      1366394399,
+      1478986057,
+      3055790362,
+      3107853529,
+      2490988246,
+      502356570
+    ]
+  },
+  "avalon": {
+    "label": "//module.manuel.AVALON//",
+    "banner": "avalon.png",
+    "items": [
+      3118061005,
+      2508948099,
+      392008588,
+      268260373,
+      45643573,
+      268260372,
+      1720503118
+    ]
+  },
+  "bouclier_seraphin": {
+    "label": "Bouclier Séraphin",
+    "banner": "bouclier_seraphin.png",
+    "items": [
+      1473821207,
+      1731355324,
+      2149683300,
+      1168625549,
+      2302346155,
+      1751893422,
+      2272041093,
+      2827764482,
+      3849444474,
+      2978226043,
+      3103325054
+    ]
+  },
+  "derealisation":{
+    "label": "Déréalisation",
+    "banner": "derealisation.png",
+    "items": [
+      1481594633
+    ]
+  },
+  "le_murmure":{
+    "label": "Le Murmure",
+    "banner": "le_murmure.png",
+    "items": [
+      1983149589
+    ]
+  },
+  "derniere_heure":{
+    "label": "Dernière Heure",
+    "banner": "derniere_heure.png",
+    "items": [
+      3824673936
+    ]
+  },
+  "heliostat":{
+    "label": "Héliostat",
+    "banner": "heliostat",
+    "items": [
+      1753923263
+    ]
+  },
+
+  "nessos": {
+    "label": "Nessos",
+    "banner": "nessos.png",
+    "items": [
+      1517780158,
+      2203881482,
+      1289324202,
+      3132669561,
+      2566169398,
+      960948343
+    ]
+  },
+  "neomuna": {
+    "label": "Neomuna",
+    "banner": "neomuna.png",
+    "items": [
+      1289796511,
+      3635821806,
+      1311684613,
+      3920310144,
+      2034215657,
+      3752860091,
+      3851394887,
+      2353274446,
+      2528793321
+    ]
+  },
+  "lune": {
+    "label": "Lune",
+    "banner": "lune.png",
+    "items": [
+      3211332727,
+      38064944,
+      219610523,
+      1487476133,
+      868076517,
+      3482299617,
+      2729232863,
+      2527058296,
+      846241148,
+      846241149,
+      2527058297,
+      2136808079,
+      1969802090
+    ]
+  },
+  "zme": {
+    "label": "Zone Morte Européenne",
+    "banner": "zme.png",
+    "items": [
+      1525080480,
+      3719824177,
+      4118936670,
+      1979417829,
+      3769072067,
+      3332538050
+    ]
+  },
+  "_TODO": [
+    "Cosmodrome (cosmodrome) — aucun hyperlien dans le classeur, à compléter",
+    "Europe (europe) — aucun hyperlien dans le classeur, à compléter",
+    "Monde Trône de Savathûn (monde_trone_savathun) — aucun hyperlien dans le classeur, à compléter",
+    "Cité des Rêves (cite_des_reves) — aucun hyperlien dans le classeur, à compléter",
+    "Cœur Pâle (coeur_pale) — aucun hyperlien dans le classeur, à compléter",
+    "Kepler (kepler) — aucun hyperlien dans le classeur, à compléter",
+    "Frontière Hors-la-loi (frontiere_hors_la_loi) — aucun hyperlien dans le classeur, à compléter",
+    "Éternité (eternite) — aucun hyperlien dans le classeur, à compléter"
+  ]
+}
