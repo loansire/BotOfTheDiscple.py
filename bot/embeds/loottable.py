@@ -34,7 +34,7 @@ from bot.features.loottable.constants import (
     SOUVENANCE_EMOJI,
     ammo_type_tag,
     damage_type_tag,
-    weapon_type_tag, EXOTIC_NOTE,
+    weapon_type_tag, EXOTIC_NOTE, activity_type_tag,
 )
 from bot.features.loottable.models import LootActivity, LootItem
 
@@ -167,9 +167,11 @@ async def build_loot_page(
     files: list[discord.File] = []
     container = ui.Container(accent_color=_ACCENT)
 
+    emoji = activity_type_tag(activity.type)
+    prefix = f"{emoji} " if emoji else ""
     suffix = "" if total == 1 else f" ({page + 1}/{total})"
     container.add_item(
-        ui.TextDisplay(f"## {activity.label.upper()} {suffix}")
+        ui.TextDisplay(f"## {prefix}{activity.label.upper()}{suffix}")
     )
 
     banner = _banner_file(activity)

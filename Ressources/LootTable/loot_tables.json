@@ -2,6 +2,7 @@
   "rappel": {
     "label": "Rappel",
     "banner": "rappel.png",
+    "type": "prestige",
     "items": [
       3698448090,
       2198166292,
@@ -19,6 +20,7 @@
   "chute_du_kall": {
     "label": "La Chute du Kall",
     "banner": "chute_du_kall.png",
+    "type": "prestige",
     "items": [
       1047932517,
       4224667951,
@@ -29,6 +31,7 @@
   "vox_obscura": {
     "label": "Vox Obscura",
     "banner": "vox_obscura.png",
+    "type": "prestige",
     "items": [
       46125926,
       4096943616,
@@ -42,6 +45,7 @@
   "malchance": {
     "label": "Malchance",
     "banner": "malchance.png",
+    "type": "prestige",
     "items": [
       2910326942,
       2993554824,
@@ -59,6 +63,7 @@
   "presage": {
     "label": "Présage",
     "banner": "presage.png",
+    "type": "prestige",
     "items": [
       3654674561,
       1959650777,
@@ -76,6 +81,7 @@
   "avalon": {
     "label": "//AVALON//",
     "banner": "avalon.png",
+    "type": "prestige",
     "items": [
       3118061005,
       2508948099,
@@ -89,6 +95,7 @@
   "bouclier_seraphin": {
     "label": "Bouclier Séraphin",
     "banner": "bouclier_seraphin.png",
+    "type": "prestige",
     "items": [
       1473821207,
       1731355324,
@@ -106,6 +113,7 @@
   "derealisation":{
     "label": "Déréalisation",
     "banner": "derealisation.png",
+    "type": "prestige",
     "items": [
       1481594633
     ]
@@ -113,6 +121,7 @@
   "le_murmure":{
     "label": "Le Murmure",
     "banner": "le_murmure.png",
+    "type": "prestige",
     "items": [
       1983149589
     ]
@@ -120,6 +129,7 @@
   "derniere_heure":{
     "label": "Dernière Heure",
     "banner": "derniere_heure.png",
+    "type": "prestige",
     "items": [
       3824673936
     ]
@@ -127,6 +137,7 @@
   "heliostat":{
     "label": "Héliostat",
     "banner": "heliostat",
+    "type": "prestige",
     "items": [
       1753923263
     ]
@@ -135,6 +146,7 @@
   "nessos": {
     "label": "Nessos",
     "banner": "nessos.png",
+    "type": "destination",
     "items": [
       1517780158,
       2203881482,
@@ -147,6 +159,7 @@
   "neomuna": {
     "label": "Neomuna",
     "banner": "neomuna.png",
+    "type": "destination",
     "items": [
       1289796511,
       3635821806,
@@ -162,6 +175,7 @@
   "lune": {
     "label": "Lune",
     "banner": "lune.png",
+    "type": "destination",
     "items": [
       3211332727,
       38064944,
@@ -181,6 +195,7 @@
   "zme": {
     "label": "ZME",
     "banner": "zme.png",
+    "type": "destination",
     "items": [
       1525080480,
       3719824177,

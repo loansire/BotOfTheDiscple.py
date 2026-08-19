@@ -39,9 +39,39 @@ TIER_EXOTIC = 6
 
 # Note affichée sous la ligne de tags des items exotiques.
 EXOTIC_NOTE = (
-    "-# *Obtenu en terminant l'activité. Les catalyseurs se débloquent*\n"
+    "-# *Obtenu en terminant l'activité.*\n"
+    "-# *Les catalyseurs se débloquent*\n"
     "-# *en difficulté Maîtrise ou supérieure.*"
 )
+
+
+# ── Type d'activité (champ "type" de loot_tables.json) ──────────────────
+ACTIVITY_TYPE_EMOJIS: dict[str, str] = {
+    "prestige": "<:prestige:1539655055358173324>",
+    "destination": "<:destination:1539655053814796319>",
+}
+
+# Ordre de tri de l'autocomplétion.
+ACTIVITY_TYPE_ORDER: dict[str, int] = {
+    "prestige": 0,
+    "destination": 1,
+}
+
+_UNKNOWN_TYPE_ORDER = len(ACTIVITY_TYPE_ORDER)
+
+
+def activity_type_tag(activity_type: str | None) -> str:
+    """Emoji du type d'activité, ou '' si absent/inconnu."""
+    if not activity_type:
+        return ""
+    return ACTIVITY_TYPE_EMOJIS.get(activity_type, "")
+
+
+def activity_type_order(activity_type: str | None) -> int:
+    """Rang de tri du type ; les valeurs inconnues passent en dernier."""
+    if not activity_type:
+        return _UNKNOWN_TYPE_ORDER
+    return ACTIVITY_TYPE_ORDER.get(activity_type, _UNKNOWN_TYPE_ORDER)
 
 # ── Sous-type d'arme (DestinyInventoryItemDefinition.itemSubType) ───────
 # Libellés FR utilisés en repli quand l'emoji correspondant n'est pas renseigné.

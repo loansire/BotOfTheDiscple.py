@@ -29,11 +29,15 @@ class LootTable(commands.Cog):
     ) -> list[app_commands.Choice[str]]:
         """Suggestions d'activités, filtrées sur le libellé (insensible à la casse).
 
-        `value` = clé interne (celle du JSON), `name` = libellé affiché."""
+                L'ordre vient de `list_activities()` : type d'activité puis libellé.
+                Les emojis custom ne sont pas rendus dans un `Choice.name` (texte brut
+                côté Discord) — le type ne sert donc qu'au tri.
+
+                `value` = clé interne (celle du JSON), `name` = libellé affiché."""
         needle = current.casefold()
         return [
             app_commands.Choice(name=label, value=key)
-            for key, label in list_activities()
+            for key, label, _ in list_activities()
             if needle in label.casefold() or needle in key.casefold()
         ][:_MAX_CHOICES]
 

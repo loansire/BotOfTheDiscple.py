@@ -44,6 +44,7 @@ class LootActivity:
     key: str                      # identifiant interne (clé JSON)
     label: str                    # nom affiché
     banner: str | None = None     # nom de fichier dans Ressources/ActivityBanner/
+    type: str | None = None       # type d'activité normalisé (prestige, destination…)
     items: list[LootItem] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -51,5 +52,6 @@ class LootActivity:
             "key": self.key,
             "label": self.label,
             "banner": self.banner,
+            "type": self.type,
             "items": [it.to_dict() for it in self.items],
         }

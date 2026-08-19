@@ -17,7 +17,7 @@ from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
 from bot.utils.logger import log
 
-from .constants import LOOT_TABLES_PATH, TIER_EXOTIC
+from .constants import LOOT_TABLES_PATH, TIER_EXOTIC, activity_type_order
 from .models import LootActivity, LootItem
 
 # Style de tooltip signalant une arme au schéma extractible (façonnable /
@@ -52,15 +52,27 @@ def _load_tables() -> dict:
     }
 
 
-def list_activities() -> list[tuple[str, str]]:
-    """Couples (clé, libellé) de toutes les activités déclarées, triés par
-    libellé. Alimente l'autocomplétion de /loottable."""
-    tables = _load_tables()
-    pairs = [
-        (key, str(entry.get("label") or key))
-        for key, entry in tables.items()
+def _activity_type(entry: dict) -> str | None:
+    """Type d'activité normalisé (minuscules, sans espaces), None si absent.
+
+    La normalisation évite qu'un « Prestige » saisi à la main dans le JSON
+    passe à côté de la table d'emojis."""
+    raw = entry.get("type")
+    if not isinstance(raw, str):
+        return None
+    return raw.strip().casefold() or None
+
+
+def list_activities() -> list[tuple[str, str, str | None]]:
+    """Triplets (clé, libellé, type) de toutes les activités déclarées.
+
+    Tri : type d'activité d'abord (cf. ACTIVITY_TYPE_ORDER), libellé
+    alphabétique ensuite. Alimente l'autocomplétion de /loottable."""
+    triples = [
+        (key, str(entry.get("label") or key), _activity_type(entry))
+        for key, entry in _load_tables().items()
     ]
-    return sorted(pairs, key=lambda p: p[1].lower())
+    return sorted(triples, key=lambda t: (activity_type_order(t[2]), t[1].lower()))
 
 
 def _is_craftable(defn: dict) -> bool:
@@ -122,6 +134,7 @@ async def get_loot_table(key: str) -> LootActivity | None:
         key=key,
         label=str(entry.get("label") or key),
         banner=entry.get("banner") or None,
+        type=_activity_type(entry),
     )
 
     for raw in entry.get("items") or []:
