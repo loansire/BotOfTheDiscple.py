@@ -171,7 +171,7 @@ async def build_loot_page(
     prefix = f"{emoji} " if emoji else ""
     suffix = "" if total == 1 else f" ({page + 1}/{total})"
     container.add_item(
-        ui.TextDisplay(f"## {prefix}{activity.label.upper()}{suffix}")
+        ui.TextDisplay(f"## {prefix} Table de Loot - {activity.label.upper()}{suffix}")
     )
 
     banner = _banner_file(activity)
