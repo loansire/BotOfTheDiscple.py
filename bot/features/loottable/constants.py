@@ -51,6 +51,7 @@ ACTIVITY_TYPE_EMOJIS: dict[str, str] = {
     "destination": "<:destination:1539655053814796319>",
 }
 
+
 # Ordre de tri de l'autocomplétion.
 ACTIVITY_TYPE_ORDER: dict[str, int] = {
     "prestige": 0,
@@ -58,7 +59,6 @@ ACTIVITY_TYPE_ORDER: dict[str, int] = {
 }
 
 _UNKNOWN_TYPE_ORDER = len(ACTIVITY_TYPE_ORDER)
-
 
 def activity_type_tag(activity_type: str | None) -> str:
     """Emoji du type d'activité, ou '' si absent/inconnu."""
@@ -72,6 +72,25 @@ def activity_type_order(activity_type: str | None) -> int:
     if not activity_type:
         return _UNKNOWN_TYPE_ORDER
     return ACTIVITY_TYPE_ORDER.get(activity_type, _UNKNOWN_TYPE_ORDER)
+
+
+# Libellés lisibles des types, utilisés par les séparateurs d'autocomplétion
+# (les emojis custom ne sont PAS rendus dans un Choice.name : texte brut only).
+ACTIVITY_TYPE_LABELS: dict[str, str] = {
+    "prestige": "Prestige",
+    "destination": "Destination",
+}
+
+# Libellé de repli pour un type absent ou non déclaré ci-dessus.
+UNKNOWN_TYPE_LABEL = "Autres"
+
+
+def activity_type_label(activity_type: str | None) -> str:
+    """Libellé affichable du type ; repli sur le type brut capitalisé, puis
+    sur UNKNOWN_TYPE_LABEL. Un type inconnu reste ainsi lisible dans la liste."""
+    if not activity_type:
+        return UNKNOWN_TYPE_LABEL
+    return ACTIVITY_TYPE_LABELS.get(activity_type) or activity_type.capitalize()
 
 # ── Sous-type d'arme (DestinyInventoryItemDefinition.itemSubType) ───────
 # Libellés FR utilisés en repli quand l'emoji correspondant n'est pas renseigné.

@@ -37,6 +37,7 @@ from bot.features.loottable.constants import (
     weapon_type_tag, EXOTIC_NOTE, activity_type_tag,
 )
 from bot.features.loottable.models import LootActivity, LootItem
+from bot.utils.logger import log
 
 _ACCENT = discord.Color(0x2E86AB)
 
@@ -122,7 +123,14 @@ class _PageButton(ui.Button):
         self.target = target
 
     async def callback(self, interaction: discord.Interaction):
-        view, files = await build_loot_page(self.activity, self.target)
+        try:
+            view, files = await build_loot_page(self.activity, self.target)
+        except Exception as e:
+            log.error(f"[LootTable] Page {self.target} de « {self.activity.key} » : {e}")
+            await interaction.response.send_message(
+                "Impossible d'afficher cette page.", ephemeral=True
+            )
+            return
         await interaction.response.edit_message(view=view, attachments=files)
         view.message = interaction.message
 
