@@ -5,12 +5,14 @@ Commande à la demande — aucun poll, aucun état persistant, aucun abonnement 
 cette feature ne rentre pas dans la pipeline de reset (sa source est un fichier
 maison, elle n'a ni cadence ni message à maintenir).
 
-Politique de réponse : le defer est ÉPHÉMÈRE, donc tous les garde-fous
-(séparateur sélectionné, activité inconnue, table vide, échec Bungie/rendu)
-partent en followup éphémère et restent privés. Le seul message PUBLIC est le
-succès. On ne touche JAMAIS à `edit_original_response` /
-`delete_original_response` : après un defer éphémère, `@original` bascule sur
-le premier followup envoyé — ces appels viseraient donc le message public.
+Politique de réponse : le defer est PUBLIC, car c'est la réponse INITIALE qui
+fixe l'éphémérité de TOUTE l'interaction — un defer éphémère rendrait aussi le
+message de succès privé, `ephemeral=False` sur le followup n'y changeant rien.
+Conséquence : les garde-fous instantanés (séparateur sélectionné, activité
+inconnue) sont contrôlés AVANT tout defer et répondent en éphémère direct, donc
+rien n'apparaît jamais publiquement ; les erreurs tardives (échec Bungie, table
+vide, échec de rendu) suppriment le placeholder « thinking » public puis
+envoient un followup éphémère.
 
 L'autocomplétion relit le JSON à chaque frappe (fichier local, lecture
 négligeable) : ajouter une activité ne demande donc pas de redémarrage.
@@ -88,13 +90,27 @@ class LootTable(commands.Cog):
         return choices
 
     @staticmethod
-    async def _fail(interaction: discord.Interaction, message: str) -> None:
-        """Réponse d'échec : TOUJOURS éphémère.
+    async def _fail_early(interaction: discord.Interaction, message: str) -> None:
+        """Erreur AVANT le defer : réponse initiale éphémère.
 
-        On passe par un followup plutôt que par `edit_original_response` : après
-        un defer éphémère, `@original` bascule sur le premier followup envoyé,
-        donc toute manipulation de la « réponse originale » risque de viser le
-        message public au lieu du placeholder."""
+        Réservée aux garde-fous instantanés (lecture du JSON local) : aucun
+        defer n'a eu lieu, donc rien n'est jamais apparu publiquement."""
+        try:
+            await interaction.response.send_message(message, ephemeral=True)
+        except discord.HTTPException as e:
+            log.warning(f"[LootTable] Réponse d'erreur non délivrée : {e}")
+
+    @staticmethod
+    async def _fail_late(interaction: discord.Interaction, message: str) -> None:
+        """Erreur APRÈS le defer public : on efface le « thinking » public, puis
+        on envoie l'erreur en followup éphémère.
+
+        La suppression du placeholder est best-effort : s'il a déjà disparu,
+        l'erreur reste délivrée."""
+        try:
+            await interaction.delete_original_response()
+        except discord.HTTPException:
+            pass
         try:
             await interaction.followup.send(message, ephemeral=True)
         except discord.HTTPException as e:
@@ -107,42 +123,46 @@ class LootTable(commands.Cog):
     @app_commands.describe(activite="Activité dont afficher la table de butin.")
     @app_commands.autocomplete(activite=_autocomplete)
     async def loottable(self, interaction: discord.Interaction, activite: str):
-        # La résolution des items peut enchaîner plusieurs appels Bungie
-        # (définitions non cachées) + des téléchargements d'icônes : on dépasse
-        # facilement les 3 s d'ack. Defer ÉPHÉMÈRE : tant qu'on n'a pas un
-        # rendu valide, rien ne doit apparaître publiquement.
-        await interaction.response.defer(ephemeral=True)
-
+        # ── Garde-fous instantanés, AVANT tout defer ────────────────────
+        # Tant que l'interaction n'est pas acquittée, l'erreur peut être une
+        # réponse initiale éphémère : aucun placeholder public n'existe.
         if activite.startswith(_SEPARATOR_PREFIX):
-            await self._fail(
+            await self._fail_early(
                 interaction,
                 "Cette ligne est un séparateur de catégorie, pas une activité.\n"
                 "-# Choisis une activité listée en dessous.",
             )
             return
 
-        try:
-            activity = await get_loot_table(activite)
-        except Exception as e:
-            log.error(f"[LootTable] Résolution de « {activite} » échouée : {e}")
-            await self._fail(
-                interaction,
-                "Impossible de récupérer cette table de butin pour l'instant.",
-            )
-            return
-
-        if activity is None:
-            await self._fail(
+        if activite not in {key for key, _, _ in list_activities()}:
+            await self._fail_early(
                 interaction,
                 f"Activité inconnue : `{activite}`.\n"
                 "-# Utilise l'autocomplétion pour voir les activités disponibles.",
             )
             return
 
-        if not activity.items:
-            await self._fail(
+        # ── Travail long ────────────────────────────────────────────────
+        # Définitions Bungie non cachées + téléchargement d'icônes : on dépasse
+        # facilement les 3 s d'ack. Defer PUBLIC : c'est lui qui rend le
+        # message de succès public.
+        await interaction.response.defer()
+
+        try:
+            activity = await get_loot_table(activite)
+        except Exception as e:
+            log.error(f"[LootTable] Résolution de « {activite} » échouée : {e}")
+            await self._fail_late(
                 interaction,
-                f"Aucun item déclaré pour **{activity.label}**.",
+                "Impossible de récupérer cette table de butin pour l'instant.",
+            )
+            return
+
+        # Course possible : le JSON est relu à chaque appel, il a pu être édité
+        # entre le pré-contrôle ci-dessus et cette résolution.
+        if activity is None or not activity.items:
+            await self._fail_late(
+                interaction, f"Aucun item à afficher pour `{activite}`."
             )
             return
 
@@ -150,7 +170,7 @@ class LootTable(commands.Cog):
             view, files = await build_loot_page(activity, 0)
         except Exception as e:
             log.error(f"[LootTable] Rendu de « {activite} » échoué : {e}")
-            await self._fail(
+            await self._fail_late(
                 interaction, "Impossible d'afficher cette table de butin."
             )
             return
@@ -158,6 +178,7 @@ class LootTable(commands.Cog):
         message = await interaction.followup.send(view=view, files=files, wait=True)
         # Référence nécessaire pour désactiver les boutons à l'expiration.
         view.message = message
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(LootTable(bot))
