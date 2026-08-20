@@ -136,7 +136,7 @@
   },
   "heliostat":{
     "label": "Héliostat",
-    "banner": "heliostat",
+    "banner": "heliostat.png",
     "type": "prestige",
     "items": [
       1753923263
