@@ -7,9 +7,10 @@ maison, elle n'a ni cadence ni message à maintenir).
 
 Politique de réponse : le defer est ÉPHÉMÈRE, donc tous les garde-fous
 (séparateur sélectionné, activité inconnue, table vide, échec Bungie/rendu)
-restent privés — ils éditent simplement le « thinking ». Le seul message
-PUBLIC est le succès, envoyé en followup ; le placeholder éphémère est alors
-supprimé pour ne rien laisser traîner.
+partent en followup éphémère et restent privés. Le seul message PUBLIC est le
+succès. On ne touche JAMAIS à `edit_original_response` /
+`delete_original_response` : après un defer éphémère, `@original` bascule sur
+le premier followup envoyé — ces appels viseraient donc le message public.
 
 L'autocomplétion relit le JSON à chaque frappe (fichier local, lecture
 négligeable) : ajouter une activité ne demande donc pas de redémarrage.
@@ -90,10 +91,12 @@ class LootTable(commands.Cog):
     async def _fail(interaction: discord.Interaction, message: str) -> None:
         """Réponse d'échec : TOUJOURS éphémère.
 
-        On édite le defer éphémère plutôt que d'envoyer un followup : un seul
-        message privé, pas de « thinking » résiduel."""
+        On passe par un followup plutôt que par `edit_original_response` : après
+        un defer éphémère, `@original` bascule sur le premier followup envoyé,
+        donc toute manipulation de la « réponse originale » risque de viser le
+        message public au lieu du placeholder."""
         try:
-            await interaction.edit_original_response(content=message)
+            await interaction.followup.send(message, ephemeral=True)
         except discord.HTTPException as e:
             log.warning(f"[LootTable] Réponse d'erreur non délivrée : {e}")
 
@@ -155,14 +158,6 @@ class LootTable(commands.Cog):
         message = await interaction.followup.send(view=view, files=files, wait=True)
         # Référence nécessaire pour désactiver les boutons à l'expiration.
         view.message = message
-
-        # Le résultat vit désormais dans le message public : on retire le
-        # placeholder éphémère (best-effort, une erreur ici est sans impact).
-        try:
-            await interaction.delete_original_response()
-        except discord.HTTPException:
-            pass
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(LootTable(bot))
