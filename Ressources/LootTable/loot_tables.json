@@ -110,7 +110,7 @@
       3103325054
     ]
   },
-  "derealisation":{
+  "derealisation": {
     "label": "Déréalisation",
     "banner": "derealisation.png",
     "type": "prestige",
@@ -118,7 +118,7 @@
       1481594633
     ]
   },
-  "le_murmure":{
+  "le_murmure": {
     "label": "Le Murmure",
     "banner": "le_murmure.png",
     "type": "prestige",
@@ -126,7 +126,7 @@
       1983149589
     ]
   },
-  "derniere_heure":{
+  "derniere_heure": {
     "label": "Dernière Heure",
     "banner": "derniere_heure.png",
     "type": "prestige",
@@ -134,7 +134,7 @@
       3824673936
     ]
   },
-  "heliostat":{
+  "heliostat": {
     "label": "Héliostat",
     "banner": "heliostat.png",
     "type": "prestige",
@@ -142,7 +142,6 @@
       1753923263
     ]
   },
-
   "nessos": {
     "label": "Nessos",
     "banner": "nessos.png",
@@ -205,14 +204,117 @@
       3332538050
     ]
   },
-  "_TODO": [
-    "Cosmodrome (cosmodrome) — aucun hyperlien dans le classeur, à compléter",
-    "Europe (europe) — aucun hyperlien dans le classeur, à compléter",
-    "Monde Trône de Savathûn (monde_trone_savathun) — aucun hyperlien dans le classeur, à compléter",
-    "Cité des Rêves (cite_des_reves) — aucun hyperlien dans le classeur, à compléter",
-    "Cœur Pâle (coeur_pale) — aucun hyperlien dans le classeur, à compléter",
-    "Kepler (kepler) — aucun hyperlien dans le classeur, à compléter",
-    "Frontière Hors-la-loi (frontiere_hors_la_loi) — aucun hyperlien dans le classeur, à compléter",
-    "Éternité (eternite) — aucun hyperlien dans le classeur, à compléter"
-  ]
+  "europe": {
+    "label": "Europe",
+    "banner": "europe.png",
+    "type": "destination",
+    "items": [
+      2187337757,
+      2485400469,
+      1529367715,
+      856316142,
+      4236134153,
+      2662459958,
+      978122008,
+      642545454
+    ]
+  },
+  "cosmodrome": {
+    "label": "Cosmodrome",
+    "banner": "cosmodrome.png",
+    "type": "destination",
+    "items": [
+      2560370239,
+      2308010345,
+      3490736392,
+      2584201248,
+      453798564,
+      1719169808
+    ]
+  },
+  "monde_trone_savathun": {
+    "label": "Trône de Savathûn",
+    "banner": "Monde_Trone_de_Savathun.png",
+    "type": "destination",
+    "items": [
+      927567426,
+      2607304614,
+      2595497736,
+      3865728990,
+      1399109800,
+      1526296434,
+      1994645182,
+      297296830,
+      3175851496,
+      2721157927
+    ]
+  },
+  "cite_des_reves": {
+    "label": "Cité des Rêves",
+    "banner": "cite_des_reves.png",
+    "type": "destination",
+    "items": [
+      1291270049,
+      3442151842,
+      1738552769,
+      1709137958,
+      268357178,
+      3218302023,
+      1727550459
+    ]
+  },
+  "coeur_pale": {
+    "label": "Cœur Pâle",
+    "banner": "coeur_pale.png",
+    "type": "destination",
+    "items": [
+      3867373351,
+      496728945,
+      2821677368,
+      4207120603,
+      1801007332,
+      3605603507,
+      3232203524,
+      3947966653
+    ]
+  },
+  "kepler": {
+    "label": "Kepler",
+    "banner": "kepler.png",
+    "type": "destination",
+    "items": [
+      4124362340,
+      970034755,
+      3813721211,
+      367772693,
+      1674692344,
+      1079872540
+    ]
+  },
+  "frontiere_hors_la_loi": {
+    "label": "Frontière Hors-la-loi",
+    "banner": "frontiere.png",
+    "type": "destination",
+    "items": [
+      3661051060,
+      2023002233,
+      2659286158,
+      2770035786,
+      1872906663,
+      2462965802
+    ]
+  },
+  "eternite": {
+    "label": "Éternité",
+    "banner": "eternite.png",
+    "type": "destination",
+    "items": [
+      2708806099,
+      3257091166,
+      3257091167,
+      3849810018,
+      548958835,
+      1679868061
+    ]
+  }
 }
