@@ -26,7 +26,6 @@ mis en cache sous `banners/secteur_oublie/`, ceux des raids/donjons sous
 une seule fois en amont côté handler)."""
 from __future__ import annotations
 
-import unicodedata
 from io import BytesIO
 
 import discord
@@ -36,6 +35,11 @@ from bot.bungie.reset import TUESDAY, next_reset, next_weekday_reset
 from bot.embeds.banner import BANNER_RATIO, get_banner
 from bot.features.weekly.models import ActivityVariant, LostSector, WeeklyActivity
 
+from bot.discord.rotation_components import RotationActionRow
+from bot.embeds.activity_emojis import DJ_EMOJI as _DJ_EMOJI
+from bot.embeds.activity_emojis import RD_EMOJI as _RD_EMOJI
+from bot.embeds.activity_emojis import activity_emoji_for
+
 _ACCENT = discord.Color.dark_red()
 
 # Clés de feature pour le cache d'images (cf. banner.py / purge_banner_cache).
@@ -44,8 +48,6 @@ _FEATURE_RAID_DUNGEON = "raid_donjon"
 _FEATURE_LOST_SECTOR = "secteur_oublie"
 
 # Emojis de titre — ajuste librement (emojis custom serveur acceptés).
-_RD_EMOJI = "<:Raid:1338595321319788595>"
-_DJ_EMOJI = "<:Donjon:1338595321319788595>"
 _LS_EMOJI = "<:Secteur:1270042203577778246>"
 
 # Emotes des boucliers / champions, par clé telle qu'écrite dans
@@ -96,61 +98,6 @@ _LS_MODIFIER_EMOJIS: dict[int, str] = {
     1598472557: "<:M_F:1293381169391468604>",
 }
 
-# ── Emojis par activité (raids & donjons) ──────────────────────────────
-# Clés telles qu'utilisées côté communauté ; le matching se fait sur la
-# forme NORMALISÉE (cf. _norm_name) pour absorber les écarts avec le
-# manifest Bungie (article initial « Le/La », ligature œ, accents).
-_RAID_EMOJIS_RAW = {
-    "Dernier Voeu": "<:LW:1273058036209946634>",
-    "Jardin du Salut": "<:JDS:1273058012751335486>",
-    "Crypte de la Pierre": "<:DSC:1273057991670890496>",
-    "Caveau de verre": "<:VOG:1273058120192495658>",
-    "Serment du Disciple": "<:VOW:1273058146453295155>",
-    "Chute du Roi": "<:Oryx:1273058059849302056>",
-    "Origine des Cauchemars": "<:RON:1273058080086560870>",
-    "Chute de Cropta": "<:Cropta:1273057968660676790>",
-    "Orée du Salut": "<:SE:1273058098818322492>",
-    "Désert Perpétuel": "<:DP:1399391431302451300>",
-    "Désert perpétuel (Épique)": "<:DP:1399391431302451300>",
-}
-
-_DUNGEON_EMOJIS_RAW = {
-    "Fosse de l'Hérésie": "<:Fosse:1275104301827620865>",
-    "Prophétie": "<:Prophetie:1275104326854901852>",
-    "Trône Brisé": "<:Trone:1275104381242572873>",
-    "Etreinte de l'Avarice": "<:Etreinte:1275104223016517742>",
-    "Dualité": "<:Dualite:1275104177143676948>",
-    "Flèche de la Vigie": "<:Fleche:1275104276347359385>",
-    "Fantômes des Profondeurs": "<:Fantome:1275104249700941844>",
-    "Ruine de la Guerrière": "<:Ruine:1275104356387000450>",
-    "Hôte Vesper": "<:Vesper:1295144736964870214>",
-    "Dogme fragmenté": "<:Dogme:1341339537221353492>",
-    "Équilibre": "<:Equilibre:1513709145348509726>",
-}
-
-
-def _norm_name(name: str) -> str:
-    """Normalise un nom d'activité pour un matching tolérant.
-
-    - ligature œ/Œ → 'oe' (NFKD ne la décompose pas)
-    - minuscules, retrait de l'article initial (le/la/les/l')
-    - suppression des accents (NFKD + filtrage des diacritiques)
-    """
-    s = name.replace("œ", "oe").replace("Œ", "OE").replace("\u0153", "oe")
-    s = s.strip().lower()
-    for art in ("le ", "la ", "les ", "l'"):
-        if s.startswith(art):
-            s = s[len(art):]
-            break
-    s = unicodedata.normalize("NFKD", s)
-    s = "".join(c for c in s if not unicodedata.combining(c))
-    return s.strip()
-
-
-# Dicts résolus une fois, par forme normalisée.
-_RAID_EMOJIS = {_norm_name(k): v for k, v in _RAID_EMOJIS_RAW.items()}
-_DUNGEON_EMOJIS = {_norm_name(k): v for k, v in _DUNGEON_EMOJIS_RAW.items()}
-
 
 def _refresh_line(next_refresh_unix: int) -> str:
     """Ligne « Actualisation: <date> (dans …) » (format complet, raids/donjons)."""
@@ -170,10 +117,7 @@ def _refresh_line_short(next_refresh_unix: int) -> str:
 
 def _activity_emoji(group: WeeklyActivity) -> str:
     """Emoji custom de l'activité, avec fallback générique par type."""
-    key = _norm_name(group.base_name)
-    if group.activity_type == "Donjon":
-        return _DUNGEON_EMOJIS.get(key, _DJ_EMOJI)
-    return _RAID_EMOJIS.get(key, _RD_EMOJI)
+    return activity_emoji_for(group.base_name, group.activity_type)
 
 
 class WeeklyView(ui.LayoutView):
@@ -284,6 +228,10 @@ async def _build_single_type_view(
             f"{refresh}\n"
             f"-# {fallback_label}"
         ))
+
+    kind = "dungeon" if activity_type == "Donjon" else "raid"
+    container.add_item(ui.Separator())
+    container.add_item(RotationActionRow(kind))
 
     return WeeklyView(container), files
 
