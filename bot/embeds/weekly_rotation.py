@@ -90,7 +90,7 @@ def build_rotation_view(
 
     container = ui.Container(accent_color=_ACCENT)
     container.add_item(
-        ui.TextDisplay(f"# {title_emoji} Rotation prédictive — {label}")
+        ui.TextDisplay(f"# {title_emoji} Rotation prédictive - {label}")
     )
 
     names = _featured_rotation_names(groups, activity_type)
@@ -113,9 +113,7 @@ def build_rotation_view(
     container.add_item(ui.TextDisplay(_rotation_lines(cycle, activity_type)))
     container.add_item(ui.Separator())
     container.add_item(ui.TextDisplay(
-        "-# Prédiction déterministe, ré-ancrée à chaque clic sur les données "
-        "API de la semaine en cours. Bungie peut décaler la rotation lors "
-        "d'une extension."
+        "-# Prédiction déterministe, il est possible que les données ne soient pas exacte en cas de bug ou de doublon d'une semaine à l'autre."
     ))
 
     return RotationView(container)

@@ -39,7 +39,7 @@ class RotationButton(ui.Button):
         super().__init__(
             label=_LABELS[kind],
             emoji="🗓️",
-            style=discord.ButtonStyle.secondary,
+            style=discord.ButtonStyle.primary,
             custom_id=f"weekly:rota:{kind}",
         )
         self.kind = kind

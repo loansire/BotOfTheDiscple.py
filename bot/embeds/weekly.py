@@ -142,10 +142,17 @@ async def _add_activities(
     groups: list[WeeklyActivity],
     files: list[discord.File],
     ratio: float,
+    with_banner: bool = True,
 ) -> None:
-    """Ajoute (par activité) le nom puis le bandeau pgcr recadré au container."""
+    """Ajoute (par activité) le nom puis, si `with_banner`, le bandeau pgcr recadré.
+
+    Les activités PERMANENTES sont rendues sans bandeau : elles ne changent
+    jamais d'une semaine à l'autre, l'image n'apporte donc aucune information
+    et coûte une pièce jointe + un composant CV2 par message."""
     for g in groups:
         container.add_item(ui.TextDisplay(f"### {_activity_emoji(g)} {g.base_name}"))
+        if not with_banner:
+            continue
         if g.pgcr_image:
             banner = await get_banner(g.pgcr_image, _FEATURE_RAID_DUNGEON, ratio)
             if banner:
@@ -178,7 +185,7 @@ async def _build_activity_container(
     if permanent:
         container.add_item(ui.Separator())
         container.add_item(ui.TextDisplay(f"**{permanent_label}**"))
-        await _add_activities(container, permanent, files, ratio)
+        await _add_activities(container, permanent, files, ratio, with_banner=False)
 
     return container
 
