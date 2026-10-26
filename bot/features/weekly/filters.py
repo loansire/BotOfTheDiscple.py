@@ -14,6 +14,16 @@ LOST_SECTOR = 103143560
 
 WEEKLY_TYPES = {RAID: "Raid", DUNGEON: "Donjon"}
 
+# Engrammes palier 5 affichés par les raids/donjons EN ROTATION (les autres
+# affichent l'équivalent palier 3 : 735813784 / 3808930384). Signal "featured"
+# complémentaire des challenges. Seules les récompenses CONDITIONNELLES comptent :
+# les variantes Maîtrise et les activités récentes listent le palier 5 sans
+# condition, qu'elles soient en rotation ou non.
+FEATURED_REWARD_HASHES: set[int] = {
+    3220608786,  # Équipement puissant (palier 5) — donjons
+    3808930390,  # Équipement de Raid (palier 5) — raids
+}
+
 
 # ── Surcharges (surges) des secteurs oubliés ────────────────────────────
 # Un secteur oublié affiche 1 surcharge d'ARME (spécifique au secteur, présente
@@ -110,6 +120,17 @@ def weekly_elemental_surges(available_activities: list[dict]) -> list[int]:
     return []
 
 
+def has_featured_reward(raw: dict) -> bool:
+    """True si l'activité du profil affiche une récompense conditionnelle de
+    FEATURED_REWARD_HASHES (signal "featured", cf. WeeklyActivity.featured)."""
+    for reward in raw.get("visibleRewards", []):
+        for item in reward.get("rewardItems", []):
+            qty = item.get("itemQuantity", {})
+            if qty.get("hasConditionalVisibility") and qty.get("itemHash") in FEATURED_REWARD_HASHES:
+                return True
+    return False
+
+
 def unresolved_hashes(activities: list[dict], manifest) -> list[int]:
     """activityHash du profil introuvables dans les définitions locales.
 
@@ -133,8 +154,8 @@ def group_raid_dungeon(
 
     Les variantes (Standard/Maîtrise) sont conservées avec leurs infos
     (lumière, palier de difficulté, modifiers, nb de challenges actifs) issues
-    du profil. `active_challenges` sert de signal "featured" (cf.
-    WeeklyActivity.featured). `permanent_hashes` (set d'activity_hash) marque les
+    du profil. `active_challenges` et `featured_reward` servent de signaux
+    "featured" (cf. WeeklyActivity.featured). `permanent_hashes` (set d'activity_hash) marque les
     groupes "permanents" (contenu le plus récent, défini hors code)."""
     permanent_hashes = permanent_hashes or set()
     groups: dict[str, WeeklyActivity] = {}
@@ -166,6 +187,7 @@ def group_raid_dungeon(
             difficulty_tier=raw.get("difficultyTier"),
             modifier_hashes=list(raw.get("modifierHashes", [])),
             active_challenges=len(raw.get("challenges", [])),
+            featured_reward=has_featured_reward(raw),
         ))
 
         if ah in permanent_hashes:

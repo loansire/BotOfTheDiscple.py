@@ -21,6 +21,7 @@ class ActivityVariant:
     difficulty_tier: int | None = None
     modifier_hashes: list[int] = field(default_factory=list)
     active_challenges: int = 0  # nb de challenges actifs (signal "featured")
+    featured_reward: bool = False  # récompense conditionnelle palier 5 (signal "featured")
     extra: dict = field(default_factory=dict)  # greffe maison par activity_hash
 
     def to_dict(self) -> dict:
@@ -35,6 +36,8 @@ class ActivityVariant:
             d["difficulty_tier"] = self.difficulty_tier
         if self.active_challenges:
             d["active_challenges"] = self.active_challenges
+        if self.featured_reward:
+            d["featured_reward"] = True
         if self.extra:
             d["extra"] = self.extra
         return d
@@ -53,13 +56,18 @@ class WeeklyActivity:
 
     @property
     def featured(self) -> bool:
-        """Featured cette semaine si au moins une variante a un challenge actif.
+        """Featured cette semaine si au moins une variante a un challenge actif
+        OU une récompense conditionnelle de palier 5.
 
         Heuristique : l'API n'expose pas de drapeau "featured" sur le contenu
-        Director ; en revanche seuls les raids/donjons featured (et le contenu
-        le plus récent) ont des challenges actifs (`challenges` non vide dans le
-        composant 204). Seul point à toucher si Bungie change la mécanique."""
-        return any(v.active_challenges > 0 for v in self.variants)
+        Director. Deux signaux, l'un ou l'autre suffit :
+        - challenges actifs (`challenges` non vide dans le composant 204) ;
+        - récompense featured (cf. filters.FEATURED_REWARD_HASHES) : certaines
+          activités en rotation n'ont AUCUN challenge (ex. Étreinte de
+          l'Avarice, semaine du 20/10/2026) mais affichent l'engramme palier 5
+          au lieu du palier 3.
+        Seul point à toucher si Bungie change la mécanique."""
+        return any(v.active_challenges > 0 or v.featured_reward for v in self.variants)
 
     def to_dict(self) -> dict:
         return {

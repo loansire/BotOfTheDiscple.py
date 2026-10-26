@@ -95,14 +95,16 @@ async def get_raid_dungeon() -> list[WeeklyActivity]:
         manifest,
         permanent_hashes=_load_permanent(),
     )
-    # Diagnostic : ce qui est détecté comme featured (signal = challenges
-    # actifs). Indispensable pour comprendre une activité « manquante ».
+    # Diagnostic : ce qui est détecté comme featured (signaux = challenges
+    # actifs / récompense palier 5). Indispensable pour comprendre une activité
+    # « manquante ».
     for g in groups:
         if g.featured or g.permanent:
             log.debug(
                 f"[Weekly] {g.activity_type} featured={g.featured} "
                 f"permanent={g.permanent} : {g.base_name} "
-                f"(challenges={[v.active_challenges for v in g.variants]})"
+                f"(challenges={[v.active_challenges for v in g.variants]}, "
+                f"reward={[v.featured_reward for v in g.variants]})"
             )
     return groups
 
