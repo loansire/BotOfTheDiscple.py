@@ -123,16 +123,25 @@ class _PageButton(ui.Button):
         self.target = target
 
     async def callback(self, interaction: discord.Interaction):
+        # defer AVANT de construire la page : les icônes d'une page jamais vue
+        # ne sont pas en cache, leur téléchargement dépasse vite les 3 s
+        # accordées par Discord (« Unknown interaction »).
+        await interaction.response.defer()
         try:
             view, files = await build_loot_page(self.activity, self.target)
         except Exception as e:
             log.error(f"[LootTable] Page {self.target} de « {self.activity.key} » : {e}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Impossible d'afficher cette page.", ephemeral=True
             )
             return
-        await interaction.response.edit_message(view=view, attachments=files)
-        view.message = interaction.message
+        # L'ancienne vue est remplacée : on l'arrête pour que son on_timeout ne
+        # ré-édite pas le message avec une page périmée.
+        if self.view is not None:
+            self.view.stop()
+        view.message = await interaction.edit_original_response(
+            view=view, attachments=files
+        )
 
 
 class LootTableView(ui.LayoutView):

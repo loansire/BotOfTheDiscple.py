@@ -160,11 +160,16 @@ async def _repost_guild(
 
     # 3) Catégories (jamais de ping : le ping est un message à part).
     new_ids: list = []
-    for view, files in await build_xur_category_views(vendors):
+    views = await build_xur_category_views(vendors)
+    for view, files in views:
         mid = await send_view(dest, view, files)
         if mid:
             new_ids.append(mid)
     category_count = len(new_ids)
+    # Envoi partiel → hash vide : le serveur sera retenté au prochain publish.
+    if category_count < len(views):
+        log.warning(f"[Xûr] {category_count}/{len(views)} catégorie(s) envoyée(s) dans {guild.name}.")
+        xur_hash = ""
 
     # 4) Ping rôle SEUL, en dernier (si demandé et rôle défini). Rangé avec les
     #    catégories → supprimé/reposté avec elles.

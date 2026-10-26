@@ -14,20 +14,32 @@ Arbre de décision (chaque reset est un reset quotidien) :
 Détection « reset déjà traité » : comparaison de last_reset() (instant pur du
 dernier reset survenu) avec l'iso persisté. On n'avance l'iso QU'APRÈS succès.
 
-Hold mode (point 9) : si un fetch Bungie lève BungieMaintenanceError (API en
-maintenance, typiquement au reset du mardi), on N'AVANCE PAS l'état et on
-retente au poll suivant — chaque minute jusqu'au rétablissement. Le poll/min
-EST la boucle de retry ; le hash-skip évite de reposter ce qui a déjà été
-publié avant l'échec (seule la partie en échec est réellement retentée).
+Hold mode (point 9) : si un fetch Bungie lève BungieUnavailableError
+(maintenance déclarée, panne non déclarée, ou données pas encore prêtes après
+le reset), on N'AVANCE PAS l'état et on retente plus tard. Le poll/min EST la
+boucle de retry, espacée progressivement (1, 2, 5, 10 puis 15 min) ; le
+hash-skip évite de reposter ce qui a déjà été publié avant l'échec (seule la
+partie en échec est réellement retentée). Une erreur inattendue suit le même
+chemin (avec un log d'erreur) au lieu d'être retentée sans limite chaque minute.
+
+Les jours de semaine des resets en attente sont persistés (pending_weekdays) :
+si une maintenance du mardi déborde sur le reset du mercredi, les étapes du
+mardi (raids/donjons, Ada-1, départ de Xûr) sont quand même jouées.
+
+Alerte : après HOLD_ALERT_AFTER en hold mode, un DM est envoyé à l'auteur du
+bot (OWNER_ID), puis un second au rétablissement.
 
 Refresh manuel (/refresh) : publication forcée SANS ping (`ping=False`) —
 exception assumée à la règle « repost = ping ». Le reset automatique, lui,
 notifie toujours (ping par défaut)."""
+import asyncio
+import time
+
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from bot.bungie.errors import BungieMaintenanceError
+from bot.bungie.errors import BungieMaintenanceError, BungieUnavailableError
 from bot.bungie.reset import FRIDAY, TUESDAY, last_reset
 from bot.discord.handlers import ada as ada_handler
 from bot.discord.handlers import eververse as eververse_handler
@@ -43,6 +55,13 @@ from bot.utils.logger import log
 
 # Seul utilisateur autorisé à déclencher /refresh (auteur du bot).
 OWNER_ID = 222465158075777035
+
+# Délais successifs entre deux tentatives en hold mode (minutes, le dernier
+# se répète).
+_RETRY_DELAYS_MIN = (1, 2, 5, 10, 15)
+
+# Durée de hold mode au-delà de laquelle l'auteur du bot est prévenu en DM.
+HOLD_ALERT_AFTER = 30 * 60  # secondes
 
 # Valeur spéciale « toutes les publications ».
 _REFRESH_ALL = "all"
@@ -80,7 +99,15 @@ class Pipeline(commands.Cog):
         self.xur_state = XurMessageState()
         self.eververse_state = EververseMessageState()
         self.ada_state = AdaMessageState()
-        self._hold = False  # True tant que l'API Bungie est en maintenance
+        self._hold = False  # True tant que le reset n'a pas pu être traité
+        self._hold_since: float | None = None   # time.monotonic() d'entrée en hold
+        self._hold_reason = ""
+        self._attempts = 0                      # tentatives échouées consécutives
+        self._retry_at = 0.0                    # time.monotonic() de la prochaine tentative
+        self._alert_sent = False
+        # Sérialise le poll automatique et /refresh (mêmes états, sinon
+        # suppression/repost concurrents et messages en double).
+        self._lock = asyncio.Lock()
         self.poll.start()
 
     def cog_unload(self):
@@ -89,57 +116,118 @@ class Pipeline(commands.Cog):
     # ---------- Détection du reset (automatique) ----------
     @tasks.loop(minutes=1)
     async def poll(self):
-        current = last_reset().isoformat()
+        reset = last_reset()
+        current = reset.isoformat()
         if current == self.state.last_reset_iso:
             return  # reset déjà traité (rattrapage automatique au redémarrage)
+        if time.monotonic() < self._retry_at:
+            return  # hold mode : on attend la prochaine tentative planifiée
 
-        weekday = last_reset().weekday()
+        # Le jour du reset courant rejoint les jours en attente (persistés).
+        weekdays = set(self.state.pending_weekdays)
+        if reset.weekday() not in weekdays:
+            weekdays.add(reset.weekday())
+            self.state.pending_weekdays = list(weekdays)
+            self.state.save()
+
         if self._hold:
-            log.debug("[Pipeline] Hold mode — nouvelle tentative de traitement du reset.")
+            log.debug(f"[Pipeline] Hold mode — tentative n°{self._attempts + 1} (weekdays={sorted(weekdays)}).")
         else:
-            log.info(f"[Pipeline] Nouveau reset détecté (weekday={weekday}).")
+            log.info(f"[Pipeline] Nouveau reset détecté (weekdays={sorted(weekdays)}).")
 
-        try:
-            await self._process_reset(weekday)
-        except BungieMaintenanceError as e:
-            if not self._hold:
-                log.warning(
-                    f"[Pipeline] API Bungie en maintenance ({e}) — hold mode activé. "
-                    "Le reset sera retenté chaque minute jusqu'au rétablissement."
-                )
-                self._hold = True
-            return  # on n'avance PAS l'état → retry au prochain poll
-        except Exception as e:
-            log.error(f"[Pipeline] Traitement du reset échoué : {e}")
-            return  # on n'avance pas non plus (erreur transitoire éventuelle)
+        async with self._lock:
+            try:
+                await self._process_reset(weekdays)
+            except BungieUnavailableError as e:
+                kind = "maintenance" if isinstance(e, BungieMaintenanceError) else "données indisponibles"
+                await self._enter_hold(f"{kind} : {e}", level="warning")
+                return  # on n'avance PAS l'état → retry plus tard
+            except Exception as e:
+                await self._enter_hold(f"erreur inattendue : {e!r}", level="error")
+                return
 
-        if self._hold:
-            log.info("[Pipeline] API Bungie rétablie — reset traité, hold mode levé.")
-            self._hold = False
-
+        await self._leave_hold()
+        self.state.pending_weekdays = []
         self.state.last_reset_iso = current
         self.state.save()
+
+    async def _enter_hold(self, reason: str, *, level: str) -> None:
+        """Hold mode : planifie la prochaine tentative (backoff) et prévient
+        l'auteur du bot si le blocage dure."""
+        delay = _RETRY_DELAYS_MIN[min(self._attempts, len(_RETRY_DELAYS_MIN) - 1)]
+        self._attempts += 1
+        self._retry_at = time.monotonic() + delay * 60
+        self._hold_reason = reason
+
+        if not self._hold:
+            self._hold = True
+            self._hold_since = time.monotonic()
+            getattr(log, level)(
+                f"[Pipeline] Reset non traité ({reason}) — hold mode activé, "
+                f"nouvelle tentative dans {delay} min."
+            )
+        else:
+            log.debug(f"[Pipeline] Toujours en hold ({reason}) — prochaine tentative dans {delay} min.")
+
+        held = time.monotonic() - (self._hold_since or time.monotonic())
+        if not self._alert_sent and held >= HOLD_ALERT_AFTER:
+            self._alert_sent = await self._dm_owner(
+                f"⚠️ **BotOfTheDisciple** : le reset Bungie n'est toujours pas traité "
+                f"après {int(held // 60)} min ({self._attempts} tentatives).\n"
+                f"Dernière raison : `{reason[:300]}`\n"
+                "Les publications reprendront automatiquement au rétablissement."
+            )
+
+    async def _leave_hold(self) -> None:
+        if self._hold:
+            held = int((time.monotonic() - (self._hold_since or time.monotonic())) // 60)
+            log.info(f"[Pipeline] Reset traité après {held} min de hold mode — hold levé.")
+            if self._alert_sent:
+                await self._dm_owner(
+                    f"✅ **BotOfTheDisciple** : reset traité, publications à jour "
+                    f"(après {held} min de blocage)."
+                )
+        self._hold = False
+        self._hold_since = None
+        self._hold_reason = ""
+        self._attempts = 0
+        self._retry_at = 0.0
+        self._alert_sent = False
+
+    async def _dm_owner(self, content: str) -> bool:
+        """DM à l'auteur du bot. True si envoyé (sinon on retentera plus tard)."""
+        try:
+            user = self.bot.get_user(OWNER_ID) or await self.bot.fetch_user(OWNER_ID)
+            await user.send(content)
+            return True
+        except discord.DiscordException as e:
+            log.warning(f"[Pipeline] DM d'alerte impossible : {e}")
+            return False
 
     @poll.before_loop
     async def _before_poll(self):
         await self.bot.wait_until_ready()
 
-    async def _process_reset(self, weekday: int):
+    async def _process_reset(self, weekdays: set[int]):
+        """`weekdays` : jours des resets en attente (normalement un seul ; deux
+        si un hold mode a débordé sur le reset suivant)."""
         # TOUJOURS : secteurs oubliés + Eververse (tout reset est quotidien).
-        await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state)
+        # strict=True : refuse des données pas encore à jour (cf. handlers.weekly).
+        await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, strict=True)
         await eververse_handler.publish(self.bot, self.eververse_state)
 
-        # VENDREDI : Xûr arrive.
-        if weekday == FRIDAY:
+        # VENDREDI : Xûr arrive (seulement s'il est encore là : un hold mode
+        # qui aurait débordé jusqu'au mardi ne doit pas le republier).
+        if FRIDAY in weekdays and is_xur_active():
             await xur_handler.publish_arrival(self.bot, self.xur_state)
 
         # MARDI : Xûr part + raids/donjons + Ada-1 (resets hebdo).
         # publish_raid_dungeon orchestre la purge unique du cache puis publie
         # les deux messages distincts (raids puis donjons). Ada-1 (vendor hebdo)
         # publie ensuite son propre message (cache d'icônes séparé, banners/ada/).
-        if weekday == TUESDAY:
+        if TUESDAY in weekdays:
             await xur_handler.mark_departed(self.bot, self.xur_state)
-            await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state)
+            await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state, strict=True)
             await ada_handler.publish(self.bot, self.ada_state)
 
         # FIN DE RESET : réparation des messages disparus (sans ping).
@@ -147,7 +235,7 @@ class Pipeline(commands.Cog):
 
     async def _verify_existence(self):
         """Point 4 : republie SANS ping les messages persistants supprimés à la
-        main. Couvre tous les topics. Une BungieMaintenanceError est RE-LEVÉE
+        main. Couvre tous les topics. Une BungieUnavailableError est RE-LEVÉE
         pour que le reset entier soit considéré en échec (hold mode) ; les
         autres erreurs sont seulement loguées."""
         try:
@@ -155,7 +243,7 @@ class Pipeline(commands.Cog):
             await xur_handler.restore(self.bot, self.xur_state)
             await eververse_handler.restore(self.bot, self.eververse_state)
             await ada_handler.restore(self.bot, self.ada_state)
-        except BungieMaintenanceError:
+        except BungieUnavailableError:
             raise
         except Exception as e:
             log.error(f"[Pipeline] Vérification d'existence échouée : {e}")
@@ -256,11 +344,12 @@ class Pipeline(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         label = _REFRESH_LABELS.get(publication, publication)
         try:
-            await fn()
-        except BungieMaintenanceError:
+            async with self._lock:
+                await fn()
+        except BungieUnavailableError as e:
             await interaction.followup.send(
-                "🔧 L'API Bungie est en maintenance. Réessaie plus tard — "
-                "les features se réactualiseront automatiquement au rétablissement.",
+                "🔧 L'API Bungie est indisponible (maintenance ou données pas "
+                f"encore à jour : {str(e)[:200]}). Réessaie plus tard.",
                 ephemeral=True,
             )
             return

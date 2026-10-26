@@ -110,6 +110,19 @@ def weekly_elemental_surges(available_activities: list[dict]) -> list[int]:
     return []
 
 
+def unresolved_hashes(activities: list[dict], manifest) -> list[int]:
+    """activityHash du profil introuvables dans les définitions locales.
+
+    Une activité non résolue n'a pas de type → elle serait ignorée sans bruit
+    par group_raid_dungeon. Non vide = manifest local probablement en retard."""
+    return [
+        a.get("activityHash")
+        for a in activities
+        if a.get("activityHash") is not None
+        and not manifest.resolve(a.get("activityHash"), "DestinyActivityDefinition")
+    ]
+
+
 # ── Raids & Donjons ────────────────────────────────────────────────────
 
 

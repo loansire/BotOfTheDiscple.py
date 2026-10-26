@@ -19,18 +19,12 @@ from __future__ import annotations
 import asyncio
 from io import BytesIO
 
-import aiohttp
 from PIL import Image
 
-from bot.bungie.client import BUNGIE_BASE
-from bot.config import MANIFEST_DIR
-from bot.utils.logger import log
-
-# Racine commune des caches d'icônes (un sous-dossier par feature).
-ICON_BASE_DIR = MANIFEST_DIR / "banners"
+from bot.embeds import image_cache
 
 # Dossier Xûr (conservé pour les icônes de vendor, spécifiques à Xûr).
-ICON_DIR = ICON_BASE_DIR / "xur"
+ICON_DIR = image_cache.feature_dir("xur")
 
 # ⚙️ Largeur cible commune des en-têtes de vendor (px). La hauteur suit le
 #    ratio natif de chaque image (aucun rognage). Incluse dans le nom de cache :
@@ -38,50 +32,14 @@ ICON_DIR = ICON_BASE_DIR / "xur"
 VENDOR_ICON_WIDTH = 246
 
 
-def _icon_dir(feature: str):
-    """Sous-dossier de cache d'icônes d'une feature (`banners/<feature>/`)."""
-    return ICON_BASE_DIR / feature
-
-
-def purge_icon_cache(feature: str) -> None:
-    """Vide intégralement le cache d'icônes d'une feature.
-
-    Appelée juste AVANT régénération (au reset de la cadence de la feature) :
-    on supprime tous les `.webp` du sous-dossier, recréé au prochain
-    `get_item_icon`. Sans danger si le dossier n'existe pas encore."""
-    directory = _icon_dir(feature)
-    if not directory.exists():
-        return
-    removed = 0
-    for entry in directory.iterdir():
-        if entry.is_file():
-            try:
-                entry.unlink()
-                removed += 1
-            except OSError as e:
-                log.warning(f"[Icon] Suppression cache '{feature}' échouée ({entry.name}) : {e}")
-    log.info(f"[Icon] Cache '{feature}' purgé ({removed} fichier(s)).")
+# Purge du cache d'icônes d'une feature (avant régénération à sa cadence).
+purge_icon_cache = image_cache.purge_cache
 
 
 def purge_xur_cache() -> None:
     """Purge le cache d'icônes Xûr (raccourci historique). Appelée le vendredi
     à l'arrivée de Xûr, juste avant régénération."""
     purge_icon_cache("xur")
-
-
-async def _download(path: str) -> bytes | None:
-    """Télécharge une image hébergée sur bungie.net (chemin relatif)."""
-    url = f"{BUNGIE_BASE}{path}"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    log.warning(f"[Icon] image → HTTP {resp.status} ({path})")
-                    return None
-                return await resp.read()
-    except aiohttp.ClientError as e:
-        log.warning(f"[Icon] Téléchargement image échoué : {e}")
-        return None
 
 
 def _compose(icon_data: bytes, watermark_data: bytes | None) -> bytes:
@@ -124,24 +82,22 @@ async def get_item_icon(
     if not icon_path:
         return None
 
-    directory = _icon_dir(feature)
-    directory.mkdir(parents=True, exist_ok=True)
-    cache_file = directory / _cache_name(item_hash, bool(watermark_path))
-    if cache_file.exists():
-        return cache_file.read_bytes()
+    cache_file = image_cache.feature_dir(feature) / _cache_name(item_hash, bool(watermark_path))
 
-    icon_data = await _download(icon_path)
-    if icon_data is None:
-        return None
+    async def produce() -> bytes | None:
+        # icône et watermark téléchargés en parallèle.
+        if watermark_path:
+            icon_data, watermark_data = await asyncio.gather(
+                image_cache.download(icon_path, "Icon"),
+                image_cache.download(watermark_path, "Icon"),
+            )
+        else:
+            icon_data, watermark_data = await image_cache.download(icon_path, "Icon"), None
+        if icon_data is None:
+            return None
+        return await asyncio.to_thread(_compose, icon_data, watermark_data)
 
-    watermark_data = await _download(watermark_path) if watermark_path else None
-
-    composed = await asyncio.to_thread(_compose, icon_data, watermark_data)
-    try:
-        cache_file.write_bytes(composed)
-    except OSError as e:
-        log.warning(f"[Icon] Écriture cache icône échouée : {e}")
-    return composed
+    return await image_cache.cached(cache_file, produce, "Icon")
 
 
 # ── Icône d'en-tête de vendor (largeIcon) — spécifique Xûr ──────────────
@@ -184,19 +140,13 @@ async def get_vendor_icon(
     if not icon_path:
         return None
 
-    ICON_DIR.mkdir(parents=True, exist_ok=True)
     fname = _vendor_cache_name(vendor_key, VENDOR_ICON_WIDTH)
-    cache_file = ICON_DIR / fname
-    if cache_file.exists():
-        return cache_file.read_bytes(), fname
 
-    data = await _download(icon_path)
-    if data is None:
-        return None
+    async def produce() -> bytes | None:
+        data = await image_cache.download(icon_path, "Xûr")
+        if data is None:
+            return None
+        return await asyncio.to_thread(_resize_to_width, data, VENDOR_ICON_WIDTH)
 
-    resized = await asyncio.to_thread(_resize_to_width, data, VENDOR_ICON_WIDTH)
-    try:
-        cache_file.write_bytes(resized)
-    except OSError as e:
-        log.warning(f"[Xûr] Écriture cache icône vendor échouée : {e}")
-    return resized, fname
+    data = await image_cache.cached(ICON_DIR / fname, produce, "Xûr")
+    return (data, fname) if data is not None else None

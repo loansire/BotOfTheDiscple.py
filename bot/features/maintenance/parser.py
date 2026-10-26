@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup, Tag
 
@@ -20,7 +21,7 @@ from .models import Game, MaintenanceEvent, MaintenanceStep
 # ──────────────────────────────────────────────
 
 _TZ_OFFSETS: dict[str, int] = {
-    "PDT": -7, "PST": -8, "PACIFIC": -7,
+    "PDT": -7, "PST": -8,
     "MDT": -6, "MST": -7,
     "CDT": -5, "CST": -6,
     "EDT": -4, "EST": -5,
@@ -73,11 +74,29 @@ def _parse_date_from_title(date_raw: str) -> Optional[datetime]:
         return None
 
 
-def _resolve_tz_offset(tz_str: str, secondary: str = "") -> Optional[int]:
+# « Pacific » sans précision : PDT (-7) en été, PST (-8) en hiver → l'offset
+# dépend de la date de l'événement.
+_PACIFIC = ZoneInfo("America/Los_Angeles")
+
+
+def _to_24h(hour: int, ampm: str) -> int:
+    if ampm == "PM" and hour != 12:
+        return hour + 12
+    if ampm == "AM" and hour == 12:
+        return 0
+    return hour
+
+
+def _resolve_tz_offset(
+    tz_str: str, secondary: str = "", on_date: Optional[datetime] = None
+) -> Optional[int]:
     """Résout un offset UTC en heures à partir du texte timezone."""
     key = tz_str.strip().upper().rstrip(".,")
     if key in _TZ_OFFSETS:
         return _TZ_OFFSETS[key]
+    if key == "PACIFIC":
+        ref = (on_date or datetime.now()).replace(hour=12, tzinfo=_PACIFIC)
+        return int(ref.utcoffset().total_seconds() // 3600)
 
     for text in (tz_str, secondary):
         m = _OFFSET_RE.search(text)
@@ -111,12 +130,9 @@ def _parse_step_time(
     ampm = m.group(3).upper()
     tz_str = m.group(4)
 
-    if ampm == "PM" and hour != 12:
-        hour += 12
-    elif ampm == "AM" and hour == 12:
-        hour = 0
+    hour = _to_24h(hour, ampm)
 
-    offset = _resolve_tz_offset(tz_str, time_secondary)
+    offset = _resolve_tz_offset(tz_str, time_secondary, base_date)
     if offset is None:
         # Fallback : essaie de parser le secondaire comme un time UTC direct
         m2 = _TIME_RE.search(time_secondary)
@@ -125,11 +141,8 @@ def _parse_step_time(
             min2 = int(m2.group(2)) if m2.group(2) else 0
             ampm2 = m2.group(3).upper()
             tz2 = m2.group(4)
-            if ampm2 == "PM" and h2 != 12:
-                h2 += 12
-            elif ampm2 == "AM" and h2 == 12:
-                h2 = 0
-            off2 = _resolve_tz_offset(tz2, "")
+            h2 = _to_24h(h2, ampm2)
+            off2 = _resolve_tz_offset(tz2, "", base_date)
             if off2 is not None:
                 dt_utc = base_date.replace(
                     hour=h2, minute=min2, second=0, microsecond=0,

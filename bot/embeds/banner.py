@@ -15,12 +15,9 @@ import asyncio
 import os
 from io import BytesIO
 
-import aiohttp
 from PIL import Image
 
-from bot.bungie.client import BUNGIE_BASE
-from bot.config import MANIFEST_DIR
-from bot.utils.logger import log
+from bot.embeds import image_cache
 
 # ⚙️ Ratio largeur:hauteur du bandeau — AJUSTE ICI (1920:590 ≈ 3.254).
 #    C'est bien un ratio, pas une résolution : l'image garde sa largeur native
@@ -32,33 +29,8 @@ BANNER_RATIO = 1920 / 590
 #    1.0 → aucune réduction. Manipulable librement pour les tests.
 BANNER_SCALE = 1 / 4
 
-# Racine commune des caches d'images recadrées (un sous-dossier par feature).
-BANNER_BASE_DIR = MANIFEST_DIR / "banners"
-
-
-def _feature_dir(feature: str):
-    """Sous-dossier de cache d'une feature (`banners/<feature>/`)."""
-    return BANNER_BASE_DIR / feature
-
-
-def purge_banner_cache(feature: str) -> None:
-    """Vide intégralement le cache de bandeaux d'une feature.
-
-    Appelée juste AVANT régénération (au reset de la cadence de la feature) :
-    on supprime tous les `.webp` du sous-dossier, qui sera recréé au prochain
-    `get_banner`. Sans danger si le dossier n'existe pas encore."""
-    directory = _feature_dir(feature)
-    if not directory.exists():
-        return
-    removed = 0
-    for entry in directory.iterdir():
-        if entry.is_file():
-            try:
-                entry.unlink()
-                removed += 1
-            except OSError as e:
-                log.warning(f"[Banner] Suppression cache échouée ({entry.name}) : {e}")
-    log.info(f"[Banner] Cache '{feature}' purgé ({removed} fichier(s)).")
+# Purge du cache de bandeaux d'une feature (avant régénération à sa cadence).
+purge_banner_cache = image_cache.purge_cache
 
 
 def _crop(data: bytes, ratio: float, scale: float) -> bytes:
@@ -110,27 +82,12 @@ async def get_banner(
     if not pgcr_path:
         return None
 
-    directory = _feature_dir(feature)
-    directory.mkdir(parents=True, exist_ok=True)
-    cache_file = directory / _cache_name(pgcr_path, ratio, scale)
-    if cache_file.exists():
-        return cache_file.read_bytes()
+    cache_file = image_cache.feature_dir(feature) / _cache_name(pgcr_path, ratio, scale)
 
-    url = f"{BUNGIE_BASE}{pgcr_path}"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    log.warning(f"[Weekly] pgcr → HTTP {resp.status} ({pgcr_path})")
-                    return None
-                data = await resp.read()
-    except aiohttp.ClientError as e:
-        log.warning(f"[Weekly] Téléchargement pgcr échoué : {e}")
-        return None
+    async def produce() -> bytes | None:
+        data = await image_cache.download(pgcr_path, "Banner")
+        if data is None:
+            return None
+        return await asyncio.to_thread(_crop, data, ratio, scale)
 
-    cropped = await asyncio.to_thread(_crop, data, ratio, scale)
-    try:
-        cache_file.write_bytes(cropped)
-    except OSError as e:
-        log.warning(f"[Weekly] Écriture cache bandeau échouée : {e}")
-    return cropped
+    return await image_cache.cached(cache_file, produce, "Banner")

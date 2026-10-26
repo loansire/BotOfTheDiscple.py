@@ -14,10 +14,11 @@ les gros blocs (sockets/stats) — pour en EXTRAIRE un fichier léger
 définition Lite brute n'est jamais conservée sur disque : seul l'extrait l'est.
 Cet extrait sert de surcouche de traduction au-dessus des items Xûr résolus en
 anglais via l'API live (cf. features/xur/service.py)."""
-import json
+import asyncio
 
 from bot.bungie.client import bungie
 from bot.config import MANIFEST_DIR
+from bot.utils.jsonio import load_json, save_json
 from bot.utils.logger import log
 
 # Sous-ensemble de définitions téléchargées localement.
@@ -53,17 +54,10 @@ _VERSION_FILE = MANIFEST_DIR / "_version.json"
 _ITEM_NAMES_FR_FILE = MANIFEST_DIR / "item_names_fr.json"
 
 
-def _load_json(path):
-    if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return None
-
-
-def _save_json(path, data):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+async def _save_json_async(path, data) -> None:
+    """Écriture (atomique, compacte) dans un thread : les définitions pèsent
+    plusieurs dizaines de Mo, les sérialiser dans l'event loop le bloquerait."""
+    await asyncio.to_thread(save_json, path, data, indent=None)
 
 
 def _extract_item_names(defn: dict) -> dict[str, str]:
@@ -97,18 +91,25 @@ class ManifestStore:
         """Met le cache local à jour si la version distante a changé.
 
         Renvoie la version courante du manifest, ou None en cas d'échec.
-        Ne télécharge QUE si la version diffère du cache local."""
+        Ne télécharge QUE si la version diffère du cache local.
+
+        La version locale n'est enregistrée que si TOUTES les définitions ont
+        été téléchargées : sinon une définition manquante ne serait plus jamais
+        retéléchargée avant la version suivante, et resolve() renverrait {} en
+        silence (activités ignorées). En cas d'échec partiel, on retente au
+        prochain sync."""
         index = await self.client.get_manifest_index(self.lang)
         if index is None:
             return None
         version, paths = index
 
-        local = _load_json(_VERSION_FILE)
+        local = load_json(_VERSION_FILE)
         if local and local.get("version") == version and local.get("lang") == self.lang:
             log.debug(f"[Manifest] Déjà à jour (version {version}).")
             return version
 
         log.info(f"[Manifest] Nouvelle version détectée : {version} — téléchargement.")
+        complete = True
         for name in MANIFEST_DEFINITIONS:
             path = paths.get(name)
             if not path:
@@ -116,18 +117,39 @@ class ManifestStore:
                 continue
             defn = await self.client.download_definition(path)
             if defn is not None:
-                _save_json(MANIFEST_DIR / f"{name}.json", defn)
+                await _save_json_async(MANIFEST_DIR / f"{name}.json", defn)
                 log.info(f"[Manifest] {name} enregistré ({len(defn)} entrées).")
             else:
+                complete = False
                 log.error(f"[Manifest] Échec du téléchargement de {name}.")
 
         # Surcouche FR : extraction des noms d'items (Lite → {hash: name}).
         await self._sync_item_names_fr(paths)
 
-        _save_json(_VERSION_FILE, {"version": version, "lang": self.lang})
         self._cache.clear()         # cache mémoire des définitions invalidé
         self._item_names_fr = None  # extrait de noms rechargé au prochain accès
+        if not complete:
+            log.error("[Manifest] Synchro incomplète — version NON enregistrée, retentée au prochain sync.")
+            return None
+        save_json(_VERSION_FILE, {"version": version, "lang": self.lang})
         return version
+
+    def mark_stale(self) -> None:
+        """Force un re-téléchargement complet au prochain sync().
+
+        Appelé quand des hashes du profil sont introuvables dans les
+        définitions locales : signe d'un cache local en retard sur Bungie."""
+        try:
+            _VERSION_FILE.unlink(missing_ok=True)
+        except OSError as e:
+            log.warning(f"[Manifest] Invalidation de la version locale impossible : {e}")
+
+    async def preload(self, name: str) -> None:
+        """Charge une définition en mémoire dans un thread (gros JSON) pour que
+        le premier resolve() ne bloque pas l'event loop."""
+        if name not in self._cache:
+            data = await asyncio.to_thread(load_json, MANIFEST_DIR / f"{name}.json", {})
+            self._cache[name] = data or {}
 
     async def _sync_item_names_fr(self, paths: dict) -> None:
         """Télécharge la def Lite, en extrait {hash: name}, écrit l'extrait.
@@ -154,9 +176,9 @@ class ManifestStore:
             )
             return
 
-        names = _extract_item_names(defn)
+        names = await asyncio.to_thread(_extract_item_names, defn)
         # `defn` (volumineux) n'est référencé nulle part ailleurs → libérable.
-        _save_json(_ITEM_NAMES_FR_FILE, names)
+        await _save_json_async(_ITEM_NAMES_FR_FILE, names)
         log.info(f"[Manifest] Noms d'items FR extraits ({len(names)} entrées).")
 
     # ── Résolution ────────────────────────────────────────────────────
@@ -164,7 +186,7 @@ class ManifestStore:
         """Charge une définition locale (cache mémoire)."""
         if name in self._cache:
             return self._cache[name]
-        data = _load_json(MANIFEST_DIR / f"{name}.json") or {}
+        data = load_json(MANIFEST_DIR / f"{name}.json") or {}
         self._cache[name] = data
         return data
 
@@ -189,7 +211,7 @@ class ManifestStore:
     def _load_item_names_fr(self) -> dict[str, str]:
         """Charge l'extrait de noms FR (cache mémoire, lazy)."""
         if self._item_names_fr is None:
-            self._item_names_fr = _load_json(_ITEM_NAMES_FR_FILE) or {}
+            self._item_names_fr = load_json(_ITEM_NAMES_FR_FILE) or {}
         return self._item_names_fr
 
     def item_name_fr(self, item_hash) -> str | None:

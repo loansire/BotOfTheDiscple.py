@@ -27,10 +27,11 @@ Modèle /botconfig : un seul salon par topic + un seul rôle par topic. Le
 schéma autorise techniquement plusieurs salons (ancien /alerte), mais
 set_topic_destination réécrit toujours une entrée unique.
 """
-import json
+import copy
 from typing import Optional
 
 from bot.config import ALERTS_DIR
+from bot.utils.jsonio import load_json_cached, save_json
 
 STORE_PATH = ALERTS_DIR / "subscriptions.json"
 
@@ -107,16 +108,14 @@ TOPICS: dict[str, dict] = {
 
 
 def _load_all() -> dict:
-    if STORE_PATH.exists():
-        with open(STORE_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+    """Copie de travail de subscriptions.json (relu seulement s'il a changé :
+    iter_subscribers est appelé plusieurs fois par minute par les boucles)."""
+    data = load_json_cached(STORE_PATH, {})
+    return copy.deepcopy(data) if isinstance(data, dict) else {}
 
 
 def _save_all(data: dict) -> None:
-    ALERTS_DIR.mkdir(parents=True, exist_ok=True)
-    with open(STORE_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    save_json(STORE_PATH, data)
 
 
 # ──────────────────────────────────────────────────────────────────────

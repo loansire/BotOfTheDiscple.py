@@ -19,7 +19,7 @@ import discord
 from discord import ui
 
 from bot.utils.logger import log
-from bot.utils.subscriptions import TOPICS, set_topic_destination
+from bot.utils.subscriptions import TOPICS, load_config_state, set_topic_destination
 
 # Types de salons proposés dans le ChannelSelect
 _CHANNEL_TYPES = [
@@ -213,11 +213,16 @@ class ValidateButton(ui.Button):
         guild = view.guild
         gid = str(guild.id)
 
-        # Diff avant/après (forme load_config_state) AVANT de reconstruire.
-        before = copy.deepcopy(view.persisted)
-        after = copy.deepcopy(view.pending)
+        # État RÉEL sur disque au moment de valider (et non celui capturé à
+        # l'ouverture de /botconfig) : un autre admin a pu modifier d'autres
+        # topics entre-temps. On n'écrit QUE les topics modifiés dans cette vue.
+        before = load_config_state(gid)
+        changed = [t for t in TOPICS if view.pending[t] != view.persisted[t]]
+        after = copy.deepcopy(before)
+        for topic in changed:
+            after[topic] = copy.deepcopy(view.pending[topic])
 
-        for topic in TOPICS:
+        for topic in changed:
             p = view.pending[topic]
             ch = guild.get_channel_or_thread(int(p["channel_id"])) if p["channel_id"] else None
             set_topic_destination(
@@ -233,7 +238,7 @@ class ValidateButton(ui.Button):
 
         # persisted ← pending, retour à la feuille parente (page « propre »).
         from bot.discord.configbot_view import ConfigView
-        saved = copy.deepcopy(view.pending)
+        saved = copy.deepcopy(after)
         new_view = ConfigView(
             view.user, guild, saved, copy.deepcopy(saved), self.return_node, 0
         )

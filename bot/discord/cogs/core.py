@@ -9,9 +9,18 @@ from bot.utils.logger import log
 class Core(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # on_ready se redéclenche à chaque reconnexion de la gateway : la sync
+        # des commandes (requête HTTP globale, rate-limitée) n'est faite qu'une
+        # fois par processus.
+        self._synced = False
 
     @commands.Cog.listener()
     async def on_ready(self):
+        if self._synced:
+            log.info(f"Reconnecté en tant que {self.bot.user}.")
+            return
+        self._synced = True
+
         # Chaque sync est ISOLÉE dans son propre try/except. Sans ça, une
         # commande mal formée (ex. description vide → HTTP 400 côté Discord)
         # faisait lever `sync()` en tête de on_ready, et TOUT ce qui suit — dont

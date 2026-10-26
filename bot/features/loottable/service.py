@@ -11,10 +11,9 @@ Eververse : endpoint public, pas d'OAuth.
 """
 from __future__ import annotations
 
-import json
-
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
+from bot.utils.jsonio import load_json_cached
 from bot.utils.logger import log
 
 from .constants import LOOT_TABLES_PATH, TIER_EXOTIC, activity_type_order
@@ -36,11 +35,9 @@ def _load_tables() -> dict:
     if not LOOT_TABLES_PATH.exists():
         log.warning(f"[LootTable] Fichier absent : {LOOT_TABLES_PATH}")
         return {}
-    try:
-        with open(LOOT_TABLES_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        log.warning(f"[LootTable] loot_tables.json illisible : {e}")
+    # Relu à chaque frappe d'autocomplétion : cache invalidé par mtime.
+    data = load_json_cached(LOOT_TABLES_PATH)
+    if data is None:
         return {}
     if not isinstance(data, dict):
         log.warning("[LootTable] loot_tables.json : objet JSON attendu à la racine.")

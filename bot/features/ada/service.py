@@ -18,6 +18,7 @@ import os
 
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
+from bot.utils.aio import gather_limited
 from bot.utils.logger import log
 
 from .constants import ADA_VENDOR_HASH
@@ -72,11 +73,11 @@ async def get_ada() -> list[AdaItem]:
     if os.getenv("ADA_DEBUG"):
         await _log_vendor_indices(sales)
 
-    items: list[AdaItem] = []
-    for item_hash, cost_quantity in filtered_items(sales):
-        item = await _resolve_item(item_hash, cost_quantity)
-        if item:
-            items.append(item)
+    resolved = await gather_limited(
+        _resolve_item(item_hash, cost_quantity)
+        for item_hash, cost_quantity in filtered_items(sales)
+    )
+    items: list[AdaItem] = [item for item in resolved if item]
 
     log.info(f"[Ada-1] {len(items)} item(s) retenu(s).")
     return items

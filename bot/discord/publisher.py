@@ -135,13 +135,16 @@ async def publish_to_subscribers(bot: discord.Client, topic: str, build: Callabl
 
         role_id = info.get("role")
         mention = f"<@&{role_id}>" if role_id else None
-        embed, files, view = build()
         try:
+            # build() DANS le try : un échec pour un abonné ne doit pas
+            # interrompre la boucle (les autres serveurs seraient privés du
+            # message, puis re-servis en double au poll suivant).
+            embed, files, view = build()
             if view:
                 await dest.send(content=mention, embed=embed, files=files, view=view)
             else:
                 await dest.send(content=mention, embed=embed, files=files)
-        except discord.DiscordException as e:
+        except Exception as e:
             log.error(f"[Publisher] Envoi échoué dans {dest} ({topic}) : {e}")
 
 
