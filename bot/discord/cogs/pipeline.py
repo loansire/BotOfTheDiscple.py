@@ -5,7 +5,7 @@ Remplace les cogs weekly et xur (fusionnés). Source de vérité unique du
 dernier reset traité : PipelineState.last_reset_iso (global, pas par serveur).
 
 Arbre de décision (chaque reset est un reset quotidien) :
-- TOUJOURS    → secteurs oubliés + Eververse (republier)
+- TOUJOURS    → secteurs oubliés + Avant-garde + Eververse (republier)
 - VENDREDI    → Xûr arrive : supprime tout + republie tout (statut + catégories)
 - MARDI       → Xûr part (supprime catégories + édite statut) + raids/donjons + Ada-1
 - FIN DE RESET→ vérification d'existence (point 4) : republie SANS ping les
@@ -43,6 +43,7 @@ from bot.bungie.errors import BungieMaintenanceError, BungieUnavailableError
 from bot.bungie.reset import FRIDAY, TUESDAY, last_reset
 from bot.discord.handlers import ada as ada_handler
 from bot.discord.handlers import eververse as eververse_handler
+from bot.discord.handlers import vanguard as vanguard_handler
 from bot.discord.handlers import weekly as weekly_handler
 from bot.discord.handlers import xur as xur_handler
 from bot.features.ada.state import AdaMessageState
@@ -74,6 +75,7 @@ _REFRESH_CHOICES = [
     app_commands.Choice(name="Secteurs Oubliés", value="daily_lost_sector"),
     app_commands.Choice(name="Raids", value="weekly_raid"),
     app_commands.Choice(name="Donjons", value="weekly_dungeon"),
+    app_commands.Choice(name="Avant-garde", value="daily_vanguard"),
     app_commands.Choice(name="Xûr", value="xur"),
     app_commands.Choice(name="Eververse", value="eververse"),
     app_commands.Choice(name="Ada-1", value="ada"),
@@ -85,6 +87,7 @@ _REFRESH_LABELS = {
     "daily_lost_sector": "Secteurs Oubliés",
     "weekly_raid": "Raids",
     "weekly_dungeon": "Donjons",
+    "daily_vanguard": "Avant-garde",
     "xur": "Xûr",
     "eververse": "Eververse",
     "ada": "Ada-1",
@@ -211,9 +214,11 @@ class Pipeline(commands.Cog):
     async def _process_reset(self, weekdays: set[int]):
         """`weekdays` : jours des resets en attente (normalement un seul ; deux
         si un hold mode a débordé sur le reset suivant)."""
-        # TOUJOURS : secteurs oubliés + Eververse (tout reset est quotidien).
-        # strict=True : refuse des données pas encore à jour (cf. handlers.weekly).
+        # TOUJOURS : secteurs oubliés + Avant-garde + Eververse (tout reset est
+        # quotidien). strict=True : refuse des données pas encore à jour (cf.
+        # handlers.weekly / handlers.vanguard).
         await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, strict=True)
+        await vanguard_handler.publish(self.bot, self.weekly_state, strict=True)
         await eververse_handler.publish(self.bot, self.eververse_state)
 
         # VENDREDI : Xûr arrive (seulement s'il est encore là : un hold mode
@@ -240,6 +245,7 @@ class Pipeline(commands.Cog):
         autres erreurs sont seulement loguées."""
         try:
             await weekly_handler.restore(self.bot, self.weekly_state)
+            await vanguard_handler.restore(self.bot, self.weekly_state)
             await xur_handler.restore(self.bot, self.xur_state)
             await eververse_handler.restore(self.bot, self.eververse_state)
             await ada_handler.restore(self.bot, self.ada_state)
@@ -268,6 +274,10 @@ class Pipeline(commands.Cog):
         self.weekly_state.invalidate("weekly_dungeon")
         await weekly_handler.refresh_dungeon(self.bot, self.weekly_state)
 
+    async def _refresh_vanguard(self):
+        self.weekly_state.invalidate("daily_vanguard")
+        await vanguard_handler.publish(self.bot, self.weekly_state, ping=False)
+
     async def _refresh_xur(self):
         self.xur_state.invalidate()
         if is_xur_active():
@@ -294,6 +304,7 @@ class Pipeline(commands.Cog):
         await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, ping=False)
         # Orchestrateur : purge unique du cache puis raids + donjons (sans ping).
         await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state, ping=False)
+        await vanguard_handler.publish(self.bot, self.weekly_state, ping=False)
         await eververse_handler.publish(self.bot, self.eververse_state, ping=False)
         # Ada-1 : vendor permanent → on republie quel que soit le jour.
         await ada_handler.publish(self.bot, self.ada_state, ping=False)
@@ -310,6 +321,7 @@ class Pipeline(commands.Cog):
             "daily_lost_sector": self._refresh_sectors,
             "weekly_raid": self._refresh_raid,
             "weekly_dungeon": self._refresh_dungeon,
+            "daily_vanguard": self._refresh_vanguard,
             "xur": self._refresh_xur,
             "eververse": self._refresh_eververse,
             "ada": self._refresh_ada,

@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+"""Orchestration : manifest.sync → fetch profil → tri → résolution des items focus.
+
+Réutilise le fetch profil (components=204, cache aligné sur le reset
+quotidien) de la feature weekly."""
+from __future__ import annotations
+
+from bot.bungie.client import bungie
+from bot.bungie.manifest import manifest
+from bot.utils.logger import log
+
+from .filters import collect_portal
+from .models import FocusItem, PortalCategory
+
+
+async def _resolve_focus(item_hash: int) -> FocusItem | None:
+    """itemHash → FocusItem via DestinyInventoryItemDefinition (API live),
+    nom surchargé en FR via l'extrait manifest local."""
+    defn = await bungie.get_item_definition(item_hash)
+    if defn is None:
+        return None
+    display = defn.get("displayProperties", {})
+    return FocusItem(
+        item_hash=item_hash,
+        name=manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}"),
+        sub_type=defn.get("itemSubType"),
+        damage_type=defn.get("defaultDamageType"),
+        ammo_type=(defn.get("equippingBlock") or {}).get("ammoType"),
+        icon=display.get("icon") or None,
+        watermark=defn.get("iconWatermark") or None,
+    )
+
+
+async def get_portal() -> list[PortalCategory]:
+    """Catégories du Portail avec leurs activités du jour (focus résolus).
+
+    Renvoie [] si le profil ou l'extrait Portail est indisponible."""
+    await manifest.sync()
+    await manifest.preload("DestinyActivityDefinition")
+    portal = manifest.portal()
+    if not portal.get("categories"):
+        log.error("[Avant-garde] Extrait Portail du manifest indisponible.")
+        return []
+
+    data = await bungie.get_character_activities()
+    if not data:
+        log.error("[Avant-garde] Profil personnage indisponible.")
+        return []
+    block = data.get("activities", {}).get("data", {})
+
+    categories = collect_portal(block.get("availableActivities", []), manifest, portal)
+    for cat in categories:
+        for act in cat.activities:
+            if act.focus_hash:
+                act.focus = await _resolve_focus(act.focus_hash)
+        log.debug(
+            f"[Avant-garde] {cat.label} : "
+            f"{[(a.base_name, a.focus and a.focus.name) for a in cat.activities]}"
+        )
+    return categories

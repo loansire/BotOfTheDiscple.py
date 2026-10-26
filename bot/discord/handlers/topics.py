@@ -16,6 +16,7 @@ Les états sont récupérés en mémoire via le cog Pipeline (mêmes objets que 
 poll → pas de seconde instance qui écrirait le même fichier en parallèle)."""
 from bot.features.ada import TOPIC as ADA_TOPIC
 from bot.features.eververse import TOPIC as EVERVERSE_TOPIC
+from bot.features.vanguard import TOPIC as VANGUARD_TOPIC
 from bot.features.xur.state import TOPIC as XUR_TOPIC
 from bot.utils.logger import log
 
@@ -45,6 +46,7 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
     # Import différé : évite tout cycle au chargement du module de config.
     from bot.discord.handlers import ada as ada_handler
     from bot.discord.handlers import eververse as eververse_handler
+    from bot.discord.handlers import vanguard as vanguard_handler
     from bot.discord.handlers import weekly as weekly_handler
     from bot.discord.handlers import xur as xur_handler
 
@@ -59,6 +61,13 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
             await weekly_handler.on_removed(bot, weekly_state, guild_id, topic, before[topic])
         if new is not None:
             await weekly_handler.on_added(bot, weekly_state, guild_id, topic, after[topic])
+
+    # Topic Avant-garde (1 message par catégorie du Portail, état weekly).
+    for topic, old, new in _channel_changes(before, after, (VANGUARD_TOPIC,)):
+        if old is not None:
+            await vanguard_handler.on_removed(bot, weekly_state, guild_id, before[topic])
+        if new is not None:
+            await vanguard_handler.on_added(bot, weekly_state, guild_id, after[topic])
 
     # Topic Xûr (statut + catégories).
     for topic, old, new in _channel_changes(before, after, (XUR_TOPIC,)):

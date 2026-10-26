@@ -72,6 +72,11 @@ TOPICS: dict[str, dict] = {
         "short": "Donjons",
         "emoji": "<:Donjon:1338595206706233458>",
     },
+    "daily_vanguard": {
+        "label": "Avant-garde - Focus du jour",
+        "short": "Avant-garde",
+        "emoji": "🛡️",
+    },
     "daily_lost_sector": {
         "label": "Secteurs Oubliés du jour",
         "short": "Secteur oublié",

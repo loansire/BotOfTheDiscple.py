@@ -13,7 +13,13 @@ les gros blocs (sockets/stats) — pour en EXTRAIRE un fichier léger
 `item_names_fr.json` = { "<hash>": "<nom FR>" } (noms non vides uniquement). La
 définition Lite brute n'est jamais conservée sur disque : seul l'extrait l'est.
 Cet extrait sert de surcouche de traduction au-dessus des items Xûr résolus en
-anglais via l'API live (cf. features/xur/service.py)."""
+anglais via l'API live (cf. features/xur/service.py).
+
+Extrait Portail (Avant-garde) : au changement de version, on télécharge aussi
+les constantes globales et le graphe Fireteam Finder pour en EXTRAIRE
+`portal_activities.json` = { "categories": { "<nœud racine>": [activityHash…] },
+"alerts": [activityHash…] }. Comme pour les noms FR, les définitions brutes ne
+sont pas conservées."""
 import asyncio
 
 from bot.bungie.client import bungie
@@ -53,6 +59,14 @@ _VERSION_FILE = MANIFEST_DIR / "_version.json"
 # Extrait léger des noms d'items FR : { "<hash>": "<nom FR>" }.
 _ITEM_NAMES_FR_FILE = MANIFEST_DIR / "item_names_fr.json"
 
+# Définitions téléchargées UNIQUEMENT pour en extraire le classement Portail.
+_GLOBAL_CONSTANTS_DEFINITION = "DestinyGlobalConstantsDefinition"
+_FT_GRAPH_DEFINITION = "DestinyFireteamFinderActivityGraphDefinition"
+_FT_SET_DEFINITION = "DestinyFireteamFinderActivitySetDefinition"
+
+# Extrait Portail : { "categories": {"<root>": [hash…]}, "alerts": [hash…] }.
+PORTAL_ACTIVITIES_FILE = MANIFEST_DIR / "portal_activities.json"
+
 
 async def _save_json_async(path, data) -> None:
     """Écriture (atomique, compacte) dans un thread : les définitions pèsent
@@ -76,6 +90,37 @@ def _extract_item_names(defn: dict) -> dict[str, str]:
     return names
 
 
+def _graph_activities(graph: dict, sets: dict, root_hash: int) -> list[int]:
+    """Activités rattachées à un nœud du graphe Fireteam Finder (lui compris
+    et tous ses descendants), via leurs activity sets."""
+    root = graph.get(str(root_hash)) or {}
+    out: list[int] = []
+    for node_hash in root.get("selfAndAllDescendantHashes") or [root_hash]:
+        node = graph.get(str(node_hash)) or {}
+        for set_hash in node.get("relatedActivitySetHashes", []):
+            for ah in (sets.get(str(set_hash)) or {}).get("activityHashes", []):
+                if ah not in out:
+                    out.append(ah)
+    return out
+
+
+def _extract_portal(constants: dict, graph: dict, sets: dict) -> dict:
+    """Réduit constantes globales + graphe Fireteam Finder à l'extrait Portail.
+
+    Les nœuds racines des catégories du Portail sont lus dans
+    `portalActivityGraphRootNodesWithIcons`, celui des alertes de l'Avant-garde
+    dans `vanguardAlertsFireteamFinderActivityGraphRootNodeHash`."""
+    entry = next(iter(constants.values()), {}) if constants else {}
+    roots = entry.get("portalActivityGraphRootNodesWithIcons") or {}
+    alert_root = entry.get("vanguardAlertsFireteamFinderActivityGraphRootNodeHash")
+    return {
+        "categories": {
+            str(root): _graph_activities(graph, sets, int(root)) for root in roots
+        },
+        "alerts": _graph_activities(graph, sets, alert_root) if alert_root else [],
+    }
+
+
 class ManifestStore:
     """Gère le cache disque des définitions et leur résolution mémoire."""
 
@@ -85,6 +130,8 @@ class ManifestStore:
         self._cache: dict[str, dict] = {}
         # Cache mémoire dédié de l'extrait de noms FR (chargé paresseusement).
         self._item_names_fr: dict[str, str] | None = None
+        # Cache mémoire de l'extrait Portail (chargé paresseusement).
+        self._portal: dict | None = None
 
     # ── Synchronisation ───────────────────────────────────────────────
     async def sync(self) -> str | None:
@@ -105,6 +152,10 @@ class ManifestStore:
 
         local = load_json(_VERSION_FILE)
         if local and local.get("version") == version and local.get("lang") == self.lang:
+            # Extrait Portail ajouté après coup : généré sans attendre une
+            # nouvelle version du manifest s'il manque.
+            if not PORTAL_ACTIVITIES_FILE.exists():
+                await self._sync_portal(paths)
             log.debug(f"[Manifest] Déjà à jour (version {version}).")
             return version
 
@@ -125,9 +176,12 @@ class ManifestStore:
 
         # Surcouche FR : extraction des noms d'items (Lite → {hash: name}).
         await self._sync_item_names_fr(paths)
+        # Extrait Portail (catégories + alertes de l'Avant-garde).
+        await self._sync_portal(paths)
 
         self._cache.clear()         # cache mémoire des définitions invalidé
         self._item_names_fr = None  # extrait de noms rechargé au prochain accès
+        self._portal = None         # extrait Portail rechargé au prochain accès
         if not complete:
             log.error("[Manifest] Synchro incomplète — version NON enregistrée, retentée au prochain sync.")
             return None
@@ -181,6 +235,32 @@ class ManifestStore:
         await _save_json_async(_ITEM_NAMES_FR_FILE, names)
         log.info(f"[Manifest] Noms d'items FR extraits ({len(names)} entrées).")
 
+    async def _sync_portal(self, paths: dict) -> None:
+        """Télécharge constantes globales + graphe Fireteam Finder, en extrait
+        le classement Portail et l'écrit. Même politique d'échec que
+        _sync_item_names_fr : on loggue et on garde l'extrait précédent."""
+        defs = {}
+        for name in (_GLOBAL_CONSTANTS_DEFINITION, _FT_GRAPH_DEFINITION, _FT_SET_DEFINITION):
+            path = paths.get(name)
+            defn = await self.client.download_definition(path) if path else None
+            if not defn:
+                log.error(f"[Manifest] {name} indisponible — extrait Portail non régénéré.")
+                return
+            defs[name] = defn
+
+        portal = await asyncio.to_thread(
+            _extract_portal,
+            defs[_GLOBAL_CONSTANTS_DEFINITION],
+            defs[_FT_GRAPH_DEFINITION],
+            defs[_FT_SET_DEFINITION],
+        )
+        save_json(PORTAL_ACTIVITIES_FILE, portal, indent=None)
+        self._portal = None
+        log.info(
+            f"[Manifest] Extrait Portail : {len(portal['categories'])} catégorie(s), "
+            f"{len(portal['alerts'])} activité(s) d'alerte."
+        )
+
     # ── Résolution ────────────────────────────────────────────────────
     def _load_definition(self, name: str) -> dict:
         """Charge une définition locale (cache mémoire)."""
@@ -220,6 +300,14 @@ class ManifestStore:
         Surcouche de traduction : l'appelant garde le nom EN (résolu via l'API
         live) en cas de None. Aucun appel réseau ici."""
         return self._load_item_names_fr().get(str(item_hash)) or None
+
+    # ── Extrait Portail (Avant-garde) ─────────────────────────────────
+    def portal(self) -> dict:
+        """Extrait Portail (cache mémoire, lazy) : {"categories", "alerts"}.
+        Vide tant que le premier sync ne l'a pas généré."""
+        if self._portal is None:
+            self._portal = load_json(PORTAL_ACTIVITIES_FILE) or {}
+        return self._portal
 
 
 # Instance partagée
