@@ -3,8 +3,7 @@
 
 UN MESSAGE PAR CATÉGORIE (Escouade, Prestige, Arène, Solo) : build_vanguard_views
 renvoie une liste de (vue, fichiers). Chaque message :
-- en-tête : `ui.Section` avec le titre de la catégorie (+ ligne d'actualisation
-  sur le 1er message seulement) et l'icône Portal_Ico en accessoire, rendue
+- en-tête : `ui.Section` avec le titre de la catégorie (+ ligne d'actualisation) et l'icône Portal_Ico en accessoire, rendue
   CARRÉE (les icônes sources ne le sont pas, la vignette Discord rognerait) ;
 - un `ui.Separator` sous l'en-tête (comme raids/donjons) ;
 - par activité : un `TextDisplay` (nom, tags alerte, item focus, arme de défi)
@@ -283,10 +282,10 @@ async def build_vanguard_views(
     next_refresh_unix: int | None = None,
 ) -> list[tuple[VanguardView, list[discord.File]]]:
     """Une (vue, fichiers) par catégorie. La ligne « Actualisation » (prochain
-    reset quotidien par défaut) n'apparaît que sur le premier message."""
+    reset quotidien par défaut) figure sur chaque message."""
     if next_refresh_unix is None:
         next_refresh_unix = int(next_reset().timestamp())
     views = []
-    for i, cat in enumerate(categories):
-        views.append(await _build_category(cat, next_refresh_unix if i == 0 else None, ratio))
+    for cat in categories:
+        views.append(await _build_category(cat, next_refresh_unix, ratio))
     return views
