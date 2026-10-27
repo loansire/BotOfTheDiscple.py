@@ -35,6 +35,13 @@ class XurItem:
     quantity: int = 1                  # nb d'occurrences du même itemHash (cases retenues)
     perks: list[XurPerk] = field(default_factory=list)  # col 3/4 (armes légendaires uniquement)
     craftable: bool = False            # arme légendaire façonnable (schéma extractible / Souvenance)
+    # Détail arme / armure (même sémantique que vanguard.FocusItem) ; vide pour
+    # catalyseurs, ressources, etc.
+    sub_type: int | None = None        # DestinyItemSubType (arme ou pièce d'armure)
+    damage_type: int | None = None     # defaultDamageType (armes)
+    ammo_type: int | None = None       # equippingBlock.ammoType (armes)
+    set_name: str | None = None        # set d'armure
+    set_perks: list[tuple[int, str, int]] = field(default_factory=list)  # (nb pièces, bonus, perk hash)
 
     def to_dict(self) -> dict:
         return {
@@ -46,6 +53,11 @@ class XurItem:
             "quantity": self.quantity,
             "perks": [p.to_dict() for p in self.perks],
             "craftable": self.craftable,
+            "sub_type": self.sub_type,
+            "damage_type": self.damage_type,
+            "ammo_type": self.ammo_type,
+            "set_name": self.set_name,
+            "set_perks": [list(p) for p in self.set_perks],
         }
 
 

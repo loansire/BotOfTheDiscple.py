@@ -15,7 +15,7 @@ from bot.features.weekly.rotation import norm_name
 
 # Emojis génériques de repli (également utilisés comme emoji de titre).
 RD_EMOJI = "<:Raid:1338595321319788595>"
-DJ_EMOJI = "<:Donjon:1338595321319788595>"
+DJ_EMOJI = "<:Donjon:1338595206706233458>"
 
 RAID_EMOJIS_RAW = {
     "Dernier Voeu": "<:LW:1273058036209946634>",
@@ -26,6 +26,7 @@ RAID_EMOJIS_RAW = {
     "Chute du Roi": "<:Oryx:1273058059849302056>",
     "Origine des Cauchemars": "<:RON:1273058080086560870>",
     "Chute de Cropta": "<:Cropta:1273057968660676790>",
+    "Fin de Crota": "<:Cropta:1273057968660676790>",
     "Orée du Salut": "<:SE:1273058098818322492>",
     "Désert Perpétuel": "<:DP:1399391431302451300>",
     "Désert perpétuel (Épique)": "<:DP:1399391431302451300>",
@@ -42,6 +43,7 @@ DUNGEON_EMOJIS_RAW = {
     "Ruine de la Guerrière": "<:Ruine:1275104356387000450>",
     "Hôte Vesper": "<:Vesper:1295144736964870214>",
     "Dogme fragmenté": "<:Dogme:1341339537221353492>",
+    "Doctrine ébranlée": "<:Dogme:1341339537221353492>",
     "Équilibre": "<:Equilibre:1513709145348509726>",
 }
 

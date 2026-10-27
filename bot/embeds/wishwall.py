@@ -44,6 +44,8 @@ class WishSelect(Select):
             min_values=1,
             max_values=1,
             options=options,
+            # custom_id STATIQUE : la vue est persistante (cf. WishWallView).
+            custom_id="wishwall:select",
         )
         self.wishes = wishes
 
@@ -61,6 +63,12 @@ class WishSelect(Select):
 
 
 class WishWallView(View):
+    """Vue PERSISTANTE : enregistrée au démarrage via bot.add_view() (cf.
+    cogs/wishwall.py) pour que le menu des messages déjà postés reste
+    utilisable après un redémarrage. Les vœux sont lus depuis le JSON au
+    chargement du cog : l'index sélectionné reste valable tant que l'ordre de
+    wishes.json ne change pas."""
+
     def __init__(self, wishes: list[dict]):
         super().__init__(timeout=None)
         self.add_item(WishSelect(wishes))

@@ -16,13 +16,21 @@ Le fichier de tokens contient un secret de longue durée → à ajouter au
 """
 from __future__ import annotations
 
-import json
+import asyncio
 import time
 from base64 import b64encode
 
 import aiohttp
 
+from bot.bungie.errors import (
+    BungieMaintenanceError,
+    BungieNotReadyError,
+    is_maintenance,
+    is_transient,
+)
 from bot.config import BUNGIE_CLIENT_ID, BUNGIE_CLIENT_SECRET, MANIFEST_DIR
+from bot.utils.http import NETWORK_ERRORS, get_session
+from bot.utils.jsonio import load_json, save_json
 from bot.utils.logger import log
 
 TOKEN_URL = "https://www.bungie.net/Platform/App/OAuth/token/"
@@ -33,6 +41,10 @@ TOKENS_PATH = MANIFEST_DIR / "bungie_tokens.json"
 
 # Marge de sécurité : on rafraîchit un peu avant l'expiration réelle.
 _EXPIRY_MARGIN = 60  # secondes
+
+# Sérialise les refresh : le refresh_token est régénéré à chaque usage, deux
+# refresh concurrents invalideraient le token de l'un des deux.
+_refresh_lock = asyncio.Lock()
 
 
 class OAuthError(RuntimeError):
@@ -46,16 +58,11 @@ def _basic_auth_header() -> dict:
 
 
 def _load_tokens() -> dict:
-    if TOKENS_PATH.exists():
-        with open(TOKENS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+    return load_json(TOKENS_PATH, {}) or {}
 
 
 def _save_tokens(data: dict) -> None:
-    TOKENS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(TOKENS_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    save_json(TOKENS_PATH, data)
 
 
 def _store_response(payload: dict) -> dict:
@@ -96,21 +103,35 @@ async def _refresh(refresh_token: str) -> dict:
 
 
 async def _post_token(data: dict) -> dict:
-    """POST vers l'endpoint token Bungie (Basic auth + form-urlencoded)."""
+    """POST vers l'endpoint token Bungie (Basic auth + form-urlencoded).
+
+    Une indisponibilité (maintenance, 5xx, réseau) lève une
+    BungieUnavailableError, PAS une OAuthError : sinon la pipeline prendrait
+    une maintenance pour un échec définitif et sauterait la publication."""
     if not BUNGIE_CLIENT_ID or not BUNGIE_CLIENT_SECRET:
         raise OAuthError(
             "BUNGIE_CLIENT_ID / BUNGIE_CLIENT_SECRET manquants dans le .env."
         )
     headers = _basic_auth_header()
     headers["Content-Type"] = "application/x-www-form-urlencoded"
-    async with aiohttp.ClientSession() as session:
-        async with session.post(TOKEN_URL, data=data, headers=headers) as resp:
-            body = await resp.json(content_type=None)
-            if resp.status != 200:
-                raise OAuthError(
-                    f"Échange token échoué (HTTP {resp.status}) : "
-                    f"{body.get('error_description') or body}"
-                )
+    try:
+        async with get_session().post(TOKEN_URL, data=data, headers=headers) as resp:
+            status = resp.status
+            try:
+                body = await resp.json(content_type=None)
+            except (ValueError, aiohttp.ContentTypeError):
+                body = None
+    except NETWORK_ERRORS as e:
+        raise BungieNotReadyError(f"OAuth token → erreur réseau ({e})") from e
+
+    readable = isinstance(body, dict)
+    if is_maintenance(status):
+        raise BungieMaintenanceError(f"OAuth token → HTTP {status}")
+    if status != 200 or not readable:
+        if is_transient(status, None, readable):
+            raise BungieNotReadyError(f"OAuth token → HTTP {status}")
+        detail = (body.get("error_description") or body) if readable else "corps illisible"
+        raise OAuthError(f"Échange token échoué (HTTP {status}) : {detail}")
     return _store_response(body)
 
 
@@ -130,16 +151,23 @@ async def get_access_token() -> str:
     if now < tokens.get("access_expires", 0) - _EXPIRY_MARGIN:
         return tokens["access_token"]
 
-    # access_token expiré → refresh
-    refresh_token = tokens.get("refresh_token")
-    if not refresh_token or now >= tokens.get("refresh_expires", 0):
-        raise OAuthError(
-            "Refresh token expiré ou absent. Relance scripts/xur_oauth_setup.py."
-        )
+    async with _refresh_lock:
+        # Un autre appel a peut-être rafraîchi pendant qu'on attendait le verrou.
+        tokens = _load_tokens()
+        now = int(time.time())
+        if now < tokens.get("access_expires", 0) - _EXPIRY_MARGIN:
+            return tokens["access_token"]
 
-    log.info("[OAuth] Rafraîchissement de l'access_token Bungie.")
-    new_tokens = await _refresh(refresh_token)
-    return new_tokens["access_token"]
+        # access_token expiré → refresh
+        refresh_token = tokens.get("refresh_token")
+        if not refresh_token or now >= tokens.get("refresh_expires", 0):
+            raise OAuthError(
+                "Refresh token expiré ou absent. Relance scripts/xur_oauth_setup.py."
+            )
+
+        log.info("[OAuth] Rafraîchissement de l'access_token Bungie.")
+        new_tokens = await _refresh(refresh_token)
+        return new_tokens["access_token"]
 
 
 def authorize_url(state: str = "botofthedisciple") -> str:

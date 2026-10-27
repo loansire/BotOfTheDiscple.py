@@ -26,30 +26,17 @@ Le `hash` évite de reposter un message dont le contenu n'a pas changé. Le
 refresh manuel passe par `invalidate()`. Le retrait d'un salon via /botconfig
 passe par `purge()`.
 """
-import json
-
 from bot.config import ALERTS_DIR
+from bot.utils.json_store import JsonStore
 
 STATE_PATH = ALERTS_DIR / "weekly_messages.json"
 
 
-class WeeklyMessageState:
+class WeeklyMessageState(JsonStore):
+    _OBSOLETE_KEYS = ('last_reset',)
+
     def __init__(self, path=STATE_PATH):
-        self.path = path
-        self._data: dict = {}
-        self.load()
-
-    def load(self):
-        if self.path.exists():
-            with open(self.path, "r", encoding="utf-8") as f:
-                self._data = json.load(f)
-        # Clé obsolète (le dernier reset vit désormais dans PipelineState).
-        self._data.pop("last_reset", None)
-
-    def save(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, "w", encoding="utf-8") as f:
-            json.dump(self._data, f, indent=2, ensure_ascii=False)
+        super().__init__(path)
 
     # ── Messages persistants ──────────────────────────────────────────
     def get(self, guild_id, topic: str) -> dict:
@@ -84,6 +71,33 @@ class WeeklyMessageState:
         guild.pop(topic, None)
         if not guild:
             guilds.pop(str(guild_id), None)
+
+    # ── Signatures de contenu (garde-fou données périmées) ────────────
+    def last_signature(self, topic: str) -> dict:
+        """Dernier contenu publié pour un topic, tous serveurs confondus :
+        {"period": "<iso début de période>", "sig": [...]} (vide si inconnu)."""
+        return self._data.get("signatures", {}).get(topic, {})
+
+    def set_signature(self, topic: str, period_iso: str, sig: list[str]):
+        self._data.setdefault("signatures", {})[topic] = {
+            "period": period_iso,
+            "sig": sorted(sig),
+        }
+
+    # ── Défis de la semaine (Avant-garde) ─────────────────────────────
+    def week_challenges(self, week_iso: str) -> dict[int, int]:
+        """Défis Avant-garde vus pendant la semaine `week_iso` (début = reset
+        du mardi) : {activity_hash: arme défi}. Vide pour une autre semaine."""
+        saved = self._data.get("vanguard_challenges", {})
+        if saved.get("week") != week_iso:
+            return {}
+        return {int(k): int(v) for k, v in saved.get("items", {}).items()}
+
+    def set_week_challenges(self, week_iso: str, items: dict[int, int]):
+        self._data["vanguard_challenges"] = {
+            "week": week_iso,
+            "items": {str(k): v for k, v in items.items()},
+        }
 
     def invalidate(self, topic: str | None = None):
         """Efface les hashes pour forcer un repost au prochain publish.

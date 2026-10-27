@@ -5,8 +5,8 @@ Vue ÉPHÉMÈRE, construite à la demande sur clic de bouton. Pure couche de ren
 elle reçoit les groupes déjà fetchés et délègue tout le calcul à
 features.weekly.rotation.
 
-Budget CV2 : 1 Container + 3 TextDisplay (le tableau tient dans un seul bloc
-multi-lignes). Aucun fichier joint, aucune image → réponse quasi instantanée.
+Budget CV2 : 1 Container + quelques TextDisplay (le tableau tient dans un seul
+bloc multi-lignes). Aucun fichier joint, aucune image → réponse quasi instantanée.
 
 Dates : rendues via <t:…:d>, donc localisées par le client Discord de chaque
 utilisateur (25/08/2026 en FR, 08/25/2026 en US) sans travail côté bot.
@@ -27,8 +27,11 @@ from bot.features.weekly.models import WeeklyActivity
 from bot.features.weekly.rotation import (
     DUNGEON_SEQUENCE,
     RAID_SEQUENCE,
+    RotationPrediction,
+    matches_reference,
     predict_rotation,
 )
+from bot.utils.logger import log
 
 _ACCENT = discord.Color.dark_red()
 
@@ -66,18 +69,37 @@ def _slot_label(name: str, activity_type: str) -> str:
     return f"{activity_emoji_for(name, activity_type)} {name}"
 
 
-def _rotation_lines(
-    cycle: list[tuple[int, tuple[str, ...]]], activity_type: str
-) -> str:
-    """Tableau du cycle : une ligne par semaine, la semaine en cours en gras."""
+def _rotation_lines(prediction: RotationPrediction, activity_type: str) -> str:
+    """Tableau du cycle : une ligne par semaine, la semaine en cours en gras.
+
+    Les activités featured hors séquence (nouveauté, renommage) sont ajoutées
+    à la ligne de la semaine en cours plutôt que d'être ignorées."""
     lines: list[str] = []
-    for week, (ts, names) in enumerate(cycle):
+    for week, (ts, names) in enumerate(prediction.weeks):
         slots = "  •  ".join(_slot_label(n, activity_type) for n in names)
         if week == 0:
-            lines.append(f"**➜ <t:{ts}:d> — {slots}**")
+            extra = "".join(
+                f"  •  {_slot_label(n, activity_type)} *(hors cycle)*"
+                for n in prediction.unknown
+            )
+            lines.append(f"**➜ <t:{ts}:d> — {slots}{extra}**")
         else:
             lines.append(f"<t:{ts}:d> — {slots}")
     return "\n".join(lines)
+
+
+def _source_note(prediction: RotationPrediction) -> str | None:
+    """Avertissement quand la prédiction ne repose pas entièrement sur l'API."""
+    if prediction.source == "reference":
+        return ("-# ⚠️ Activités de la semaine non reconnues : prédiction calculée "
+                "depuis la semaine de référence.")
+    if prediction.source == "api+reference":
+        return ("-# ⚠️ Une seule activité détectée via l'API : le second slot est "
+                "complété depuis la semaine de référence.")
+    if prediction.partial:
+        return ("-# ⚠️ Slots incomplets : une activité de la semaine n'a pas été "
+                "détectée par l'API.")
+    return None
 
 
 def build_rotation_view(
@@ -94,7 +116,18 @@ def build_rotation_view(
     )
 
     names = _featured_rotation_names(groups, activity_type)
-    cycle = predict_rotation(names, sequence, now) if names else None
+    cycle = predict_rotation(names, sequence, now)
+
+    if cycle is not None and (cycle.unknown or cycle.source != "api" or cycle.partial):
+        log.warning(
+            f"[Rotation] {label} : ancrage imparfait (featured={names}, "
+            f"hors cycle={cycle.unknown}, source={cycle.source}, partiel={cycle.partial})."
+        )
+    elif matches_reference(names, sequence, now) is False:
+        log.warning(
+            f"[Rotation] {label} : l'API ({names}) ne concorde plus avec la semaine "
+            "de référence — REFERENCE_SLOTS est à recaler."
+        )
 
     if cycle is None:
         container.add_item(ui.TextDisplay(
@@ -106,14 +139,18 @@ def build_rotation_view(
         return RotationView(container)
 
     container.add_item(ui.TextDisplay(
-        f"-# Cycle complet · {len(cycle)} semaines · "
-        f"{len(cycle[0][1])} activités en rotation"
+        f"-# Cycle complet · {len(cycle.weeks)} semaines · "
+        f"{cycle.slot_count} activités en rotation"
     ))
+    note = _source_note(cycle)
+    if note:
+        container.add_item(ui.TextDisplay(note))
     container.add_item(ui.Separator())
     container.add_item(ui.TextDisplay(_rotation_lines(cycle, activity_type)))
     container.add_item(ui.Separator())
     container.add_item(ui.TextDisplay(
-        "-# Prédiction déterministe, il est possible que les données ne soient pas exacte en cas de bug ou de doublon d'une semaine à l'autre."
+        "-# Prédiction déterministe : les données peuvent être inexactes en cas "
+        "de bug ou de doublon d'une semaine à l'autre."
     ))
 
     return RotationView(container)

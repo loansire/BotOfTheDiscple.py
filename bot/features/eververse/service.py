@@ -22,6 +22,7 @@ from __future__ import annotations
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
 from bot.config import BUNGIE_CHARACTER_ID, BUNGIE_HUNTER_ID, BUNGIE_WARLOCK_ID
+from bot.utils.aio import gather_limited
 from bot.utils.logger import log
 
 from .constants import ARMOR_ORNAMENT_CLASSES, ARMOR_ORNAMENTS_VENDOR
@@ -133,14 +134,14 @@ async def get_eververse() -> list[EververseSection]:
 
     sections: list[EververseSection] = []
     for raw in build_raw_sections(sales, armor_ornaments):
-        items: list[EververseItem] = []
-        for ri in raw["items"]:
-            item = await _resolve_item(
+        resolved = await gather_limited(
+            _resolve_item(
                 ri["item_hash"], ri["cost_quantity"], raw["currency"],
                 ri.get("class_label"),
             )
-            if item:
-                items.append(item)
+            for ri in raw["items"]
+        )
+        items: list[EververseItem] = [item for item in resolved if item]
         sections.append(EververseSection(
             id=raw["id"],
             title=raw["title"],

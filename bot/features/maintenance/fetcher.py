@@ -2,11 +2,12 @@
 """Récupère les articles Server Status depuis l'API Zendesk."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Optional
 
 import aiohttp
+
+from bot.utils.http import NETWORK_ERRORS, get_session
 
 from .models import Game
 
@@ -33,14 +34,13 @@ async def _fetch_article_raw(game: Game) -> Optional[dict]:
         f"/{cfg['locale']}/articles/{cfg['article_id']}.json"
     )
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
-                if resp.status != 200:
-                    logger.error("Erreur HTTP %d pour %s (%s)", resp.status, game.value, url)
-                    return None
-                data = await resp.json()
-                return data.get("article")
-    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        async with get_session().get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            if resp.status != 200:
+                logger.error("Erreur HTTP %d pour %s (%s)", resp.status, game.value, url)
+                return None
+            data = await resp.json(content_type=None)
+            return data.get("article") if isinstance(data, dict) else None
+    except (*NETWORK_ERRORS, ValueError) as e:
         logger.error("Erreur réseau pour %s : %s", game.value, e)
         return None
 

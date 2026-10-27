@@ -26,32 +26,19 @@ Rétro-compatibilité : l'ancien schéma stockait une liste plate `message_ids`.
 À la lecture, on la convertit (1er ID → status_id, reste → category_ids) pour
 ne pas casser au redémarrage après mise à jour.
 """
-import json
-
 from bot.config import ALERTS_DIR
+from bot.utils.json_store import JsonStore
 
 STATE_PATH = ALERTS_DIR / "xur_messages.json"
 
 TOPIC = "xur"
 
 
-class XurMessageState:
+class XurMessageState(JsonStore):
+    _OBSOLETE_KEYS = ('last_reset',)
+
     def __init__(self, path=STATE_PATH):
-        self.path = path
-        self._data: dict = {}
-        self.load()
-
-    def load(self):
-        if self.path.exists():
-            with open(self.path, "r", encoding="utf-8") as f:
-                self._data = json.load(f)
-        # Clé obsolète (le dernier reset vit désormais dans PipelineState).
-        self._data.pop("last_reset", None)
-
-    def save(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, "w", encoding="utf-8") as f:
-            json.dump(self._data, f, indent=2, ensure_ascii=False)
+        super().__init__(path)
 
     # -- Lecture (avec normalisation rétro-compatible) -----------------
     def _raw(self, guild_id) -> dict:

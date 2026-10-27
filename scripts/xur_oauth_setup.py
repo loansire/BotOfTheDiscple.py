@@ -30,6 +30,7 @@ from bot.bungie.oauth import (  # noqa: E402
     authorize_url,
     exchange_code,
 )
+from bot.utils.http import close_session  # noqa: E402
 
 
 def _extract_code(raw: str) -> str:
@@ -65,6 +66,8 @@ async def main() -> int:
     except Exception as e:
         print(f"\n[ERREUR] Échange échoué : {e}")
         return 1
+    finally:
+        await close_session()
 
     print("\n✅ Tokens enregistrés avec succès.")
     print(f"   Fichier : {TOKENS_PATH}")

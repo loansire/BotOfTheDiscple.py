@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import asyncio
+
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -29,27 +31,25 @@ class Maintenance(commands.Cog):
     @tasks.loop(minutes=1)
     async def poll(self):
         log.debug("[Maintenance] poll #%d", self.poll.current_loop)
-        for game in GAMES:
-            try:
-                await self._check_game(game)
-            except Exception as e:
-                log.error(f"[Maintenance] Erreur de poll pour {game} : {e}")
+        results = await asyncio.gather(
+            *(self._check_game(game) for game in GAMES), return_exceptions=True
+        )
+        for game, result in zip(GAMES, results):
+            if isinstance(result, Exception):
+                log.error(f"[Maintenance] Erreur de poll pour {game} : {result}")
 
     @poll.before_loop
     async def _before_poll(self):
         await self.bot.wait_until_ready()
 
     async def _check_game(self, game: str):
-        data = await get_maintenances(game)  # déjà filtré "offline futur"
-        if data is None:
-            return
+        st = self.state.get(game)
+        # déjà filtré "offline futur" ; non parsé si l'article n'a pas changé
+        data = await get_maintenances(game, known_updated_at=st.get("article_updated_at"))
+        if data is None or data.get("unchanged"):
+            return  # erreur, ou pas de changement d'article → rien à faire
 
         updated_at = data.get("article_updated_at")
-        st = self.state.get(game)
-
-        # Pas de changement d'article → rien à faire
-        if updated_at and updated_at == st.get("article_updated_at"):
-            return
 
         new_state = {
             "article_updated_at": updated_at,

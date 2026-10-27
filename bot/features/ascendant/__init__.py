@@ -99,6 +99,17 @@ def upcoming_windows(
     return [_window_for_week(base + i) for i in range(1, count + 1)]
 
 
+# Divergences déjà loguées : resolve() est appelé à chaque tick de la boucle
+# (calcul du content_hash), on ne logue donc chaque cas qu'une fois.
+_logged: set[tuple] = set()
+
+
+def _warn_once(key: tuple, message: str) -> None:
+    if key not in _logged:
+        _logged.add(key)
+        log.warning(message)
+
+
 def resolve(hash_contrat: int | None = None, now: datetime | None = None) -> dict:
     """Résout le défi de la semaine.
 
@@ -117,17 +128,19 @@ def resolve(hash_contrat: int | None = None, now: datetime | None = None) -> dic
     if hash_contrat is not None:
         cle_contrat = CONTRAT_VERS_DEFI.get(hash_contrat)
         if cle_contrat is None:
-            log.warning(
+            _warn_once(
+                ("inconnu", hash_contrat),
                 f"[Ascendant] Contrat inconnu {hash_contrat} — repli sur la "
-                f"formule ({win.challenge})."
+                f"formule ({win.challenge}).",
             )
         else:
             cle = cle_contrat
             source = "contrat"
             if cle_contrat != win.challenge:
-                log.warning(
+                _warn_once(
+                    ("divergence", cle_contrat, win.challenge),
                     f"[Ascendant] Divergence contrat/formule : contrat="
-                    f"{cle_contrat} formule={win.challenge} (le contrat fait foi)."
+                    f"{cle_contrat} formule={win.challenge} (le contrat fait foi).",
                 )
 
     return {"cle": cle, "source": source, "window": win, **DEFIS_META[cle]}

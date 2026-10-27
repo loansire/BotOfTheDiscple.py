@@ -29,10 +29,24 @@ Cache d'images : la publication au reset PURGE d'abord le cache de bandeaux de
 la feature concernée (à sa cadence : quotidienne pour les secteurs, hebdo pour
 raids/donjons), puis régénère. Raids et donjons PARTAGENT le dossier de cache
 `raid_donjon` : la purge est faite une seule fois par publish_raid_dungeon AVANT
-de publier les deux types. `restore` et `on_added` ne purgent PAS."""
+de publier les deux types. `restore` et `on_added` ne purgent PAS.
+
+Garde-fou « données pas prêtes » (`strict=True`, passé par la pipeline au
+reset) : juste après un reset, Bungie sert parfois encore les données de la
+période précédente, ou des raids/donjons sans challenges actifs. Publier à ce
+moment figerait un contenu faux (avec ping) pour toute la période. On lève donc
+BungieNotReadyError (→ hold mode, nouvelle tentative) quand :
+- aucun raid / donjon / secteur n'est détecté ;
+- le contenu est identique à celui de la période précédente.
+Passé STALE_GRACE après le reset, on publie quand même (avec un warning) :
+une vraie répétition d'une période à l'autre reste possible."""
 from __future__ import annotations
 
-from bot.bungie.reset import last_reset
+from datetime import datetime, timedelta, timezone
+
+from bot.bungie.client import bungie
+from bot.bungie.errors import BungieNotReadyError
+from bot.bungie.reset import TUESDAY, last_reset, last_weekday_reset
 from bot.discord.publisher import (
     content_hash,
     delete_message,
@@ -55,6 +69,9 @@ from bot.utils.subscriptions import iter_subscribers
 LOST_SECTOR_TOPIC = "daily_lost_sector"
 RAID_TOPIC = "weekly_raid"
 DUNGEON_TOPIC = "weekly_dungeon"
+
+# Délai après le reset au-delà duquel un contenu « suspect » est publié quand même.
+STALE_GRACE = timedelta(hours=2)
 
 # Clés de feature pour la purge du cache d'images (cf. embeds/banner.py).
 _FEATURE_LOST_SECTOR = "secteur_oublie"
@@ -81,14 +98,55 @@ async def _all_exist(dest, ids) -> bool:
 # ── Payloads (fetch + hash), partagés par tous les chemins ──────────────
 
 
-async def _sectors_payload():
-    """(sectors, hash) ou None si indisponible."""
+# ── Garde-fou « données pas prêtes » ────────────────────────────────────
+
+
+def _period_start(topic: str) -> datetime:
+    """Début de la période d'un topic (reset quotidien ou reset du mardi)."""
+    return last_reset() if topic == LOST_SECTOR_TOPIC else last_weekday_reset(TUESDAY)
+
+
+def _not_ready(topic: str, reason: str) -> None:
+    """Lève BungieNotReadyError tant que STALE_GRACE n'est pas écoulé, sinon
+    logue et laisse publier. Le cache profil est oublié pour que la nouvelle
+    tentative refasse un vrai appel API."""
+    if datetime.now(timezone.utc) - _period_start(topic) >= STALE_GRACE:
+        log.warning(f"[Weekly] {topic} : {reason} — délai de grâce écoulé, publication quand même.")
+        return
+    bungie.invalidate_character_cache()
+    raise BungieNotReadyError(f"{topic} : {reason}")
+
+
+def _check_fresh(state, topic: str, sig: list[str]) -> None:
+    """Refuse un contenu identique à celui de la période PRÉCÉDENTE."""
+    prev = state.last_signature(topic)
+    if not prev or prev.get("period") == _period_start(topic).isoformat():
+        return  # première publication connue, ou période déjà validée
+    if prev.get("sig") == sorted(sig):
+        _not_ready(topic, "contenu identique à la période précédente (données périmées ?)")
+
+
+def _remember(state, topic: str, sig: list[str]) -> None:
+    """Mémorise le contenu publié pour la période en cours."""
+    state.set_signature(topic, _period_start(topic).isoformat(), sig)
+
+
+# ── Payloads (fetch + hash), partagés par tous les chemins ──────────────
+# Chaque payload renvoie (données, hash, signature) ou None si indisponible.
+# `strict=True` active le garde-fou ci-dessus (pipeline uniquement).
+
+
+async def _sectors_payload(state=None, *, strict: bool = False):
     sectors = await get_lost_sectors()
     if not sectors:
+        if strict:
+            _not_ready(LOST_SECTOR_TOPIC, "aucun secteur oublié détecté")
         return None
-    reset_id = last_reset().isoformat()
-    h = content_hash([reset_id, *(str(v.activity_hash) for s in sectors for v in s.variants)])
-    return sectors, h
+    sig = [str(v.activity_hash) for s in sectors for v in s.variants]
+    if strict:
+        _check_fresh(state, LOST_SECTOR_TOPIC, sig)
+    h = content_hash([last_reset().isoformat(), *sig])
+    return sectors, h, sig
 
 
 def _featured_of_type(groups, activity_type: str):
@@ -96,34 +154,31 @@ def _featured_of_type(groups, activity_type: str):
     return [g for g in groups if g.featured and g.activity_type == activity_type]
 
 
-async def _raid_payload():
-    """(groups_complets, hash_raids) ou None si aucun raid featured.
+async def _activity_payload(topic: str, activity_type: str, state, strict: bool):
+    """(groups_complets, hash, signature) ou None si aucune activité featured.
 
     On renvoie la liste COMPLÈTE (raids + donjons) : le builder filtre par type.
-    Le hash ne porte QUE sur les raids featured (un changement côté donjon ne
-    doit pas forcer le repost du message raid)."""
+    Le hash ne porte QUE sur les activités featured du type (un changement côté
+    donjon ne doit pas forcer le repost du message raid)."""
     groups = await get_raid_dungeon()
-    if not groups:
+    featured = _featured_of_type(groups or [], activity_type)
+    if not featured:
+        if strict:
+            _not_ready(topic, f"aucun {activity_type.lower()} featured détecté")
         return None
-    raids = _featured_of_type(groups, "Raid")
-    if not raids:
-        return None
-    reset_id = last_reset().isoformat()
-    h = content_hash([reset_id, "raid", *(g.base_name for g in raids)])
-    return groups, h
+    sig = [g.base_name for g in featured]
+    if strict:
+        _check_fresh(state, topic, sig)
+    h = content_hash([last_reset().isoformat(), topic, *sig])
+    return groups, h, sig
 
 
-async def _dungeon_payload():
-    """(groups_complets, hash_donjons) ou None si aucun donjon featured."""
-    groups = await get_raid_dungeon()
-    if not groups:
-        return None
-    dungeons = _featured_of_type(groups, "Donjon")
-    if not dungeons:
-        return None
-    reset_id = last_reset().isoformat()
-    h = content_hash([reset_id, "dungeon", *(g.base_name for g in dungeons)])
-    return groups, h
+async def _raid_payload(state=None, *, strict: bool = False):
+    return await _activity_payload(RAID_TOPIC, "Raid", state, strict)
+
+
+async def _dungeon_payload(state=None, *, strict: bool = False):
+    return await _activity_payload(DUNGEON_TOPIC, "Donjon", state, strict)
 
 
 # Topics MONO-message uniquement (secteurs gérés à part, multi-message).
@@ -158,11 +213,17 @@ async def _ls_repost_guild(guild, dest, sectors, role_id, h, state, *, ping: boo
 
     # 2) Republie un message par secteur (jamais de ping ici).
     new_ids: list = []
-    for view, files in await build_lost_sectors_view(sectors):
+    views = await build_lost_sectors_view(sectors)
+    for view, files in views:
         mid = await send_view(dest, view, files)
         if mid:
             new_ids.append(mid)
     sector_count = len(new_ids)
+    # Envoi partiel → hash vide : le serveur sera retenté au prochain publish
+    # au lieu d'être considéré à jour avec des secteurs manquants.
+    if sector_count < len(views):
+        log.warning(f"[Weekly] Secteurs : {sector_count}/{len(views)} envoyé(s) dans {guild.name}.")
+        h = ""
 
     # 3) Ping rôle SEUL, en dernier (si demandé et rôle défini).
     if ping:
@@ -175,17 +236,17 @@ async def _ls_repost_guild(guild, dest, sectors, role_id, h, state, *, ping: boo
     log.info(f"[Weekly] Secteurs : {sector_count} message(s) publié(s) dans {guild.name}.")
 
 
-async def publish_lost_sectors(bot, state, *, ping: bool = True) -> None:
+async def publish_lost_sectors(bot, state, *, ping: bool = True, strict: bool = False) -> None:
     """Secteurs oubliés du jour (multi-message).
 
     Purge le cache de bandeaux secteurs (cadence quotidienne) AVANT
     régénération, une fois le fetch confirmé. Saute un serveur déjà à jour pour
     ce reset (même hash + messages présents). `ping=False` reposte sans
     re-notifier (refresh manuel)."""
-    payload = await _sectors_payload()
+    payload = await _sectors_payload(state, strict=strict)
     if payload is None:
         return
-    sectors, h = payload
+    sectors, h, sig = payload
     purge_banner_cache(_FEATURE_LOST_SECTOR)
 
     for guild_id, dest_id, info in iter_subscribers(LOST_SECTOR_TOPIC):
@@ -202,6 +263,7 @@ async def publish_lost_sectors(bot, state, *, ping: bool = True) -> None:
 
         await _ls_repost_guild(guild, dest, sectors, info.get("role"), h, state, ping=ping)
 
+    _remember(state, LOST_SECTOR_TOPIC, sig)
     state.save()
 
 
@@ -234,7 +296,7 @@ async def _restore_lost_sectors(bot, state) -> None:
             fetched = True
         if payload is None:
             continue  # fetch impossible → laissé au hold mode
-        sectors, h = payload
+        sectors, h, _ = payload
         await _ls_repost_guild(guild, dest, sectors, None, h, state, ping=False)
 
     state.save()
@@ -251,7 +313,7 @@ async def _ls_on_added(bot, state, guild_id, info) -> None:
     payload = await _sectors_payload()
     if payload is None:
         return
-    sectors, h = payload
+    sectors, h, _ = payload
     # _ls_repost_guild supprime déjà d'éventuels anciens messages mémorisés.
     await _ls_repost_guild(guild, dest, sectors, info.get("role_id"), h, state, ping=True)
     state.save()
@@ -271,13 +333,13 @@ async def _ls_on_removed(bot, state, guild_id, info) -> None:
 # ── Publication au reset (mono-message : raids / donjons) ────────────────
 
 
-async def publish_raid(bot, state, *, ping: bool = True) -> None:
+async def publish_raid(bot, state, *, ping: bool = True, strict: bool = False) -> None:
     """Raids featured de la semaine (1 message). NE PURGE PAS le cache (la
     purge est orchestrée par publish_raid_dungeon, partagée avec les donjons)."""
-    payload = await _raid_payload()
+    payload = await _raid_payload(state, strict=strict)
     if payload is None:
         return
-    groups, h = payload
+    groups, h, sig = payload
     await publish_persistent_view(
         bot,
         RAID_TOPIC,
@@ -286,15 +348,17 @@ async def publish_raid(bot, state, *, ping: bool = True) -> None:
         state=state,
         ping=ping,
     )
+    _remember(state, RAID_TOPIC, sig)
+    state.save()
 
 
-async def publish_dungeon(bot, state, *, ping: bool = True) -> None:
+async def publish_dungeon(bot, state, *, ping: bool = True, strict: bool = False) -> None:
     """Donjons featured de la semaine (1 message). NE PURGE PAS le cache (la
     purge est orchestrée par publish_raid_dungeon, partagée avec les raids)."""
-    payload = await _dungeon_payload()
+    payload = await _dungeon_payload(state, strict=strict)
     if payload is None:
         return
-    groups, h = payload
+    groups, h, sig = payload
     await publish_persistent_view(
         bot,
         DUNGEON_TOPIC,
@@ -303,18 +367,20 @@ async def publish_dungeon(bot, state, *, ping: bool = True) -> None:
         state=state,
         ping=ping,
     )
+    _remember(state, DUNGEON_TOPIC, sig)
+    state.save()
 
 
-async def publish_raid_dungeon(bot, state, *, ping: bool = True) -> None:
+async def publish_raid_dungeon(bot, state, *, ping: bool = True, strict: bool = False) -> None:
     """Orchestrateur reset hebdo (mardi) : purge le cache de bandeaux
     raids/donjons UNE seule fois (cadence hebdo) PUIS publie raids puis donjons.
 
     La purge unique en amont évite d'effacer un bandeau fraîchement généré
     entre les deux publications (raids et donjons partagent le dossier de
-    cache `raid_donjon`). `ping` est propagé aux deux publications."""
+    cache `raid_donjon`). `ping` et `strict` sont propagés aux deux publications."""
     purge_banner_cache(_FEATURE_RAID_DUNGEON)
-    await publish_raid(bot, state, ping=ping)
-    await publish_dungeon(bot, state, ping=ping)
+    await publish_raid(bot, state, ping=ping, strict=strict)
+    await publish_dungeon(bot, state, ping=ping, strict=strict)
 
 
 # ── Refresh ciblé (/refresh) : purge PUIS publie un seul type, SANS ping ─
@@ -366,7 +432,7 @@ async def _restore_single(bot, state) -> None:
         payload = await payload_fn()
         if payload is None:
             continue
-        data, h = payload
+        data, h, _ = payload
         for guild_id, dest in missing:
             view, files = await build(data)
             new_mid = await send_view(dest, view, files, ping=False)
@@ -408,7 +474,7 @@ async def on_added(bot, state, guild_id, topic, info) -> None:
     payload = await payload_fn()
     if payload is None:
         return
-    data, h = payload
+    data, h, _ = payload
 
     # Suppression défensive d'un éventuel ancien message mémorisé pour ce topic.
     await delete_message(dest, state.get(guild_id, topic).get("message_id"))

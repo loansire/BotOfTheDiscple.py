@@ -28,4 +28,8 @@ class WishWall(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(WishWall(bot))
+    cog = WishWall(bot)
+    # Vue persistante : les menus des messages /wish-wall déjà postés restent
+    # fonctionnels après un redémarrage.
+    bot.add_view(WishWallView(cog.wishes))
+    await bot.add_cog(cog)

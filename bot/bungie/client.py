@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import json
 from datetime import datetime
 
 import aiohttp
 
-from bot.bungie.errors import BungieMaintenanceError, is_maintenance
+from bot.bungie.errors import (
+    BungieMaintenanceError,
+    BungieNotReadyError,
+    is_maintenance,
+    is_transient,
+)
 from bot.bungie.reset import last_reset
 from bot.config import BUNGIE_API_KEY, BUNGIE_CHARACTER, MANIFEST_DIR
+from bot.utils.http import NETWORK_ERRORS, get_session
+from bot.utils.jsonio import load_json, save_json
 from bot.utils.logger import log
 
 BUNGIE_BASE = "https://www.bungie.net"
@@ -25,18 +33,9 @@ _VENDOR_COMPONENTS_SOCKETS = "402,305"
 # Cache disque des activités du personnage de référence.
 _CHARACTER_CACHE = MANIFEST_DIR / "character_activities.json"
 
-
-def _load_json(path):
-    if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return None
-
-
-def _save_json(path, data):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+# Les fichiers de définitions (jusqu'à plusieurs dizaines de Mo) dépassent
+# largement le timeout par défaut de la session partagée.
+_DEFINITION_TIMEOUT = aiohttp.ClientTimeout(total=300)
 
 
 class BungieClient:
@@ -48,23 +47,27 @@ class BungieClient:
     sur le reset quotidien).
 
     Hold mode : les appels /Platform (et le téléchargement des définitions)
-    lèvent BungieMaintenanceError sur 503/SystemDisabled au lieu de renvoyer
-    None, pour que la pipeline distingue « maintenance » de « vraie erreur »
-    et retente au prochain reset-poll."""
+    lèvent BungieMaintenanceError sur 503/SystemDisabled, et BungieNotReadyError
+    sur une panne transitoire NON déclarée (5xx, 429, throttling, corps
+    illisible, erreur réseau) au lieu de renvoyer None. La pipeline distingue
+    ainsi « indisponible, à retenter » de « vraie erreur définitive »."""
 
     def __init__(self, api_key: str = BUNGIE_API_KEY):
         self.api_key = api_key
         self._headers = {"X-API-Key": api_key}
-        # Cache mémoire des définitions d'items résolues à la volée (Xûr).
-        self._item_def_cache: dict[str, dict] = {}
-        # Cache mémoire des définitions de vendors résolues à la volée (Xûr).
-        self._vendor_def_cache: dict[str, dict] = {}
+        # Cache mémoire des définitions résolues à la volée, par type d'entité
+        # (DestinyInventoryItemDefinition, DestinyVendorDefinition).
+        self._entity_cache: dict[str, dict[str, dict]] = {}
+        # Miroir mémoire du cache disque des activités personnage.
+        self._character_cache: dict | None = None
 
     # ── Bas niveau ────────────────────────────────────────────────────
     async def _auth_headers(self) -> dict | None:
         """Headers avec Bearer OAuth, ou None si l'auth échoue.
 
-        Import différé d'oauth pour éviter tout cycle (oauth → config)."""
+        Import différé d'oauth pour éviter tout cycle (oauth → config).
+        Une indisponibilité de l'endpoint token (maintenance, 5xx) remonte
+        telle quelle (BungieUnavailableError) pour déclencher le hold mode."""
         from bot.bungie.oauth import OAuthError, get_access_token
         try:
             token = await get_access_token()
@@ -83,9 +86,10 @@ class BungieClient:
         `auth=True` ajoute le Bearer OAuth (requis pour GetVendor → Xûr).
 
         Lève BungieMaintenanceError si la réponse traduit une maintenance
-        (HTTP 503, ou enveloppe ErrorStatus='SystemDisabled' / ErrorCode=5).
-        Le corps JSON porte le vrai ErrorStatus Bungie (ApiInvalidOrExpiredKey,
-        InsufficientPrivileges…), bien plus parlant que le seul code HTTP."""
+        (HTTP 503, ou enveloppe ErrorStatus='SystemDisabled' / ErrorCode=5), et
+        BungieNotReadyError sur une panne transitoire. Renvoie None uniquement
+        pour une erreur DÉFINITIVE (clé invalide, entité introuvable…). Le corps
+        JSON porte le vrai ErrorStatus Bungie, bien plus parlant que le code HTTP."""
         if auth:
             headers = await self._auth_headers()
             if headers is None:
@@ -94,17 +98,22 @@ class BungieClient:
             headers = self._headers
 
         url = f"{PLATFORM_BASE}{endpoint}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, params=params) as resp:
+        try:
+            async with get_session().get(url, headers=headers, params=params) as resp:
                 status_code = resp.status
                 try:
                     data = await resp.json(content_type=None)
-                except Exception:
+                except (ValueError, aiohttp.ContentTypeError):
                     data = None
+        except NETWORK_ERRORS as e:
+            raise BungieNotReadyError(
+                f"{endpoint} → erreur réseau ({type(e).__name__}: {e})"
+            ) from e
 
-        err_status = data.get("ErrorStatus") if isinstance(data, dict) else None
-        err_code = data.get("ErrorCode") if isinstance(data, dict) else None
-        message = data.get("Message") if isinstance(data, dict) else None
+        readable = isinstance(data, dict)
+        err_status = data.get("ErrorStatus") if readable else None
+        err_code = data.get("ErrorCode") if readable else None
+        message = data.get("Message") if readable else None
 
         # Maintenance (503 / SystemDisabled / code 5) → hold mode.
         if is_maintenance(status_code, err_status, err_code):
@@ -112,28 +121,31 @@ class BungieClient:
                 f"{endpoint} → HTTP {status_code} | {err_status} ({message})"
             )
 
-        if status_code != 200:
-            if isinstance(data, dict):
-                log.error(
-                    f"[Bungie] GET {endpoint} → HTTP {status_code} | "
-                    f"{err_status} ({message})"
-                )
-            else:
-                log.error(
-                    f"[Bungie] GET {endpoint} → HTTP {status_code} (corps illisible)"
-                )
-            return None
+        ok = status_code == 200 and readable and err_status in (None, "Success")
+        if ok:
+            return data
 
-        if not isinstance(data, dict):
-            log.error(f"[Bungie] GET {endpoint} → HTTP 200 mais corps illisible.")
-            return None
+        detail = (
+            f"HTTP {status_code} | {err_status} ({message})"
+            if readable else f"HTTP {status_code} (corps illisible)"
+        )
+        if is_transient(status_code, err_status, readable):
+            raise BungieNotReadyError(f"{endpoint} → {detail}")
 
-        if err_status and err_status != "Success":
-            log.error(f"[Bungie] {endpoint} → {err_status} ({message})")
-            return None
-        return data
+        log.error(f"[Bungie] GET {endpoint} → {detail}")
+        return None
 
-    # ── RSS News (inchangé) ───────────────────────────────────────────
+    @staticmethod
+    def _character_path(character_id: str | None = None) -> str:
+        """/Destiny2/{type}/Profile/{id}/Character/{char}/ (perso principal par défaut)."""
+        c = BUNGIE_CHARACTER
+        char = character_id or c["character_id"]
+        return (
+            f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
+            f"/Character/{char}/"
+        )
+
+    # ── RSS News ──────────────────────────────────────────────────────
     async def get_rss_articles(
         self,
         language: str = "en",
@@ -145,12 +157,15 @@ class BungieClient:
             "lc": language,
             "includebody": "true" if includebody else "false",
         }
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=self._headers, params=params) as resp:
+        try:
+            async with get_session().get(url, headers=self._headers, params=params) as resp:
                 if resp.status == 200:
-                    return await resp.json()
+                    return await resp.json(content_type=None)
                 log.error(f"[Bungie] RSS NewsArticles → HTTP {resp.status}")
                 return None
+        except (*NETWORK_ERRORS, ValueError) as e:
+            log.warning(f"[Bungie] RSS NewsArticles ({language}) indisponible : {e}")
+            return None
 
     # ── Manifest ──────────────────────────────────────────────────────
     async def get_manifest_index(self, lang: str = "fr") -> tuple[str, dict] | None:
@@ -174,19 +189,39 @@ class BungieClient:
     async def download_definition(self, path: str) -> dict | None:
         """Télécharge un fichier de définition (hébergé sur bungie.net).
 
-        Lève BungieMaintenanceError sur 503 : au reset du mardi, la mise à jour
-        du manifest peut tomber pendant la fenêtre de maintenance."""
+        Lève BungieMaintenanceError sur 503 (au reset du mardi, la mise à jour
+        du manifest peut tomber pendant la fenêtre de maintenance) et
+        BungieNotReadyError sur une erreur réseau / 5xx.
+
+        Le décodage JSON (fichiers de plusieurs dizaines de Mo) est fait dans
+        un thread : sinon il bloquerait l'event loop, et donc le heartbeat
+        Discord, pendant plusieurs secondes."""
         url = f"{BUNGIE_BASE}{path}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
+        try:
+            async with get_session().get(url, timeout=_DEFINITION_TIMEOUT) as resp:
                 if is_maintenance(resp.status):
                     raise BungieMaintenanceError(
                         f"download_definition → HTTP {resp.status} ({path})"
                     )
                 if resp.status != 200:
+                    if is_transient(resp.status):
+                        raise BungieNotReadyError(
+                            f"download_definition → HTTP {resp.status} ({path})"
+                        )
                     log.error(f"[Bungie] DL définition → HTTP {resp.status} ({path})")
                     return None
-                return await resp.json(content_type=None)
+                raw = await resp.read()
+        except NETWORK_ERRORS as e:
+            raise BungieNotReadyError(
+                f"download_definition → erreur réseau ({type(e).__name__}) ({path})"
+            ) from e
+
+        try:
+            return await asyncio.to_thread(json.loads, raw)
+        except ValueError as e:
+            raise BungieNotReadyError(
+                f"download_definition → JSON illisible ({path}) : {e}"
+            ) from e
 
     # ── Activités du personnage de référence ─────────────────────────
     async def get_character_activities(self, *, force: bool = False) -> dict | None:
@@ -194,40 +229,60 @@ class BungieClient:
         + availableActivityInteractables.
 
         Cache aligné sur le reset : les données restent valides jusqu'au
-        prochain reset quotidien. `force=True` ignore le cache.
+        prochain reset quotidien. `force=True` ignore le cache. Miroir mémoire
+        pour éviter de relire le fichier disque à chaque appel.
 
         Note hold mode : à un reset, le cache est périmé (cached_reset < le
         nouveau last_reset) → on refait l'appel → _get peut lever
-        BungieMaintenanceError. Le cache ne masque donc jamais la maintenance
-        au moment du reset."""
+        BungieMaintenanceError / BungieNotReadyError. Le cache ne masque donc
+        jamais la maintenance au moment du reset. Si l'appelant juge les
+        données reçues pas encore prêtes, il appelle
+        invalidate_character_cache() pour qu'elles ne soient pas figées."""
         if not force:
-            cached = _load_json(_CHARACTER_CACHE)
+            cached = self._character_cache or load_json(_CHARACTER_CACHE)
             if cached:
                 try:
                     cached_reset = datetime.fromisoformat(cached["reset"])
                 except (KeyError, ValueError, TypeError):
                     cached_reset = None
                 if cached_reset and cached_reset >= last_reset():
+                    self._character_cache = cached
                     log.debug("[Bungie] Activités personnage servies depuis le cache.")
                     return cached.get("data")
 
-        c = BUNGIE_CHARACTER
-        endpoint = (
-            f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
-            f"/Character/{c['character_id']}/"
-        )
-        data = await self._get(endpoint, params={"components": "204"})
+        data = await self._get(self._character_path(), params={"components": "204"})
         if not data or "Response" not in data:
             log.error("[Bungie] Récupération des activités personnage impossible.")
             return None
 
         response = data["Response"]
-        _save_json(
-            _CHARACTER_CACHE, {"reset": last_reset().isoformat(), "data": response}
-        )
+        self._character_cache = {"reset": last_reset().isoformat(), "data": response}
+        save_json(_CHARACTER_CACHE, self._character_cache, indent=None)
         return response
 
-    # ── Vendors (Xûr) ─────────────────────────────────────────────────
+    def invalidate_character_cache(self) -> None:
+        """Oublie les activités en cache (données jugées pas prêtes / périmées)."""
+        self._character_cache = None
+        try:
+            _CHARACTER_CACHE.unlink(missing_ok=True)
+        except OSError as e:
+            log.warning(f"[Bungie] Suppression du cache activités impossible : {e}")
+
+    # ── Vendors ───────────────────────────────────────────────────────
+    async def _get_vendor_response(
+        self, vendor_hash: int | None, components: str, character_id: str | None
+    ) -> dict | None:
+        """`Response` de GetVendor (vendor_hash) ou GetVendors (None), auth OAuth."""
+        endpoint = f"{self._character_path(character_id)}Vendors/"
+        if vendor_hash is not None:
+            endpoint += f"{vendor_hash}/"
+        data = await self._get(endpoint, params={"components": components}, auth=True)
+        if not data or "Response" not in data:
+            label = vendor_hash if vendor_hash is not None else "(tous)"
+            log.error(f"[Bungie] Vendor {label} indisponible.")
+            return None
+        return data["Response"]
+
     async def get_vendor_sales(
         self, vendor_hash: int, character_id: str | None = None
     ) -> dict | None:
@@ -240,21 +295,11 @@ class BungieClient:
         (BUNGIE_CHARACTER_ID).
 
         Renvoie le dict { "<saleItemIndex>": { "itemHash": ..., ... } } ou
-        None en cas d'échec. Pas de cache : appelé seulement au reset du
-        vendredi (Xûr ne change pas de la semaine)."""
-        c = BUNGIE_CHARACTER
-        char = character_id or c["character_id"]
-        endpoint = (
-            f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
-            f"/Character/{char}/Vendors/{vendor_hash}/"
-        )
-        data = await self._get(
-            endpoint, params={"components": _VENDOR_COMPONENTS}, auth=True
-        )
-        if not data or "Response" not in data:
-            log.error(f"[Bungie] Vendor {vendor_hash} indisponible.")
+        None en cas d'échec définitif."""
+        resp = await self._get_vendor_response(vendor_hash, _VENDOR_COMPONENTS, character_id)
+        if resp is None:
             return None
-        return data["Response"].get("sales", {}).get("data", {})
+        return resp.get("sales", {}).get("data", {})
 
     async def get_vendor_sales_sockets(
         self, vendor_hash: int, character_id: str | None = None
@@ -267,23 +312,12 @@ class BungieClient:
         sockets est indexé par la MÊME clé que sales.data.
 
         Renvoie le tuple (sales, sockets) — `sockets` peut être {} si le vendor
-        n'expose pas de sockets — ou None en cas d'échec. Auth OAuth requise
-        (même contrainte que get_vendor_sales). Pas de cache : appelé au reset du
-        vendredi. Le hold mode est préservé (BungieMaintenanceError remonte via
-        _get)."""
-        c = BUNGIE_CHARACTER
-        char = character_id or c["character_id"]
-        endpoint = (
-            f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
-            f"/Character/{char}/Vendors/{vendor_hash}/"
+        n'expose pas de sockets — ou None en cas d'échec définitif."""
+        resp = await self._get_vendor_response(
+            vendor_hash, _VENDOR_COMPONENTS_SOCKETS, character_id
         )
-        data = await self._get(
-            endpoint, params={"components": _VENDOR_COMPONENTS_SOCKETS}, auth=True
-        )
-        if not data or "Response" not in data:
-            log.error(f"[Bungie] Vendor {vendor_hash} (sockets) indisponible.")
+        if resp is None:
             return None
-        resp = data["Response"]
         sales = resp.get("sales", {}).get("data", {})
         sockets = resp.get("itemComponents", {}).get("sockets", {}).get("data", {})
         return sales, sockets
@@ -295,68 +329,55 @@ class BungieClient:
         Structure imbriquée (vs get_vendor_sales, singulier) :
             { "<vendorHash>": { "saleItems": { "<index>": { "itemHash": ..., } } } }
 
-        Auth OAuth requise (même contrainte que Xûr). Utilisé par la feature
-        Eververse : les items en rotation sont éclatés sur plusieurs sous-vendors
-        rotator, tous récupérés en un seul appel. Pas de cache : appelé au reset
-        quotidien (rotation Eververse quotidienne)."""
-        c = BUNGIE_CHARACTER
-        endpoint = (
-            f"/Destiny2/{c['membership_type']}/Profile/{c['membership_id']}"
-            f"/Character/{c['character_id']}/Vendors/"
-        )
-        data = await self._get(
-            endpoint, params={"components": _VENDOR_COMPONENTS}, auth=True
-        )
-        if not data or "Response" not in data:
-            log.error("[Bungie] GetVendors (pluriel) indisponible.")
+        Utilisé par la feature Eververse : les items en rotation sont éclatés
+        sur plusieurs sous-vendors rotator, tous récupérés en un seul appel."""
+        resp = await self._get_vendor_response(None, _VENDOR_COMPONENTS, None)
+        if resp is None:
             return None
-        return data["Response"].get("sales", {}).get("data", {})
+        return resp.get("sales", {}).get("data", {})
+
+    # ── Définitions résolues à la volée ──────────────────────────────
+    async def _get_entity(self, entity_type: str, entity_hash: int) -> dict | None:
+        """Résout une définition via l'API Manifest, avec cache mémoire.
+
+        Sert aux définitions volontairement absentes du cache disque
+        (DestinyInventoryItemDefinition, trop volumineuse ; DestinyVendorDefinition,
+        seuls quelques hashes utiles)."""
+        cache = self._entity_cache.setdefault(entity_type, {})
+        key = str(entity_hash)
+        if key in cache:
+            return cache[key]
+
+        data = await self._get(f"/Destiny2/Manifest/{entity_type}/{entity_hash}/")
+        if not data or "Response" not in data:
+            log.warning(f"[Bungie] {entity_type} {entity_hash} introuvable.")
+            return None
+
+        defn = data["Response"]
+        cache[key] = defn
+        return defn
+
+    async def get_definition_fr(self, entity_type: str, entity_hash: int) -> dict | None:
+        """Définition résolue en FRANÇAIS via l'API Manifest (cache mémoire
+        dédié). Sert aux noms affichés tels quels (sets d'armure et leurs
+        bonus), absents de l'extrait local de noms FR."""
+        cache = self._entity_cache.setdefault(f"{entity_type}:fr", {})
+        key = str(entity_hash)
+        if key in cache:
+            return cache[key]
+        data = await self._get(f"/Destiny2/Manifest/{entity_type}/{entity_hash}/", params={"lc": "fr"})
+        if not data or "Response" not in data:
+            log.warning(f"[Bungie] {entity_type} {entity_hash} introuvable (fr).")
+            return None
+        cache[key] = data["Response"]
+        return cache[key]
 
     async def get_item_definition(self, item_hash: int) -> dict | None:
-        """Résout un item à la volée via l'API Manifest.
-
-        DestinyInventoryItemDefinition n'est volontairement PAS dans le cache
-        disque (trop volumineux). On résout donc chaque hash par un appel
-        dédié. Petit cache mémoire pour éviter de refetch un hash déjà vu."""
-        key = str(item_hash)
-        if key in self._item_def_cache:
-            return self._item_def_cache[key]
-
-        data = await self._get(
-            f"/Destiny2/Manifest/DestinyInventoryItemDefinition/{item_hash}/"
-        )
-        if not data or "Response" not in data:
-            log.warning(f"[Bungie] Définition item {item_hash} introuvable.")
-            return None
-
-        defn = data["Response"]
-        self._item_def_cache[key] = defn
-        return defn
+        return await self._get_entity("DestinyInventoryItemDefinition", item_hash)
 
     async def get_vendor_definition(self, vendor_hash: int) -> dict | None:
-        """Résout un vendor à la volée via l'API Manifest.
-
-        DestinyVendorDefinition n'est pas dans le cache disque (les 3 vendor
-        hashes Xûr sont connus à l'avance, inutile de cacher tout le manifest).
-        On résout donc chaque hash par un appel dédié, avec petit cache mémoire
-        (appelé seulement au reset du vendredi → 3 appels max).
-
-        Utilisé pour récupérer displayProperties.largeIcon (image d'en-tête de
-        chaque catégorie Xûr)."""
-        key = str(vendor_hash)
-        if key in self._vendor_def_cache:
-            return self._vendor_def_cache[key]
-
-        data = await self._get(
-            f"/Destiny2/Manifest/DestinyVendorDefinition/{vendor_hash}/"
-        )
-        if not data or "Response" not in data:
-            log.warning(f"[Bungie] Définition vendor {vendor_hash} introuvable.")
-            return None
-
-        defn = data["Response"]
-        self._vendor_def_cache[key] = defn
-        return defn
+        """Utilisé pour displayProperties.largeIcon (en-tête des catégories Xûr)."""
+        return await self._get_entity("DestinyVendorDefinition", vendor_hash)
 
 
 # Instance partagée

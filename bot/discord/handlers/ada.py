@@ -114,6 +114,11 @@ async def _repost_guild(
         if mid:
             new_ids.append(mid)
     content_count = len(new_ids)
+    # Envoi partiel → hash vide : le serveur sera retenté au prochain publish
+    # au lieu d'être considéré à jour avec un message manquant.
+    if content_count < len(views):
+        log.warning(f"[Ada-1] {content_count}/{len(views)} message(s) envoyé(s) dans {guild.name}.")
+        ada_hash = ""
 
     # 3) Ping rôle SEUL, en dernier (si demandé et rôle défini).
     if ping:

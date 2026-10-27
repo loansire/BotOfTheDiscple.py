@@ -17,12 +17,15 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
-from bot.bungie.reset import last_reset
+from bot.bungie.reset import last_reset, next_weekday_reset
+from bot.utils.aio import gather_limited
 from bot.utils.logger import log
+
+from bot.features.vanguard.service import armor_set
 
 from .constants import FRIDAY, TUESDAY, VENDOR_WHITELIST_PATH, XUR_VENDORS
 from .models import XurItem, XurPerk, XurVendor
@@ -31,6 +34,7 @@ from .models import XurItem, XurPerk, XurVendor
 # 3) de rareté LÉGENDAIRE (tierType 5). Exclut nativement exotiques (tierType 6),
 # armures et matériaux — donc conforme à « armes légendaires uniquement ».
 _ITEM_TYPE_WEAPON = 3
+_ITEM_TYPE_ARMOR = 2
 _TIER_LEGENDARY = 5
 
 # Colonnes 3/4 dans le composant 305 (validé empiriquement sur les armes
@@ -64,11 +68,7 @@ def _next_weekday_reset_unix(target_weekday: int, now: datetime | None = None) -
 
     Si le dernier reset est déjà ce jour-là, renvoie celui de la semaine
     suivante (utile pour 'prochaine arrivée' depuis un mardi/vendredi)."""
-    base = last_reset(now)
-    days_ahead = (target_weekday - base.weekday()) % 7
-    if days_ahead == 0:
-        days_ahead = 7
-    return int((base + timedelta(days=days_ahead)).timestamp())
+    return int(next_weekday_reset(target_weekday, now).timestamp())
 
 
 def next_arrival_unix(now: datetime | None = None) -> int:
@@ -124,6 +124,12 @@ async def _resolve_item(
     if sockets and is_legendary_weapon:
         perks = _extract_col34_perks(sockets)
 
+    # Détail d'affichage : toute arme (type/élément/munitions) ou armure (set).
+    # Catalyseurs, ressources, etc. n'en ont pas → rien à afficher.
+    item_type = defn.get("itemType")
+    is_weapon = item_type == _ITEM_TYPE_WEAPON
+    set_name, set_perks = await armor_set(defn) if item_type == _ITEM_TYPE_ARMOR else (None, [])
+
     return XurItem(
         item_hash=item_hash,
         name=name,
@@ -133,6 +139,11 @@ async def _resolve_item(
         quantity=quantity,
         perks=perks,
         craftable=craftable,
+        sub_type=defn.get("itemSubType") if item_type in (_ITEM_TYPE_WEAPON, _ITEM_TYPE_ARMOR) else None,
+        damage_type=defn.get("defaultDamageType") if is_weapon else None,
+        ammo_type=(defn.get("equippingBlock") or {}).get("ammoType") if is_weapon else None,
+        set_name=set_name,
+        set_perks=set_perks,
     )
 
 
@@ -310,14 +321,15 @@ async def _build_vendor_from_sales(
         await _log_vendor_indices(key, label, sales)
 
     allowed = whitelist.get(key)  # None si catégorie absente → tout garder
+    jobs = []
     for item_hash, cost_quantity, count, first_key in _filtered_items(sales, allowed):
         item_sockets = None
         if sockets:
             entry = sockets.get(first_key) or {}
             item_sockets = entry.get("sockets")
-        item = await _resolve_item(item_hash, cost_quantity, count, item_sockets)
-        if item:
-            vendor.items.append(item)
+        jobs.append(_resolve_item(item_hash, cost_quantity, count, item_sockets))
+    # Résolution en parallèle (ordre conservé).
+    vendor.items.extend(item for item in await gather_limited(jobs) if item)
 
     # Armes exotiques : la dernière case retenue est en réalité l'item à
     # afficher en tête de la catégorie. On la remonte en première position.
