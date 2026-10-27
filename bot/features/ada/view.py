@@ -23,15 +23,13 @@ Builder :
 La publication (post/suppression) est gérée dans le handler."""
 from __future__ import annotations
 
-from io import BytesIO
-
 import discord
 from discord import ui
 
 from bot.bungie.reset import TUESDAY, next_weekday_reset
-from bot.render.item_icon import get_item_icon
 from bot.features.ada.constants import ADA_EMOJI, ADA_LABEL, GLIMMER_EMOJI
 from bot.features.ada.models import AdaItem
+from bot.render.layout import StaticView, chunked, item_section, refresh_line
 
 _FEATURE = "ada"  # sous-dossier de cache d'icônes (banners/ada/)
 _ACCENT = discord.Color.dark_gold()
@@ -41,21 +39,6 @@ _ACCENT = discord.Color.dark_gold()
 # retirés. On garde de la marge sous 40 (container + titre + séparateur d'entête
 # inclus).
 _MAX_ITEMS_PER_MESSAGE = 9
-
-
-class AdaView(ui.LayoutView):
-    """LayoutView persistante (non interactive)."""
-
-    def __init__(self, *children: ui.Item):
-        super().__init__(timeout=None)
-        for child in children:
-            self.add_item(child)
-
-
-def _chunk(seq: list, size: int):
-    """Découpe une liste en tranches de `size`."""
-    for i in range(0, len(seq), size):
-        yield seq[i:i + size]
 
 
 def _cost_line(item: AdaItem) -> str:
@@ -70,27 +53,10 @@ def _name_line(item: AdaItem) -> str:
 
 
 async def _item_section(item: AdaItem, files: list[discord.File]) -> ui.Section | None:
-    """Construit la Section d'un item (texte à gauche, vignette à droite).
-
-    Ajoute le fichier image à `files`. Renvoie None si l'icône composée est
-    indisponible (item ignoré)."""
-    icon_bytes = await get_item_icon(
-        item.item_hash, item.icon, item.watermark, feature=_FEATURE
-    )
-    if icon_bytes is None:
-        return None
-
-    fname = f"ada_{item.item_hash}.webp"
-    files.append(discord.File(BytesIO(icon_bytes), filename=fname))
-
-    lines = [_name_line(item)]
-    cost = _cost_line(item)
-    if cost:
-        lines.append(cost)
-
-    return ui.Section(
-        ui.TextDisplay("\n".join(lines)),
-        accessory=ui.Thumbnail(f"attachment://{fname}"),
+    """Section d'un item (nom + coût Glimmer), ou None si l'icône manque."""
+    return await item_section(
+        item, [_name_line(item), _cost_line(item)], f"ada_{item.item_hash}.webp", files,
+        feature=_FEATURE,
     )
 
 
@@ -98,10 +64,7 @@ def _header_text(suffix: str, refresh_unix: int | None) -> str:
     """Titre du message + (sur le 1er message seulement) ligne d'actualisation."""
     text = f"# {ADA_EMOJI} {ADA_LABEL}{suffix}"
     if refresh_unix is not None:
-        text += (
-            f"\nActualisation: <t:{refresh_unix}:F> "
-            f"(<t:{refresh_unix}:R>)"
-        )
+        text += f"\n{refresh_line(refresh_unix)}"
     return text
 
 
@@ -134,7 +97,7 @@ async def _build_message(
     if not any_item:
         container.add_item(ui.TextDisplay("-# Aucun item pour cette rotation."))
 
-    return AdaView(container), files
+    return StaticView(container), files
 
 
 async def build_ada_view(
@@ -149,7 +112,7 @@ async def build_ada_view(
     if next_refresh_unix is None:
         next_refresh_unix = int(next_weekday_reset(TUESDAY).timestamp())
 
-    chunks = list(_chunk(items, _MAX_ITEMS_PER_MESSAGE)) or [[]]
+    chunks = list(chunked(items, _MAX_ITEMS_PER_MESSAGE)) or [[]]
     messages: list = []
     for part, chunk in enumerate(chunks):
         refresh = next_refresh_unix if part == 0 else None

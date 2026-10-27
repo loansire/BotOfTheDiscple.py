@@ -25,15 +25,13 @@ Builder :
 La publication (post/suppression) est gérée dans le handler."""
 from __future__ import annotations
 
-from io import BytesIO
-
 import discord
 from discord import ui
 
 from bot.bungie.reset import next_reset
-from bot.render.item_icon import get_item_icon
 from bot.features.eververse.constants import DUST_EMOJI, TESS_EMOJI
 from bot.features.eververse.models import EververseSection
+from bot.render.layout import StaticView, chunked, item_section, refresh_line
 
 _FEATURE = "eververse"  # sous-dossier de cache d'icônes (banners/eververse/)
 
@@ -48,21 +46,6 @@ _ACCENT_DUST = discord.Color(0x57C9E6)    # cyan Poussière brillante
 _MAX_ITEMS_PER_MESSAGE = 10
 
 
-class EververseView(ui.LayoutView):
-    """LayoutView persistante (non interactive)."""
-
-    def __init__(self, *children: ui.Item):
-        super().__init__(timeout=None)
-        for child in children:
-            self.add_item(child)
-
-
-def _chunk(seq: list, size: int):
-    """Découpe une liste en tranches de `size`."""
-    for i in range(0, len(seq), size):
-        yield seq[i:i + size]
-
-
 def _cost_line(item) -> str:
     """Ligne de coût d'un item : '<:Dust:…> x1250', ou '' si inconnu."""
     if item.cost_quantity is None:
@@ -75,42 +58,17 @@ def _name_line(item) -> str:
 
 
 async def _item_section(item, files: list[discord.File]) -> ui.Section | None:
-    """Construit la Section d'un item (texte à gauche, vignette à droite).
-
-    Ordre des lignes : nom, (libellé de classe si présent), (coût si connu).
-    Ajoute le fichier image à `files`. Renvoie None si l'icône composée est
-    indisponible (item ignoré)."""
-    icon_bytes = await get_item_icon(
-        item.item_hash, item.icon, item.watermark, feature=_FEATURE
-    )
-    if icon_bytes is None:
-        return None
-
-    fname = f"ev_{len(files)}.webp"
-    files.append(discord.File(BytesIO(icon_bytes), filename=fname))
-
-    lines = [_name_line(item)]
-    # Libellé de classe (ornements d'armure multi-classe), au-dessus du coût.
-    if getattr(item, "class_label", None):
-        lines.append(item.class_label)
-    cost = _cost_line(item)
-    if cost:
-        lines.append(cost)
-
-    return ui.Section(
-        ui.TextDisplay("\n".join(lines)),
-        accessory=ui.Thumbnail(f"attachment://{fname}"),
-    )
+    """Section d'un item, ou None si l'icône manque. Lignes : nom, libellé de
+    classe (ornements d'armure multi-classe, au-dessus du coût), coût."""
+    lines = [_name_line(item), getattr(item, "class_label", None) or "", _cost_line(item)]
+    return await item_section(item, lines, f"ev_{len(files)}.webp", files, feature=_FEATURE)
 
 
 def _header_text(section: EververseSection, suffix: str, refresh_unix: int | None) -> str:
     """Titre du message (emoji Tess + libellé) + ligne d'actualisation."""
     text = f"# {TESS_EMOJI} {section.title}{suffix}"
     if refresh_unix is not None:
-        text += (
-            f"\nActualisation: <t:{refresh_unix}:F>"
-            f"(<t:{refresh_unix}:R>)"
-        )
+        text += f"\n{refresh_line(refresh_unix)}"
     return text
 
 
@@ -143,7 +101,7 @@ async def _build_section_message(
     if not any_item:
         container.add_item(ui.TextDisplay("-# Aucun item pour cette rotation."))
 
-    return EververseView(container), files
+    return StaticView(container), files
 
 
 async def build_eververse_views(
@@ -162,7 +120,7 @@ async def build_eververse_views(
 
     messages: list = []
     for section in sections:
-        chunks = list(_chunk(section.items, _MAX_ITEMS_PER_MESSAGE)) or [[]]
+        chunks = list(chunked(section.items, _MAX_ITEMS_PER_MESSAGE)) or [[]]
         for part, chunk in enumerate(chunks):
             sub = EververseSection(
                 id=section.id,

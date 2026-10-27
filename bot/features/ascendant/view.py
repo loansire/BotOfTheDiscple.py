@@ -22,6 +22,7 @@ from discord import ui
 from bot.core.config import RESOURCES_DIR
 from bot.features.ascendant import AscendantWindow, resolve
 from bot.features.ascendant.constants import ASCENDANT_EMOJI, image_filename
+from bot.render.layout import StaticView
 
 _ACCENT = discord.Color(0x7A5FB8)  # violet « ascendant » (plan Ascendant)
 ASCENDANT_DIR = RESOURCES_DIR / "Ascendant"
@@ -31,14 +32,6 @@ _MALEDICTION_LABEL = {
     "croissante": "Croissante",
     "forte": "Forte",
 }
-
-
-class AscendantView(ui.LayoutView):
-    """LayoutView persistante (non interactive)."""
-
-    def __init__(self, container: ui.Container):
-        super().__init__(timeout=None)
-        self.add_item(container)
 
 
 def _image_file(challenge: str) -> discord.File | None:
@@ -74,7 +67,7 @@ def content_hash(now=None, hash_contrat: int | None = None) -> str:
 
 def build_ascendant_view(
     now=None, hash_contrat: int | None = None
-) -> tuple[AscendantView, list[discord.File]]:
+) -> tuple[StaticView, list[discord.File]]:
     """Construit (vue, fichiers NEUFS) pour l'état à `now`.
 
     Un discord.File est consommé après envoi : renvoyer des File neufs à chaque
@@ -94,4 +87,4 @@ def build_ascendant_view(
             ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{img.filename}"))
         )
 
-    return AscendantView(container), files
+    return StaticView(container), files

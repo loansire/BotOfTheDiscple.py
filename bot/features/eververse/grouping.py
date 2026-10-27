@@ -13,6 +13,8 @@ déjà construite (`armor_ornaments`) : grouping l'injecte À LA POSITION du ven
 dans SECTIONS (2e vendor de la section principale), préservant l'ordre voulu."""
 from __future__ import annotations
 
+from bot.bungie.sales import first_cost_quantity, sale_index
+
 from .constants import ARMOR_ORNAMENTS_VENDOR, SECTIONS
 
 
@@ -22,19 +24,7 @@ def sorted_sale_items(entry: dict) -> list[tuple[str, dict]]:
     L'index = la position de la « case » dans l'inventaire du vendor ; on trie
     pour un ordre d'affichage stable, comme pour Xûr."""
     items = entry.get("saleItems", {}) or {}
-    return sorted(
-        items.items(),
-        key=lambda kv: int(kv[0]) if str(kv[0]).isdigit() else 0,
-    )
-
-
-def first_cost_quantity(sale: dict) -> int | None:
-    """Quantité du 1er coût d'une case (costs[0].quantity), ou None."""
-    costs = sale.get("costs") or []
-    if not costs:
-        return None
-    qty = costs[0].get("quantity")
-    return qty if isinstance(qty, int) else None
+    return sorted(items.items(), key=lambda kv: sale_index(kv[0]))
 
 
 def build_raw_sections(

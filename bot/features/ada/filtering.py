@@ -8,27 +8,9 @@ et dernières cases (cf. ADA_SKIP_LEADING / ADA_SKIP_TRAILING). Isolé ici pour
 l'orchestration + résolution), comme eververse/grouping.py."""
 from __future__ import annotations
 
+from bot.bungie.sales import first_cost_quantity, sorted_keys
+
 from .constants import ADA_SKIP_LEADING, ADA_SKIP_TRAILING
-
-
-def sorted_keys(sales: dict) -> list[str]:
-    """Clés de sales.data triées par valeur numérique croissante.
-
-    Cet ordre = l'ordre des « cases » dans l'interface du PNJ ; la position
-    ordinale (1 = 1ère case) est donc stable même si les clés changent d'une
-    semaine à l'autre."""
-    return sorted(sales.keys(), key=lambda k: int(k) if str(k).isdigit() else 0)
-
-
-def first_cost_quantity(sale: dict) -> int | None:
-    """Quantité du 1er coût d'une case (costs[0].quantity), ou None.
-
-    Ada-1 vend contre du Glimmer : seule la quantité nous intéresse."""
-    costs = sale.get("costs") or []
-    if not costs:
-        return None
-    qty = costs[0].get("quantity")
-    return qty if isinstance(qty, int) else None
 
 
 def filtered_items(sales: dict) -> list[tuple[int, int | None]]:

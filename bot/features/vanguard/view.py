@@ -41,6 +41,7 @@ from bot.features.vanguard.constants import (
 )
 from bot.features.vanguard.models import FocusItem, PortalActivity, PortalCategory
 from bot.core.logger import log
+from bot.render.layout import StaticView
 
 _ACCENT = discord.Color.dark_red()
 
@@ -66,15 +67,6 @@ _BORDER_CHALLENGE = (41, 182, 178, 255)  # turquoise de l'icône de défi en jeu
 # transparence. Largeur de bande relative à la hauteur du bandeau.
 _STRIPE_COLORS = ((255, 255, 255), (235, 120, 30), (235, 120, 30), (24, 38, 82))
 _STRIPE_WIDTH = 0.16
-
-
-class VanguardView(ui.LayoutView):
-    """LayoutView persistante (non interactive)."""
-
-    def __init__(self, *children: ui.Item):
-        super().__init__(timeout=None)
-        for child in children:
-            self.add_item(child)
 
 
 # ── Images ──────────────────────────────────────────────────────────────
@@ -252,7 +244,7 @@ async def _header(cat: PortalCategory, refresh_unix: int | None, files: list[dis
 
 async def _build_category(
     cat: PortalCategory, refresh_unix: int | None, ratio: float
-) -> tuple[VanguardView, list[discord.File]]:
+) -> tuple[StaticView, list[discord.File]]:
     files: list[discord.File] = []
     container = ui.Container(accent_color=_ACCENT)
     container.add_item(await _header(cat, refresh_unix, files))
@@ -273,14 +265,14 @@ async def _build_category(
             container.add_item(ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}")))
             banners += 1
 
-    return VanguardView(container), files
+    return StaticView(container), files
 
 
 async def build_vanguard_views(
     categories: list[PortalCategory],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> list[tuple[VanguardView, list[discord.File]]]:
+) -> list[tuple[StaticView, list[discord.File]]]:
     """Une (vue, fichiers) par catégorie. La ligne « Actualisation » (prochain
     reset quotidien par défaut) figure sur chaque message."""
     if next_refresh_unix is None:

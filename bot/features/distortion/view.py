@@ -22,17 +22,10 @@ from bot.features.distortion import (
     upcoming_windows,
 )
 from bot.features.distortion.constants import DISTORTION_EMOJI, image_filename
+from bot.render.layout import StaticView
 
 _ACCENT = discord.Color(0xA62432)  # crimson « distorsion » (couleur du blason)
 DISTORTION_DIR = RESOURCES_DIR / "Distortion"
-
-
-class DistortionView(ui.LayoutView):
-    """LayoutView persistante (non interactive)."""
-
-    def __init__(self, container: ui.Container):
-        super().__init__(timeout=None)
-        self.add_item(container)
 
 
 def _image_file(destination: str) -> discord.File | None:
@@ -64,7 +57,7 @@ def content_hash(now=None) -> str:
     return f"distortion:{current_window(now).index}"
 
 
-def build_distortion_view(now=None) -> tuple[DistortionView, list[discord.File]]:
+def build_distortion_view(now=None) -> tuple[StaticView, list[discord.File]]:
     """Construit (vue, fichiers NEUFS) pour l'état de distorsion à `now`.
 
     Un discord.File est consommé après envoi : renvoyer des File neufs à chaque
@@ -88,4 +81,4 @@ def build_distortion_view(now=None) -> tuple[DistortionView, list[discord.File]]
     for w in nexts:
         container.add_item(ui.TextDisplay(_upcoming_line(w)))
 
-    return DistortionView(container), files
+    return StaticView(container), files

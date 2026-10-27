@@ -26,9 +26,10 @@ import discord
 from discord import ui
 
 from bot.features.vanguard.view import armor_lines, weapon_tags
-from bot.render.item_icon import get_item_icon, get_vendor_icon
+from bot.render.item_icon import get_vendor_icon
 from bot.features.vanguard.constants import ARMOR_SUBTYPE_LABELS
 from bot.features.xur.models import XurVendor
+from bot.render.layout import StaticView, chunked, item_section
 
 _ACCENT = discord.Color.gold()
 
@@ -46,21 +47,6 @@ SOUVENANCE_EMOJI = "<:Souvenance:1528569980226895892>"
 _MAX_ITEMS_PER_MESSAGE = 9
 
 
-class XurView(ui.LayoutView):
-    """LayoutView persistante (non interactive)."""
-
-    def __init__(self, *children: ui.Item):
-        super().__init__(timeout=None)
-        for child in children:
-            self.add_item(child)
-
-
-def _chunk(seq: list, size: int):
-    """Découpe une liste en tranches de `size`."""
-    for i in range(0, len(seq), size):
-        yield seq[i:i + size]
-
-
 # ── Message statut (présent / absent) ──────────────────────────────────
 
 
@@ -69,7 +55,7 @@ def build_xur_status_view(
     *,
     departure_unix: int | None = None,
     return_unix: int | None = None,
-) -> XurView:
+) -> StaticView:
     """Vue du message statut persistant.
 
     - present=True  → « Xûr est là » + (si departure_unix) date de disparition.
@@ -91,7 +77,7 @@ def build_xur_status_view(
                 f"(<t:{return_unix}:R>)"
             )
     container.add_item(ui.TextDisplay(text))
-    return XurView(container)
+    return StaticView(container)
 
 
 # ── Messages catégories (Armes / Armures / Matériaux) ──────────────────
@@ -139,29 +125,10 @@ def _name_line(item) -> str:
 async def _item_section(
     item, vendor_key: str, files: list[discord.File]
 ) -> ui.Section | None:
-    """Construit la Section d'un item (texte à gauche, vignette à droite).
-
-    Ajoute le fichier image à `files`. Renvoie None si l'icône composée est
-    indisponible (item ignoré)."""
-    icon_bytes = await get_item_icon(item.item_hash, item.icon, item.watermark)
-    if icon_bytes is None:
-        return None
-
-    fname = f"xur_{vendor_key}_{item.item_hash}.webp"
-    files.append(discord.File(BytesIO(icon_bytes), filename=fname))
-
-    lines = [_name_line(item), *_detail_lines(item)]
-    perks = _perks_line(item)
-    if perks:
-        lines.append(perks)
-    cost = _cost_line(item)
-    if cost:
-        lines.append(cost)
-
-    return ui.Section(
-        ui.TextDisplay("\n".join(lines)),
-        accessory=ui.Thumbnail(f"attachment://{fname}"),
-    )
+    """Section d'un item (nom, détail arme/armure, perks, coût), ou None si
+    l'icône composée est indisponible (item ignoré)."""
+    lines = [_name_line(item), *_detail_lines(item), _perks_line(item), _cost_line(item)]
+    return await item_section(item, lines, f"xur_{vendor_key}_{item.item_hash}.webp", files)
 
 
 async def _add_vendor_header_icon(
@@ -211,7 +178,7 @@ async def _build_vendor_message(vendor: XurVendor, part: int, total: int) -> tup
     # Aucun item résoluble dans ce paquet → pas de message.
     if not any_item:
         return None
-    return XurView(container), files
+    return StaticView(container), files
 
 
 async def build_xur_category_views(vendors: list) -> list:
@@ -223,7 +190,7 @@ async def build_xur_category_views(vendors: list) -> list:
     for vendor in vendors:
         if not vendor.items:
             continue
-        chunks = list(_chunk(vendor.items, _MAX_ITEMS_PER_MESSAGE))
+        chunks = list(chunked(vendor.items, _MAX_ITEMS_PER_MESSAGE))
         for part, chunk in enumerate(chunks):
             sub = XurVendor(
                 key=vendor.key,

@@ -32,6 +32,7 @@ from bot.features.weekly.rotation import (
     predict_rotation,
 )
 from bot.core.logger import log
+from bot.render.layout import StaticView
 
 _ACCENT = discord.Color.dark_red()
 
@@ -40,15 +41,6 @@ _SPECS = {
     "raid": ("Raid", RAID_SEQUENCE, RD_EMOJI, "Raids"),
     "dungeon": ("Donjon", DUNGEON_SEQUENCE, DJ_EMOJI, "Donjons"),
 }
-
-
-class RotationView(ui.LayoutView):
-    """LayoutView éphémère non interactive (pas de bouton dans la réponse)."""
-
-    def __init__(self, *children: ui.Item):
-        super().__init__(timeout=None)
-        for child in children:
-            self.add_item(child)
 
 
 def _featured_rotation_names(
@@ -106,7 +98,7 @@ def build_rotation_view(
     kind: str,
     groups: list[WeeklyActivity],
     now: datetime | None = None,
-) -> RotationView:
+) -> StaticView:
     """Vue éphémère du cycle complet pour `kind` ('raid' ou 'dungeon')."""
     activity_type, sequence, title_emoji, label = _SPECS[kind]
 
@@ -136,7 +128,7 @@ def build_rotation_view(
             "-# La publication hebdomadaire ci-dessus reste, elle, fiable : "
             "elle vient directement de l'API Bungie."
         ))
-        return RotationView(container)
+        return StaticView(container)
 
     container.add_item(ui.TextDisplay(
         f"-# Cycle complet · {len(cycle.weeks)} semaines · "
@@ -153,4 +145,4 @@ def build_rotation_view(
         "de bug ou de doublon d'une semaine à l'autre."
     ))
 
-    return RotationView(container)
+    return StaticView(container)

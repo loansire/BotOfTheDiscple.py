@@ -15,19 +15,21 @@ appels réseau redondants.
 """
 from __future__ import annotations
 
-import json
 import os
 from datetime import datetime
 
 from bot.bungie.client import bungie
+from bot.bungie.items import item_display, log_vendor_positions
 from bot.bungie.manifest import manifest
-from bot.bungie.reset import last_reset, next_weekday_reset
+from bot.bungie.reset import FRIDAY, TUESDAY, last_reset, next_weekday_reset
+from bot.bungie.sales import first_cost_quantity, sorted_keys
+from bot.core.jsonio import load_json
 from bot.core.aio import gather_limited
 from bot.core.logger import log
 
 from bot.features.vanguard.service import armor_set
 
-from .constants import FRIDAY, TUESDAY, VENDOR_WHITELIST_PATH, XUR_VENDORS
+from .constants import VENDOR_WHITELIST_PATH, XUR_VENDORS
 from .models import XurItem, XurPerk, XurVendor
 
 # Garde-fou perks : on ne construit le bloc col 3/4 que pour une ARME (itemType
@@ -98,14 +100,10 @@ async def _resolve_item(
     disponible : on en tire les perks col 3/4 UNIQUEMENT pour une arme
     légendaire (cf. garde-fous). `craftable` (schéma extractible / Souvenance)
     est calculé sous le même garde-fou, mais indépendamment des sockets."""
-    defn = await bungie.get_item_definition(item_hash)
-    if defn is None:
+    item = await item_display(item_hash)
+    if item is None:
         return None
-    display = defn.get("displayProperties", {})
-    # Source principale = API EN (icon + watermark + nom). Surcouche de
-    # traduction : si un nom FR existe dans l'extrait manifest local, il
-    # remplace le nom EN ; sinon on garde l'EN (fallback naturel).
-    name = manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}")
+    defn = item.defn
 
     # Garde-fou commun : arme (itemType 3) de rareté légendaire (tierType 5).
     inventory = defn.get("inventory") or {}
@@ -132,9 +130,9 @@ async def _resolve_item(
 
     return XurItem(
         item_hash=item_hash,
-        name=name,
-        icon=display.get("icon") or None,
-        watermark=defn.get("iconWatermark") or None,
+        name=item.name,
+        icon=item.icon,
+        watermark=item.watermark,
         cost_quantity=cost_quantity,
         quantity=quantity,
         perks=perks,
@@ -199,34 +197,8 @@ async def _resolve_vendor_large_icon(vendor_hash: int) -> str | None:
 
 def _load_whitelist() -> dict:
     """Charge vendor_whitelist.json. {} si absent/illisible (→ tout garder)."""
-    if VENDOR_WHITELIST_PATH.exists():
-        try:
-            with open(VENDOR_WHITELIST_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            log.warning(f"[Xûr] vendor_whitelist.json illisible : {e}")
-    return {}
-
-
-def _sorted_keys(sales: dict) -> list[str]:
-    """Clés de sales.data triées par valeur numérique croissante.
-
-    Cet ordre = l'ordre des « cases » dans l'interface du PNJ. La position
-    ordinale (1 = 1ère case) est donc stable même si les clés elles-mêmes
-    changent d'une semaine à l'autre."""
-    return sorted(sales.keys(), key=lambda k: int(k) if str(k).isdigit() else 0)
-
-
-def _first_cost_quantity(sale: dict) -> int | None:
-    """Quantité du 1er coût d'une case sales.data (costs[0].quantity), ou None.
-
-    Tous les items Xûr ont un coût unique (Éclats/Pièces étranges) : seule la
-    valeur nous intéresse, pas la nature de la monnaie."""
-    costs = sale.get("costs") or []
-    if not costs:
-        return None
-    qty = costs[0].get("quantity")
-    return qty if isinstance(qty, int) else None
+    data = load_json(VENDOR_WHITELIST_PATH, {})
+    return data if isinstance(data, dict) else {}
 
 
 def _filtered_items(
@@ -240,7 +212,7 @@ def _filtered_items(
         - [...]  → on ne garde que ces positions (1-based)
         - []     → on ne garde rien
 
-    Les cases sont ordonnées par clé numérique croissante (cf. _sorted_keys) ;
+    Les cases sont ordonnées par clé numérique croissante (cf. bot/bungie/sales.py) ;
     on sélectionne ensuite par rang, pas par clé — la case n°6 reste la n°6
     même si sa clé Bungie change. Le filtrage opère AVANT toute résolution :
     on ne résout ni ne télécharge les items écartés.
@@ -250,7 +222,7 @@ def _filtered_items(
     rencontré est conservé ; l'ordre de première apparition est préservé. La
     `first_key` (clé sales.data de la 1ère occurrence) est renvoyée pour
     retrouver les sockets correspondants (composant 305, même indexation)."""
-    keys = _sorted_keys(sales)
+    keys = sorted_keys(sales)
 
     if allowed is None:
         selected_keys = keys
@@ -272,27 +244,12 @@ def _filtered_items(
         if ih in agg:
             agg[ih][1] += 1
         else:
-            agg[ih] = [_first_cost_quantity(sale), 1, key]
+            agg[ih] = [first_cost_quantity(sale), 1, key]
 
     return [
         (ih, cost, count, first_key)
         for ih, (cost, count, first_key) in agg.items()
     ]
-
-
-async def _log_vendor_indices(key: str, label: str, sales: dict) -> None:
-    """Diagnostic : imprime position (1-based) → nom d'item pour aider à
-    remplir la whitelist. Activé uniquement si XUR_DEBUG est défini."""
-    keys = _sorted_keys(sales)
-    log.info(f"[Xûr][debug] {label} ({key}) — {len(keys)} case(s) :")
-    for rank, k in enumerate(keys, start=1):
-        ih = sales[k].get("itemHash")
-        name = f"hash={ih}"
-        if isinstance(ih, int):
-            defn = await bungie.get_item_definition(ih)
-            if defn:
-                name = defn.get("displayProperties", {}).get("name", name)
-        log.info(f"[Xûr][debug]   position {rank} (clé {k}) → {name}")
 
 
 async def _build_vendor_from_sales(
@@ -318,7 +275,7 @@ async def _build_vendor_from_sales(
         return vendor
 
     if os.getenv("XUR_DEBUG"):
-        await _log_vendor_indices(key, label, sales)
+        await log_vendor_positions("Xûr", sales, f"{label} ({key})")
 
     allowed = whitelist.get(key)  # None si catégorie absente → tout garder
     jobs = []

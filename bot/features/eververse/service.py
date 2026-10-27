@@ -20,13 +20,14 @@ du vendor par grouping."""
 from __future__ import annotations
 
 from bot.bungie.client import bungie
-from bot.bungie.manifest import manifest
+from bot.bungie.items import item_display
+from bot.bungie.sales import first_cost_quantity, sale_index, sorted_keys
 from bot.core.config import BUNGIE_CHARACTER_ID, BUNGIE_HUNTER_ID, BUNGIE_WARLOCK_ID
 from bot.core.aio import gather_limited
 from bot.core.logger import log
 
 from .constants import ARMOR_ORNAMENT_CLASSES, ARMOR_ORNAMENTS_VENDOR
-from .grouping import build_raw_sections, first_cost_quantity, sorted_sale_items
+from .grouping import build_raw_sections
 from .models import EververseItem, EververseSection
 
 # Clé de classe (cf. ARMOR_ORNAMENT_CLASSES) → character_id du .env.
@@ -43,26 +44,19 @@ async def _resolve_item(
     currency: str,
     class_label: str | None = None,
 ) -> EververseItem | None:
-    """itemHash → EververseItem (icon + watermark + coût), nom FR surchargé."""
-    defn = await bungie.get_item_definition(item_hash)
-    if defn is None:
+    """itemHash → EververseItem (icon + watermark + coût), nom FR si disponible."""
+    item = await item_display(item_hash)
+    if item is None:
         return None
-    display = defn.get("displayProperties", {})
-    name = manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}")
     return EververseItem(
         item_hash=item_hash,
-        name=name,
-        icon=display.get("icon") or None,
-        watermark=defn.get("iconWatermark") or None,
+        name=item.name,
+        icon=item.icon,
+        watermark=item.watermark,
         cost_quantity=cost_quantity,
         currency=currency,
         class_label=class_label,
     )
-
-
-def _sorted_keys(sales: dict) -> list[str]:
-    """Clés de sales.data (endpoint singulier) triées par index croissant."""
-    return sorted(sales.keys(), key=lambda k: int(k) if str(k).isdigit() else 0)
 
 
 async def _fetch_armor_ornaments() -> list[dict]:
@@ -94,11 +88,11 @@ async def _fetch_armor_ornaments() -> list[dict]:
     all_keys: list[str] = []
     seen: set[str] = set()
     for _label, sales in class_sales:
-        for k in _sorted_keys(sales):
+        for k in sorted_keys(sales):
             if k not in seen:
                 seen.add(k)
                 all_keys.append(k)
-    all_keys.sort(key=lambda k: int(k) if str(k).isdigit() else 0)
+    all_keys.sort(key=sale_index)
 
     # Case-major, classe-minor : case1(Titan, Arcaniste, Chasseur), case2(...)…
     result: list[dict] = []

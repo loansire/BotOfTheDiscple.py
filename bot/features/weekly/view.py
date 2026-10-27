@@ -39,6 +39,7 @@ from bot.features.weekly.rotation_buttons import RotationActionRow
 from bot.render.activity_emojis import DJ_EMOJI as _DJ_EMOJI
 from bot.render.activity_emojis import RD_EMOJI as _RD_EMOJI
 from bot.render.activity_emojis import activity_emoji_for
+from bot.render.layout import StaticView, refresh_line
 
 _ACCENT = discord.Color.dark_red()
 
@@ -99,14 +100,6 @@ _LS_MODIFIER_EMOJIS: dict[int, str] = {
 }
 
 
-def _refresh_line(next_refresh_unix: int) -> str:
-    """Ligne « Actualisation: <date> (dans …) » (format complet, raids/donjons)."""
-    return (
-        f"Actualisation: <t:{next_refresh_unix}:F> "
-        f"(<t:{next_refresh_unix}:R>)"
-    )
-
-
 def _refresh_line_short(next_refresh_unix: int) -> str:
     """Ligne courte « Actualisation <relatif> » (secteurs oubliés).
 
@@ -118,15 +111,6 @@ def _refresh_line_short(next_refresh_unix: int) -> str:
 def _activity_emoji(group: WeeklyActivity) -> str:
     """Emoji custom de l'activité, avec fallback générique par type."""
     return activity_emoji_for(group.base_name, group.activity_type)
-
-
-class WeeklyView(ui.LayoutView):
-    """LayoutView persistante (non interactive)."""
-
-    def __init__(self, *children: ui.Item):
-        super().__init__(timeout=None)
-        for child in children:
-            self.add_item(child)
 
 
 # ── Raids & Donjons ────────────────────────────────────────────────────
@@ -201,7 +185,7 @@ async def _build_single_type_view(
     max_items: int | None,
     ratio: float,
     next_refresh_unix: int | None,
-) -> tuple[WeeklyView, list[discord.File]]:
+) -> tuple[StaticView, list[discord.File]]:
     """Construit la vue (1 container) pour UN type d'activité (raid OU donjon).
 
     On n'affiche QUE les activités *featured* de la semaine (challenges actifs,
@@ -211,7 +195,7 @@ async def _build_single_type_view(
     prochain reset du mardi, les raids/donjons changeant à l'hebdo)."""
     if next_refresh_unix is None:
         next_refresh_unix = int(next_weekday_reset(TUESDAY).timestamp())
-    refresh = _refresh_line(next_refresh_unix)
+    refresh = refresh_line(next_refresh_unix)
 
     featured = [g for g in groups if g.featured and g.activity_type == activity_type]
     if max_items is not None:
@@ -240,14 +224,14 @@ async def _build_single_type_view(
     container.add_item(ui.Separator())
     container.add_item(RotationActionRow(kind))
 
-    return WeeklyView(container), files
+    return StaticView(container), files
 
 
 async def build_raid_view(
     groups: list[WeeklyActivity],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> tuple[WeeklyView, list[discord.File]]:
+) -> tuple[StaticView, list[discord.File]]:
     """Vue (1 message) des raids featured de la semaine."""
     return await _build_single_type_view(
         groups,
@@ -266,7 +250,7 @@ async def build_dungeon_view(
     groups: list[WeeklyActivity],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> tuple[WeeklyView, list[discord.File]]:
+) -> tuple[StaticView, list[discord.File]]:
     """Vue (1 message) des donjons featured de la semaine."""
     return await _build_single_type_view(
         groups,
@@ -336,7 +320,7 @@ async def build_lost_sectors_view(
     sectors: list[LostSector],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> list[tuple[WeeklyView, list[discord.File]]]:
+) -> list[tuple[StaticView, list[discord.File]]]:
     """Renvoie une LISTE de (vue, fichiers) : UN message par secteur.
 
     Chaque message : destination en en-tête (###), nom du secteur en gras
@@ -350,7 +334,7 @@ async def build_lost_sectors_view(
     if next_refresh_unix is None:
         next_refresh_unix = int(next_reset().timestamp())
 
-    messages: list[tuple[WeeklyView, list[discord.File]]] = []
+    messages: list[tuple[StaticView, list[discord.File]]] = []
 
     for i, sector in enumerate(sectors):
         container = ui.Container(accent_color=_ACCENT)
@@ -399,6 +383,6 @@ async def build_lost_sectors_view(
         # Ligne d'actualisation (courte), TOUT EN BAS — sous l'image.
         container.add_item(ui.TextDisplay(_refresh_line_short(next_refresh_unix)))
 
-        messages.append((WeeklyView(container), files))
+        messages.append((StaticView(container), files))
 
     return messages
