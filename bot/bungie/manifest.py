@@ -270,6 +270,10 @@ class ManifestStore:
         self._cache[name] = data
         return data
 
+    def definitions(self, definition_name: str) -> dict:
+        """Définition locale complète { "<hash>": def } (cache mémoire)."""
+        return self._load_definition(definition_name)
+
     def resolve(self, hash_value, definition_name: str) -> dict:
         """Définition correspondant à un hash, ou {} si introuvable."""
         return self._load_definition(definition_name).get(str(hash_value), {})

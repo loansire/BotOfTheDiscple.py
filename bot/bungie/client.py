@@ -357,6 +357,21 @@ class BungieClient:
         cache[key] = defn
         return defn
 
+    async def get_definition_fr(self, entity_type: str, entity_hash: int) -> dict | None:
+        """Définition résolue en FRANÇAIS via l'API Manifest (cache mémoire
+        dédié). Sert aux noms affichés tels quels (sets d'armure et leurs
+        bonus), absents de l'extrait local de noms FR."""
+        cache = self._entity_cache.setdefault(f"{entity_type}:fr", {})
+        key = str(entity_hash)
+        if key in cache:
+            return cache[key]
+        data = await self._get(f"/Destiny2/Manifest/{entity_type}/{entity_hash}/", params={"lc": "fr"})
+        if not data or "Response" not in data:
+            log.warning(f"[Bungie] {entity_type} {entity_hash} introuvable (fr).")
+            return None
+        cache[key] = data["Response"]
+        return cache[key]
+
     async def get_item_definition(self, item_hash: int) -> dict | None:
         return await self._get_entity("DestinyInventoryItemDefinition", item_hash)
 

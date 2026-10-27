@@ -13,6 +13,24 @@ from .filters import collect_portal
 from .models import FocusItem, PortalCategory
 
 
+async def _armor_set(defn: dict) -> tuple[str | None, list[tuple[int, str, int]]]:
+    """(nom du set, [(nb de pièces, nom du bonus, sandboxPerkHash)]) d'une
+    pièce d'armure, via DestinyEquipableItemSetDefinition (API live, FR)."""
+    set_hash = (defn.get("equippingBlock") or {}).get("equipableItemSetHash")
+    if not set_hash:
+        return None, []
+    set_def = await bungie.get_definition_fr("DestinyEquipableItemSetDefinition", set_hash)
+    if not set_def:
+        return None, []
+    perks = []
+    for p in set_def.get("setPerks", []):
+        perk_hash = p.get("sandboxPerkHash")
+        perk = await bungie.get_definition_fr("DestinySandboxPerkDefinition", perk_hash) or {}
+        name = perk.get("displayProperties", {}).get("name") or str(perk_hash)
+        perks.append((p.get("requiredSetCount", 0), name, perk_hash))
+    return set_def.get("displayProperties", {}).get("name"), perks
+
+
 async def _resolve_focus(item_hash: int) -> FocusItem | None:
     """itemHash → FocusItem via DestinyInventoryItemDefinition (API live),
     nom surchargé en FR via l'extrait manifest local."""
@@ -20,7 +38,10 @@ async def _resolve_focus(item_hash: int) -> FocusItem | None:
     if defn is None:
         return None
     display = defn.get("displayProperties", {})
+    set_name, set_perks = await _armor_set(defn)
     return FocusItem(
+        set_name=set_name,
+        set_perks=set_perks,
         item_hash=item_hash,
         name=manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}"),
         sub_type=defn.get("itemSubType"),
@@ -31,10 +52,12 @@ async def _resolve_focus(item_hash: int) -> FocusItem | None:
     )
 
 
-async def get_portal() -> list[PortalCategory]:
+async def get_portal(remembered: dict[int, int] | None = None) -> list[PortalCategory]:
     """Catégories du Portail avec leurs activités du jour (focus résolus).
 
-    Renvoie [] si le profil ou l'extrait Portail est indisponible."""
+    `remembered` : défis de la semaine déjà vus ({activity_hash: arme défi}),
+    cf. filters.collect_portal. Renvoie [] si le profil ou l'extrait Portail
+    est indisponible."""
     await manifest.sync()
     await manifest.preload("DestinyActivityDefinition")
     portal = manifest.portal()
@@ -48,7 +71,9 @@ async def get_portal() -> list[PortalCategory]:
         return []
     block = data.get("activities", {}).get("data", {})
 
-    categories = collect_portal(block.get("availableActivities", []), manifest, portal)
+    categories = collect_portal(
+        block.get("availableActivities", []), manifest, portal, remembered
+    )
     for cat in categories:
         for act in cat.activities:
             if act.focus_hash:

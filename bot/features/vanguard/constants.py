@@ -24,6 +24,9 @@ OPS_BONUS_REWARD = 3956025454
 
 LIGHT_GG_BASE = "https://www.light.gg/db/fr/items/"
 
+# Fiche d'un bonus de set d'armure (`id` = sandboxPerkHash, ouvre la popup).
+D2GLOSSARY_SET_PERK = "https://d2glossary.fr/setarmor.html?id="
+
 # Libellés FR des pièces d'armure (DestinyItemSubType) : l'API live renvoie
 # itemTypeDisplayName en anglais. Les armes passent par les tags de la table
 # de loot (emoji type / élément / munitions).

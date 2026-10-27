@@ -84,6 +84,21 @@ class WeeklyMessageState(JsonStore):
             "sig": sorted(sig),
         }
 
+    # ── Défis de la semaine (Avant-garde) ─────────────────────────────
+    def week_challenges(self, week_iso: str) -> dict[int, int]:
+        """Défis Avant-garde vus pendant la semaine `week_iso` (début = reset
+        du mardi) : {activity_hash: arme défi}. Vide pour une autre semaine."""
+        saved = self._data.get("vanguard_challenges", {})
+        if saved.get("week") != week_iso:
+            return {}
+        return {int(k): int(v) for k, v in saved.get("items", {}).items()}
+
+    def set_week_challenges(self, week_iso: str, items: dict[int, int]):
+        self._data["vanguard_challenges"] = {
+            "week": week_iso,
+            "items": {str(k): v for k, v in items.items()},
+        }
+
     def invalidate(self, topic: str | None = None):
         """Efface les hashes pour forcer un repost au prochain publish.
 

@@ -15,6 +15,9 @@ class FocusItem:
     ammo_type: int | None = None     # equippingBlock.ammoType (armes)
     icon: str | None = None
     watermark: str | None = None
+    # Armures : set d'équipement et ses bonus [(nb de pièces, nom, sandboxPerkHash)].
+    set_name: str | None = None
+    set_perks: list[tuple[int, str, int]] = field(default_factory=list)
 
 
 @dataclass
@@ -26,8 +29,9 @@ class PortalActivity:
     pgcr_image: str | None = None
     focus_hash: int | None = None       # résolu ensuite en `focus`
     focus: FocusItem | None = None
+    is_focused: bool = False            # isFocusedActivity (sinon : défi seul)
     is_alert: bool = False              # alerte de l'Avant-garde
-    is_challenge: bool = False          # challenges actifs (engramme défi)
+    is_challenge: bool = False          # défi de la semaine (engramme + arme défi)
 
 
 @dataclass

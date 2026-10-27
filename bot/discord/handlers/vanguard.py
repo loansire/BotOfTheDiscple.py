@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 
 from bot.bungie.client import bungie
 from bot.bungie.errors import BungieNotReadyError
-from bot.bungie.reset import last_reset
+from bot.bungie.reset import TUESDAY, last_reset, last_weekday_reset
 from bot.discord.publisher import (
     content_hash,
     delete_message,
@@ -34,6 +34,7 @@ from bot.discord.publisher import (
 from bot.embeds.banner import purge_banner_cache
 from bot.embeds.vanguard import FEATURE, build_vanguard_views
 from bot.features.vanguard import TOPIC, get_portal
+from bot.features.vanguard.filters import challenges_of
 from bot.utils.logger import log
 from bot.utils.subscriptions import iter_subscribers
 
@@ -64,9 +65,19 @@ def _check_fresh(state, sig: list[str]) -> None:
 # ── Payload (fetch + hash) ──────────────────────────────────────────────
 
 
-async def _payload(state=None, *, strict: bool = False):
-    """(catégories, hash, signature) ou None si rien n'est détecté."""
-    categories = await get_portal()
+async def _payload(state, *, strict: bool = False):
+    """(catégories, hash, signature) ou None si rien n'est détecté.
+
+    Les défis (hebdomadaires) vus une fois dans la semaine sont mémorisés dans
+    l'état et réaffichés aux resets quotidiens suivants, même une fois
+    accomplis sur le personnage de référence (le profil ne les montre plus)."""
+    week = last_weekday_reset(TUESDAY).isoformat()
+    remembered = state.week_challenges(week)
+    categories = await get_portal(remembered)
+    seen = challenges_of(categories)
+    if categories and seen != remembered:
+        state.set_week_challenges(week, {**remembered, **seen})
+        state.save()
     sig = [
         f"{a.base_name}|{a.focus_hash}"
         for c in categories for a in c.activities
@@ -161,7 +172,7 @@ async def restore(bot, state) -> None:
             continue
 
         if not fetched:
-            payload = await _payload()
+            payload = await _payload(state)
             fetched = True
         if payload is None:
             continue
@@ -182,7 +193,7 @@ async def on_added(bot, state, guild_id, info) -> None:
     dest = resolve_destination(guild, info["channel_id"], info.get("is_thread", False))
     if dest is None:
         return
-    payload = await _payload()
+    payload = await _payload(state)
     if payload is None:
         return
     categories, h, _ = payload
