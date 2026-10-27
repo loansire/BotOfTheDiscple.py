@@ -30,7 +30,9 @@ class PortalActivity:
     focus_hash: int | None = None       # résolu ensuite en `focus`
     focus: FocusItem | None = None
     is_focused: bool = False            # isFocusedActivity (sinon : défi seul)
-    is_alert: bool = False              # alerte de l'Avant-garde
+    is_alert: bool = False              # alerte de l'Avant-garde (Escouade)
+    is_grandmaster: bool = False        # alerte de l'Avant-garde (Grand-maître)
+    difficulties: list[str] = field(default_factory=list)  # « Normal », « Maîtrise »…
     is_challenge: bool = False          # défi de la semaine (engramme + arme défi)
 
 

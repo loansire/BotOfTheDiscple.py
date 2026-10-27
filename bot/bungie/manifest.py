@@ -18,7 +18,7 @@ anglais via l'API live (cf. features/xur/service.py).
 Extrait Portail (Avant-garde) : au changement de version, on télécharge aussi
 les constantes globales et le graphe Fireteam Finder pour en EXTRAIRE
 `portal_activities.json` = { "categories": { "<nœud racine>": [activityHash…] },
-"alerts": [activityHash…] }. Comme pour les noms FR, les définitions brutes ne
+"alerts": [activityHash…], "grandmaster": [activityHash…] }. Comme pour les noms FR, les définitions brutes ne
 sont pas conservées."""
 import asyncio
 
@@ -113,11 +113,20 @@ def _extract_portal(constants: dict, graph: dict, sets: dict) -> dict:
     entry = next(iter(constants.values()), {}) if constants else {}
     roots = entry.get("portalActivityGraphRootNodesWithIcons") or {}
     alert_root = entry.get("vanguardAlertsFireteamFinderActivityGraphRootNodeHash")
+    # Sous-nœud « Alerte de l'Avant-Garde (Grand-maître) » des alertes : seul
+    # moyen de distinguer l'alerte grand maître de l'alerte Escouade.
+    alert_children = (graph.get(str(alert_root)) or {}).get("selfAndAllDescendantHashes", [])
+    grandmaster: list[int] = []
+    for node_hash in alert_children:
+        name = ((graph.get(str(node_hash)) or {}).get("displayProperties") or {}).get("name", "")
+        if "grand" in name.lower():
+            grandmaster += _graph_activities(graph, sets, node_hash)
     return {
         "categories": {
             str(root): _graph_activities(graph, sets, int(root)) for root in roots
         },
         "alerts": _graph_activities(graph, sets, alert_root) if alert_root else [],
+        "grandmaster": grandmaster,
     }
 
 
@@ -152,9 +161,9 @@ class ManifestStore:
 
         local = load_json(_VERSION_FILE)
         if local and local.get("version") == version and local.get("lang") == self.lang:
-            # Extrait Portail ajouté après coup : généré sans attendre une
-            # nouvelle version du manifest s'il manque.
-            if not PORTAL_ACTIVITIES_FILE.exists():
+            # Extrait Portail ajouté après coup (ou d'un format antérieur) :
+            # régénéré sans attendre une nouvelle version du manifest.
+            if "grandmaster" not in self.portal():
                 await self._sync_portal(paths)
             log.debug(f"[Manifest] Déjà à jour (version {version}).")
             return version
@@ -258,7 +267,8 @@ class ManifestStore:
         self._portal = None
         log.info(
             f"[Manifest] Extrait Portail : {len(portal['categories'])} catégorie(s), "
-            f"{len(portal['alerts'])} activité(s) d'alerte."
+            f"{len(portal['alerts'])} activité(s) d'alerte "
+            f"(dont {len(portal['grandmaster'])} grand maître)."
         )
 
     # ── Résolution ────────────────────────────────────────────────────

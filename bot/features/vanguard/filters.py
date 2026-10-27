@@ -17,6 +17,9 @@ from .models import PortalActivity, PortalCategory
 
 _PLACEHOLDER = "placeholder"
 
+# Suffixes de variante qui ne sont PAS des difficultés (mode de lancement).
+_NOT_DIFFICULTY = {"Matchmaking", "Personnalisation", "Privé"}
+
 
 def base_name(name: str) -> str:
     """'Champ de bataille : Conduit: Matchmaking' → 'Champ de bataille : Conduit'.
@@ -25,6 +28,12 @@ def base_name(name: str) -> str:
     Les espaces insécables du manifest FR sont normalisés."""
     name = name.replace("\xa0", " ")
     return name.rsplit(": ", 1)[0].strip() if ": " in name else name.strip()
+
+
+def variant_label(name: str) -> str | None:
+    """'Partie rapide : Maîtrise' → 'Maîtrise' ; None si pas de suffixe."""
+    name = name.replace(" ", " ")
+    return name.rsplit(": ", 1)[1].strip() if ": " in name else None
 
 
 def focus_item_hash(raw: dict) -> int | None:
@@ -75,14 +84,15 @@ def collect_portal(
 ) -> list[PortalCategory]:
     """Regroupe les activités focus/défi par catégorie du Portail.
 
-    Ordre des catégories = CATEGORIES ; dans une catégorie, alertes d'abord
-    puis ordre de l'API. Une catégorie sans activité est conservée (vide)."""
+    Ordre des catégories = CATEGORIES ; dans une catégorie, alerte grand maître
+    puis alerte Escouade, puis ordre de l'API. Une catégorie sans activité est conservée (vide)."""
     remembered = dict(remembered or {})
     by_root = {
         int(root): set(hashes)
         for root, hashes in (portal.get("categories") or {}).items()
     }
     alerts = set(portal.get("alerts") or [])
+    grandmaster = set(portal.get("grandmaster") or [])
     defs = manifest.definitions("DestinyActivityDefinition")
 
     categories = [PortalCategory(key, label, icon) for key, _, label, icon in CATEGORIES]
@@ -106,7 +116,8 @@ def collect_portal(
             continue
 
         adef = defs.get(str(ah), {})
-        name = base_name(adef.get("displayProperties", {}).get("name", ""))
+        full_name = adef.get("displayProperties", {}).get("name", "")
+        name = base_name(full_name)
         if not name:
             continue
 
@@ -117,11 +128,17 @@ def collect_portal(
         act.activity_hashes.append(ah)
         act.focus_hash = act.focus_hash or focus_item_hash(raw) or remembered.get(ah)
         act.is_focused = act.is_focused or bool(raw.get("isFocusedActivity"))
-        act.is_alert = act.is_alert or ah in alerts
+        act.is_grandmaster = act.is_grandmaster or ah in grandmaster
+        act.is_alert = (act.is_alert or ah in alerts) and not act.is_grandmaster
+        label = variant_label(full_name)
+        if label and label not in _NOT_DIFFICULTY and label not in act.difficulties:
+            act.difficulties.append(label)
         act.is_challenge = act.is_challenge or is_challenge
 
     for cat, group in zip(categories, groups):
-        cat.activities = sorted(group.values(), key=lambda a: not a.is_alert)
+        cat.activities = sorted(
+            group.values(), key=lambda a: (not a.is_grandmaster, not a.is_alert)
+        )
     return categories
 
 

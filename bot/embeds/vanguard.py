@@ -27,7 +27,7 @@ from io import BytesIO
 
 import discord
 from discord import ui
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw
 
 from bot.bungie.reset import next_reset
 from bot.embeds.banner import BANNER_RATIO, get_banner
@@ -54,6 +54,18 @@ _MAX_BANNERS = 9
 _ICON_HEIGHT = 0.72
 _ICON_MARGIN = 0.14
 
+# Bordure de l'icône (px) : claire par défaut, dorée pour l'alerte grand maître
+# (« pièce maîtresse », comme en jeu).
+_BORDER = 2
+_BORDER_COLOR = (220, 220, 220, 255)
+_BORDER_GOLD = (230, 190, 70, 255)
+
+# Liseré en biais derrière l'icône (alerte grand maître) : bandes blanche puis
+# orange, en dégradé vers la transparence. Largeur de bande relative à la
+# hauteur du bandeau.
+_STRIPE_COLORS = ((255, 255, 255), (235, 120, 30), (235, 120, 30))
+_STRIPE_WIDTH = 0.16
+
 
 class VanguardView(ui.LayoutView):
     """LayoutView persistante (non interactive)."""
@@ -78,13 +90,47 @@ def _square_png(data: bytes) -> bytes:
     return out.getvalue()
 
 
-def _compose(banner: bytes, icon: bytes) -> bytes:
-    """Incruste l'icône (carrée) à droite du bandeau, centrée verticalement."""
-    base = Image.open(BytesIO(banner)).convert("RGB")
+def _stripes(size: tuple[int, int], left: int) -> Image.Image:
+    """Calque RGBA : bandes en biais (blanc, orange, orange) qui sortent de
+    derrière l'icône (bord gauche `left`) vers le bas-gauche, en dégradé vers
+    la transparence."""
+    w, h = size
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    band = max(2, round(h * _STRIPE_WIDTH))
+    for i, color in enumerate(_STRIPE_COLORS):
+        x = left - i * band * 2 - band
+        draw.polygon([(x, h), (x + band, h), (x + band + h, 0), (x + h, 0)], fill=(*color, 255))
+    # Dégradé horizontal : transparent loin à gauche, opaque sous l'icône.
+    fade = Image.new("L", size, 0)
+    ramp = max(1, round(h * 2.5))
+    for xx in range(w):
+        v = 255 if xx >= left else max(0, 255 - (left - xx) * 255 // ramp)
+        fade.paste(v, (xx, 0, xx + 1, h))
+    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), fade))
+    return layer
+
+
+def _bordered(icon: bytes, size: int, gold: bool) -> Image.Image:
+    """Icône redimensionnée avec une fine bordure (dorée pour le grand maître)."""
+    ico = Image.open(BytesIO(icon)).convert("RGBA").resize((size, size), Image.LANCZOS)
+    framed = Image.new("RGBA", (size + 2 * _BORDER, size + 2 * _BORDER), _BORDER_GOLD if gold else _BORDER_COLOR)
+    framed.paste(ico, (_BORDER, _BORDER), ico)
+    return framed
+
+
+def _compose(banner: bytes, icon: bytes, grandmaster: bool = False) -> bytes:
+    """Incruste l'icône (carrée, bordée) à droite du bandeau, centrée
+    verticalement ; ajoute le liseré en biais derrière pour le grand maître."""
+    base = Image.open(BytesIO(banner)).convert("RGBA")
     size = round(base.height * _ICON_HEIGHT)
     margin = round(base.height * _ICON_MARGIN)
-    ico = Image.open(BytesIO(icon)).convert("RGBA").resize((size, size), Image.LANCZOS)
-    base.paste(ico, (base.width - size - margin, (base.height - size) // 2), ico)
+    ico = _bordered(icon, size, grandmaster)
+    x = base.width - ico.width - margin
+    if grandmaster:
+        base = Image.alpha_composite(base, _stripes(base.size, x))
+    base.paste(ico, (x, (base.height - ico.height) // 2), ico)
+    base = base.convert("RGB")
     out = BytesIO()
     base.save(out, format="WEBP", quality=90)
     return out.getvalue()
@@ -102,7 +148,7 @@ async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
     )
     if icon is None:
         return banner
-    return await asyncio.to_thread(_compose, banner, icon)
+    return await asyncio.to_thread(_compose, banner, icon, act.is_grandmaster)
 
 
 # ── Texte ───────────────────────────────────────────────────────────────
@@ -111,10 +157,14 @@ async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
 def _tags_line(act: PortalActivity) -> str:
     """Ligne « Alerte de l'Avant-garde · Défi », ou '' si aucun tag."""
     tags = []
-    if act.is_alert:
-        tags.append("Alerte de l'Avant-garde")
+    if act.is_grandmaster:
+        tags.append("Alerte de l'Avant-garde (Grand-maître)")
+    elif act.is_alert:
+        tags.append("Alerte de l'Avant-garde (Escouade)")
     if act.is_challenge:
         tags.append("Défi de la semaine")
+    if len(act.difficulties) > 1:
+        tags.append(" / ".join(act.difficulties))
     return f"-# {' · '.join(tags)}" if tags else ""
 
 
@@ -141,7 +191,7 @@ def _weapon_tags(f: FocusItem) -> str:
 
 def _focus_lines(act: PortalActivity) -> list[str]:
     """« Focus : item » (ou « Défi : arme ») puis le détail ligne à ligne."""
-    label = "Focus" if act.is_focused else "Défi"
+    label = "Focus" if act.is_focused else "Récompense du défi"
     f = act.focus
     if f is None:
         return [f"-# Aucun {label.lower()} détecté."]
