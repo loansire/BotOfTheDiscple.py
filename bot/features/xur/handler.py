@@ -29,6 +29,8 @@ hebdo du vendredi) AVANT régénération. restore / on_added ne purgent PAS (ils
 réutilisent le cache existant)."""
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import discord
 
 from bot.bungie.reset import last_reset
@@ -329,3 +331,23 @@ async def refresh_absent_status(bot) -> None:
         await _edit_or_post_status(dest, guild_id, status_view, state)
 
     state.save()
+
+
+async def refresh(bot) -> None:
+    """/refresh : force le repost SANS ping (Xûr présent), ou remet le statut
+    « absent » par édition in-place (aucune notification)."""
+    xur_state().invalidate()
+    if is_xur_active():
+        await publish_arrival(bot, ping=False)
+    else:
+        await refresh_absent_status(bot)
+
+
+# Interface commune des publications (cf. bot/publishing/registry.py).
+publication = SimpleNamespace(
+    tag="Xûr",
+    restore=restore,
+    on_added=on_added,
+    on_removed=on_removed,
+    refresh=refresh,
+)

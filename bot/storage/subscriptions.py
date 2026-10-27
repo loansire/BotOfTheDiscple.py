@@ -31,85 +31,10 @@ import copy
 from typing import Optional
 
 from bot.core.config import ALERTS_DIR
+from bot.topics import TOPICS
 from bot.core.jsonio import load_json_cached, save_json
 
 STORE_PATH = ALERTS_DIR / "subscriptions.json"
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Registre central des topics configurables (source unique de vérité).
-# label/emoji utilisés par l'UI /botconfig ; `short` = nom compact affiché
-# dans les aperçus de navigation (listes « preview » des sections).
-# ──────────────────────────────────────────────────────────────────────
-TOPICS: dict[str, dict] = {
-    "maintenance_destiny": {
-        "label": "Maintenance",
-        "short": "Maintenance",
-        "emoji": "<:D2:1270042220627497020>",
-    },
-    "maintenance_marathon": {
-        "label": "Maintenance",
-        "short": "Maintenance",
-        "emoji": "<:Marathon:1513347065881559273>",
-    },
-    "news_twid": {
-        "label": "This Week in Destiny",
-        "short": "TWID",
-        "emoji": "📰",
-    },
-    "news_patch_note": {
-        "label": "Patch Note",
-        "short": "Patch note",
-        "emoji": "📝",
-    },
-    "weekly_raid": {
-        "label": "Raids de la semaine",
-        "short": "Raids",
-        "emoji": "<:Raid:1338595321319788595>",
-    },
-    "weekly_dungeon": {
-        "label": "Donjons de la semaine",
-        "short": "Donjons",
-        "emoji": "<:Donjon:1338595206706233458>",
-    },
-    "daily_vanguard": {
-        "label": "Avant-garde - Focus du jour",
-        "short": "Avant-garde",
-        "emoji": "🛡️",
-    },
-    "daily_lost_sector": {
-        "label": "Secteurs Oubliés du jour",
-        "short": "Secteur oublié",
-        "emoji": "<:Secteur:1270042203577778246>",
-    },
-    "xur": {
-        "label": "Xûr - Agent des Neuf",
-        "short": "Xûr",
-        "emoji": "<:Xur:1527021351368659205>",
-    },
-    "eververse": {
-        "label": "Eververse - Tess Everis",
-        "short": "Eververse",
-        "emoji": "<:Tess:1527021352245268675>",
-    },
-    "ada": {
-        "label": "Ada-1 - Revêtements",
-        "short": "Ada-1",
-        "emoji": "<:Ada:1527021353591374024>",
-    },
-    "distortion": {
-        "label": "Distorsion",
-        "short": "Distorsion",
-        "emoji": "<:Distortion:1533753753772097596>",
-        "no_role": True,
-    },
-    "ascendant": {
-        "label": "Défi ascendant de la semaine",
-        "short": "Défi ascendant",
-        "emoji": "<:Challenge_Ascendant:1534163534970093618>",
-        "no_role": True,
-    },
-}
 
 
 def _load_all() -> dict:

@@ -19,7 +19,8 @@ import discord
 from discord import ui
 
 from bot.core.logger import log
-from bot.storage.subscriptions import TOPICS, load_config_state, set_topic_destination
+from bot.storage.subscriptions import load_config_state, set_topic_destination
+from bot.topics import TOPICS
 
 # Types de salons proposés dans le ChannelSelect
 _CHANNEL_TYPES = [

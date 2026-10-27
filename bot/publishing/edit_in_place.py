@@ -19,7 +19,8 @@ Chaque feature déclare un EditInPlaceTopic :
 - `reset_context()` (optionnel) : oublie la donnée live mémoïsée (/refresh)."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+import asyncio
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Optional
 
@@ -70,6 +71,9 @@ class EditInPlaceTopic:
     chash: Callable[[datetime, Any], str]
     context: Optional[Callable[[datetime], Awaitable[Any]]] = None
     reset_context: Optional[Callable[[], None]] = None
+    # Sérialise le poll à la minute et /refresh (qui tourne sous le verrou de
+    # la pipeline, pas sous celui du cog des rotations).
+    _lock: asyncio.Lock = field(default_factory=asyncio.Lock, init=False, repr=False)
 
     async def _snapshot(self) -> tuple[ViewFactory, str]:
         """(fabrique de vue, hash) figés sur l'instant courant."""
@@ -80,6 +84,10 @@ class EditInPlaceTopic:
     async def publish(self, bot, *, force: bool = False) -> None:
         """Met à jour tous les salons abonnés. `force=True` réédite même si le
         hash est identique (/refresh)."""
+        async with self._lock:
+            await self._publish(bot, force=force)
+
+    async def _publish(self, bot, *, force: bool) -> None:
         build, chash = await self._snapshot()
         state = self.state()
         changed = False

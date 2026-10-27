@@ -19,7 +19,6 @@ de navigation), donc le staging ne peut pas s'échapper."""
 import discord
 from discord import ui
 
-from bot.storage.subscriptions import TOPICS
 from bot.discord.configbot.components import (
     BackButton,
     ConfigChannelSelect,
@@ -31,6 +30,7 @@ from bot.discord.configbot.components import (
     TopicSettingsButton,
     ValidateButton,
 )
+from bot.topics import TOPICS
 
 _ACCENT = discord.Color.dark_red()       # carte au repos
 _ACCENT_DIRTY = 0xF0A30A                  # orange — topic modifié non validé
@@ -100,7 +100,7 @@ def _display(node_id: str) -> tuple[str, str]:
     """(emoji, label) d'un nœud ou d'un topic ("topic:<t>")."""
     if node_id.startswith("topic:"):
         meta = TOPICS[node_id.split(":", 1)[1]]
-        return meta.get("emoji", ""), meta["label"]
+        return meta.emoji, meta.label
     node = NAV_TREE[node_id]
     return node.get("emoji", ""), node.get("label", node.get("title", ""))
 
@@ -127,7 +127,7 @@ def _preview(node_id: str) -> str:
     node = NAV_TREE[node_id]
     if "children" in node:
         return " · ".join(NAV_TREE[c]["label"] for c in node["children"])
-    return " · ".join(TOPICS[t].get("short", TOPICS[t]["label"]) for t in node.get("topics", []))
+    return " · ".join(TOPICS[t].short for t in node.get("topics", []))
 
 
 # ── Helpers communs ─────────────────────────────────────────────────────
@@ -151,7 +151,7 @@ def _status_text(pending: dict, topic: str, dirty: bool) -> str:
     p = pending[topic]
     ch = f"<#{p['channel_id']}>" if p["channel_id"] else "*aucun*"
     marker = "  🟠 *(non validé)*" if dirty else ""
-    if TOPICS[topic].get("no_role"):
+    if TOPICS[topic].no_role:
         return f"Salon : {ch}{marker}"
     role = f"<@&{p['role_id']}>" if p["role_id"] else "*aucun*"
     return f"Salon : {ch}  •  Rôle : {role}{marker}"
@@ -164,7 +164,7 @@ def _summary_text(pending: dict, topic: str, dirty: bool) -> str:
     marker = "  🟠 *(non validé)*" if dirty else ""
     p = pending[topic]
     ch = f"<#{p['channel_id']}>" if p["channel_id"] else "*aucun*"
-    if TOPICS[topic].get("no_role"):
+    if TOPICS[topic].no_role:
         return f"### {e} {l}{marker}\nSalon : {ch}"
     role = f"<@&{p['role_id']}>" if p["role_id"] else "*aucun*"
     return f"### {e} {l}{marker}\nSalon : {ch}  •  Rôle : {role}"
@@ -245,7 +245,7 @@ def _action_row(persisted: dict, pending: dict, topic: str) -> ui.ActionRow:
 def _build_topic_page(guild: discord.Guild, persisted: dict, pending: dict, topic: str) -> list:
     p = pending[topic]
     dirty = _topic_dirty(persisted, pending, topic)
-    no_role = TOPICS[topic].get("no_role", False)
+    no_role = TOPICS[topic].no_role
 
     ch_select = ConfigChannelSelect(topic, _resolve_channel(guild, p["channel_id"]))
 
