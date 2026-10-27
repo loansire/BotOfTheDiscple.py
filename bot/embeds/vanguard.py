@@ -60,10 +60,10 @@ _BORDER = 2
 _BORDER_COLOR = (220, 220, 220, 255)
 _BORDER_GOLD = (230, 190, 70, 255)
 
-# Liseré en biais derrière l'icône (alerte grand maître) : bandes blanche puis
-# orange, en dégradé vers la transparence. Largeur de bande relative à la
-# hauteur du bandeau.
-_STRIPE_COLORS = ((255, 255, 255), (235, 120, 30), (235, 120, 30))
+# Liseré en biais derrière l'icône (alerte grand maître), de gauche à droite :
+# blanc, orange, orange, bleu marine Avant-garde, en dégradé vers la
+# transparence. Largeur de bande relative à la hauteur du bandeau.
+_STRIPE_COLORS = ((255, 255, 255), (235, 120, 30), (235, 120, 30), (24, 38, 82))
 _STRIPE_WIDTH = 0.16
 
 
@@ -98,7 +98,7 @@ def _stripes(size: tuple[int, int], left: int) -> Image.Image:
     layer = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
     band = max(2, round(h * _STRIPE_WIDTH))
-    for i, color in enumerate(_STRIPE_COLORS):
+    for i, color in enumerate(reversed(_STRIPE_COLORS)):
         x = left - i * band * 2 - band
         draw.polygon([(x, h), (x + band, h), (x + band + h, 0), (x + h, 0)], fill=(*color, 255))
     # Dégradé horizontal : transparent loin à gauche, opaque sous l'icône.
@@ -155,16 +155,12 @@ async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
 
 
 def _tags_line(act: PortalActivity) -> str:
-    """Ligne « Alerte de l'Avant-garde · Défi », ou '' si aucun tag."""
+    """Ligne « Alerte de l'Avant-garde (…) », ou '' si aucun tag."""
     tags = []
     if act.is_grandmaster:
         tags.append("Alerte de l'Avant-garde (Grand-maître)")
     elif act.is_alert:
         tags.append("Alerte de l'Avant-garde (Escouade)")
-    if act.is_challenge:
-        tags.append("Défi de la semaine")
-    if len(act.difficulties) > 1:
-        tags.append(" / ".join(act.difficulties))
     return f"-# {' · '.join(tags)}" if tags else ""
 
 
@@ -205,7 +201,10 @@ def _focus_lines(act: PortalActivity) -> list[str]:
 
 
 def _activity_text(act: PortalActivity) -> ui.TextDisplay:
-    lines = [f"### {act.base_name}", _tags_line(act), *_focus_lines(act)]
+    title = f"### {act.base_name}"
+    if len(act.difficulties) > 1:
+        title += f" ({' / '.join(act.difficulties)})"
+    lines = [title, _tags_line(act), *_focus_lines(act)]
     return ui.TextDisplay("\n".join(line for line in lines if line))
 
 
