@@ -9,7 +9,7 @@ Structure de publication (gérée par le cog) :
 
 Rendu d'une catégorie : un Container (titre + image d'en-tête du vendor
 `largeIcon` + une `ui.Section` par item). Chaque Section porte, à gauche, un
-`TextDisplay` (nom + ligne de coût `<:PiecesEtranges:…> x{quantity}`) et, à
+`TextDisplay` (nom, détail arme/armure comme l'Avant-garde, ligne de coût `<:PiecesEtranges:…> x{quantity}`) et, à
 droite, l'image combinée de l'item en accessoire `ui.Thumbnail`. Les items
 s'enchaînent SANS séparateur entre eux.
 
@@ -25,7 +25,9 @@ from io import BytesIO
 import discord
 from discord import ui
 
+from bot.embeds.vanguard import armor_lines, weapon_tags
 from bot.embeds.xur_image import get_item_icon, get_vendor_icon
+from bot.features.vanguard.constants import ARMOR_SUBTYPE_LABELS
 from bot.features.xur.models import XurVendor
 
 _ACCENT = discord.Color.gold()
@@ -119,6 +121,15 @@ def _perks_line(item) -> str:
     )
 
 
+def _detail_lines(item) -> list[str]:
+    """Sous le nom : type / élément / munitions d'une arme, ou pièce + set
+    d'armure. Vide pour les autres items (catalyseurs, ressources)."""
+    if item.sub_type in ARMOR_SUBTYPE_LABELS:
+        return armor_lines(item)
+    tags = weapon_tags(item) if item.sub_type is not None else ""
+    return [tags] if tags else []
+
+
 def _name_line(item) -> str:
     if getattr(item, "craftable", False):
         return f"**{item.name}** {SOUVENANCE_EMOJI}"
@@ -139,7 +150,7 @@ async def _item_section(
     fname = f"xur_{vendor_key}_{item.item_hash}.webp"
     files.append(discord.File(BytesIO(icon_bytes), filename=fname))
 
-    lines = [_name_line(item)]
+    lines = [_name_line(item), *_detail_lines(item)]
     perks = _perks_line(item)
     if perks:
         lines.append(perks)

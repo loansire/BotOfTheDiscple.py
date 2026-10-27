@@ -17,7 +17,7 @@ from .filters import collect_portal, rotate_challenge
 from .models import FocusItem, PortalCategory
 
 
-async def _armor_set(defn: dict) -> tuple[str | None, list[tuple[int, str, int]]]:
+async def armor_set(defn: dict) -> tuple[str | None, list[tuple[int, str, int]]]:
     """(nom du set, [(nb de pièces, nom du bonus, sandboxPerkHash)]) d'une
     pièce d'armure, via DestinyEquipableItemSetDefinition (API live, FR)."""
     set_hash = (defn.get("equippingBlock") or {}).get("equipableItemSetHash")
@@ -42,7 +42,7 @@ async def _resolve_focus(item_hash: int) -> FocusItem | None:
     if defn is None:
         return None
     display = defn.get("displayProperties", {})
-    set_name, set_perks = await _armor_set(defn)
+    set_name, set_perks = await armor_set(defn)
     return FocusItem(
         set_name=set_name,
         set_perks=set_perks,

@@ -181,7 +181,7 @@ def _tags_line(act: PortalActivity, cat_key: str) -> str:
     return f"-# {' · '.join(tags)}" if tags else ""
 
 
-def _armor_lines(f: FocusItem) -> list[str]:
+def armor_lines(f: FocusItem) -> list[str]:
     """Pièce + set d'armure, chaque bonus sur sa ligne en lien D2Glossary."""
     piece = ARMOR_SUBTYPE_LABELS.get(f.sub_type, "Armure")
     lines = [f"{piece} · Set **{f.set_name}**" if f.set_name else piece]
@@ -192,7 +192,7 @@ def _armor_lines(f: FocusItem) -> list[str]:
     return lines
 
 
-def _weapon_tags(f: FocusItem) -> str:
+def weapon_tags(f: FocusItem) -> str:
     """« type élément munitions » (emojis de la table de loot, libellé FR en repli)."""
     tags = [
         weapon_type_tag(f.sub_type, f.ammo_type),
@@ -205,9 +205,9 @@ def _weapon_tags(f: FocusItem) -> str:
 def _item_lines(label: str, f: FocusItem) -> list[str]:
     """« <label> : item » puis le détail ligne à ligne (set d'armure ou tags d'arme)."""
     if f.sub_type in ARMOR_SUBTYPE_LABELS:
-        return [f"{label} : **{f.name}**", *_armor_lines(f)]
+        return [f"{label} : **{f.name}**", *armor_lines(f)]
     lines = [f"{label} : [**{f.name}**]({LIGHT_GG_BASE}{f.item_hash})"]
-    tags = _weapon_tags(f)
+    tags = weapon_tags(f)
     if tags:
         lines.append(tags)
     return lines

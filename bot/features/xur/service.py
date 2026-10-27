@@ -25,6 +25,8 @@ from bot.bungie.reset import last_reset, next_weekday_reset
 from bot.utils.aio import gather_limited
 from bot.utils.logger import log
 
+from bot.features.vanguard.service import armor_set
+
 from .constants import FRIDAY, TUESDAY, VENDOR_WHITELIST_PATH, XUR_VENDORS
 from .models import XurItem, XurPerk, XurVendor
 
@@ -32,6 +34,7 @@ from .models import XurItem, XurPerk, XurVendor
 # 3) de rareté LÉGENDAIRE (tierType 5). Exclut nativement exotiques (tierType 6),
 # armures et matériaux — donc conforme à « armes légendaires uniquement ».
 _ITEM_TYPE_WEAPON = 3
+_ITEM_TYPE_ARMOR = 2
 _TIER_LEGENDARY = 5
 
 # Colonnes 3/4 dans le composant 305 (validé empiriquement sur les armes
@@ -121,6 +124,12 @@ async def _resolve_item(
     if sockets and is_legendary_weapon:
         perks = _extract_col34_perks(sockets)
 
+    # Détail d'affichage : toute arme (type/élément/munitions) ou armure (set).
+    # Catalyseurs, ressources, etc. n'en ont pas → rien à afficher.
+    item_type = defn.get("itemType")
+    is_weapon = item_type == _ITEM_TYPE_WEAPON
+    set_name, set_perks = await armor_set(defn) if item_type == _ITEM_TYPE_ARMOR else (None, [])
+
     return XurItem(
         item_hash=item_hash,
         name=name,
@@ -130,6 +139,11 @@ async def _resolve_item(
         quantity=quantity,
         perks=perks,
         craftable=craftable,
+        sub_type=defn.get("itemSubType") if item_type in (_ITEM_TYPE_WEAPON, _ITEM_TYPE_ARMOR) else None,
+        damage_type=defn.get("defaultDamageType") if is_weapon else None,
+        ammo_type=(defn.get("equippingBlock") or {}).get("ammoType") if is_weapon else None,
+        set_name=set_name,
+        set_perks=set_perks,
     )
 
 
