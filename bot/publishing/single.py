@@ -1,46 +1,121 @@
 # -*- coding: utf-8 -*-
-"""Publication MONO-message persistante : UN message par abonné, supprimé puis
-reposté à chaque actualisation. Le repost (et non l'édition) déclenche une
-notification, donc ré-active le ping rôle (injecté DANS la vue)."""
+"""Moteur de publication MONO-message persistant (raids, donjons).
+
+UN message par abonné, supprimé puis reposté quand son contenu change. Le
+repost (et non l'édition) déclenche une notification : le ping rôle est
+injecté DANS la vue (cf. send_view). `ping=False` (refresh manuel) reposte
+sans re-notifier, exception assumée à la règle « repost = ping ».
+
+`state` est une fabrique renvoyant un état indexé par (serveur, topic) :
+get / set(message_id, content_hash) / purge / invalidate(topic) / save, soit
+l'interface de WeeklyMessageState.
+
+Cache d'images : `publish` ne purge PAS (raids et donjons partagent un dossier
+de cache, purgé une seule fois par l'orchestrateur du reset) ; `refresh` purge
+avant de republier, puisque « forcer » = régénérer les images."""
 from __future__ import annotations
 
-from typing import Awaitable, Callable
+from dataclasses import dataclass
+from typing import Any, Awaitable, Callable, Optional
 
-import discord
+from bot.publishing.primitives import (
+    config_destination,
+    delete_message,
+    iter_destinations,
+    message_exists,
+    send_view,
+)
+from bot.publishing.repost import Payload
 
-from bot.publishing.primitives import delete_message, iter_destinations, send_view
 
+@dataclass
+class SingleTopic:
+    topic: str
+    state: Callable[[], Any]
+    payload: Callable[[bool], Awaitable[Optional[Payload]]]
+    build_view: Callable[[Any], Awaitable[tuple]]  # data → (vue, fichiers) NEUFS
+    purge_cache: Optional[Callable[[], None]] = None
+    on_published: Optional[Callable[[Payload], None]] = None
 
-async def publish_persistent_view(
-    bot: discord.Client,
-    topic: str,
-    build_view: Callable[[], Awaitable[tuple[discord.ui.LayoutView, list[discord.File]]]],
-    content_hash: str,
-    state,
-    *,
-    ping: bool = True,
-):
-    """Publie/reposte UN message persistant par abonné du topic.
+    async def publish(self, bot, *, ping: bool = True, strict: bool = False) -> None:
+        """Saute un serveur dont le message est connu et le hash inchangé ;
+        sinon supprime l'ancien message et reposte."""
+        payload = await self.payload(strict)
+        if payload is None:
+            return
+        state = self.state()
+        for guild_id, _, dest, info in iter_destinations(bot, self.topic):
+            saved = state.get(guild_id, self.topic)
+            message_id = saved.get("message_id")
+            if message_id and saved.get("hash") == payload.hash:
+                continue  # contenu inchangé → rien à faire
 
-    `build_view()` est une factory asynchrone renvoyant (view, files) NEUFS à
-    chaque appel. `content_hash` identifie le contenu : si identique au dernier
-    publié (et un message_id est connu), on ne fait rien. Sinon l'ancien message
-    est supprimé puis reposté — ce repost (re)déclenche la notification.
-    `state` est un WeeklyMessageState.
+            await delete_message(dest, message_id)
+            view, files = await self.build_view(payload.data)
+            new_id = await send_view(dest, view, files, role_id=info.get("role"), ping=ping)
+            if new_id:
+                state.set(guild_id, self.topic, message_id=new_id, content_hash=payload.hash)
+                state.save()
 
-    `ping` (défaut True) : injecte la mention rôle sur le repost. Un refresh
-    manuel (/refresh) passe `ping=False` pour reposter SANS re-notifier —
-    exception à la règle « repost = ping »."""
-    for guild_id, _, dest, info in iter_destinations(bot, topic):
-        saved = state.get(guild_id, topic)
-        message_id = saved.get("message_id")
-        if message_id and saved.get("hash") == content_hash:
-            continue  # contenu inchangé → rien à faire
+        if self.on_published:
+            self.on_published(payload)
+        state.save()
 
-        await delete_message(dest, message_id)
+    async def restore(self, bot) -> None:
+        """Republie SANS ping les messages connus qui n'existent plus. Fetch
+        paresseux (aucun fetch si rien ne manque). Ne purge PAS le cache."""
+        state = self.state()
+        missing = []
+        for guild_id, _, dest, _ in iter_destinations(bot, self.topic):
+            mid = state.get(guild_id, self.topic).get("message_id")
+            if not mid:
+                continue  # jamais publié → géré au reset / à l'ajout
+            if not await message_exists(dest, mid):
+                missing.append((guild_id, dest))
+        if not missing:
+            return
 
-        view, files = await build_view()
-        new_id = await send_view(dest, view, files, role_id=info.get("role"), ping=ping)
-        if new_id:
-            state.set(guild_id, topic, message_id=new_id, content_hash=content_hash)
+        payload = await self.payload(False)
+        if payload is None:
+            return
+        for guild_id, dest in missing:
+            view, files = await self.build_view(payload.data)
+            new_id = await send_view(dest, view, files)
+            if new_id:
+                state.set(guild_id, self.topic, message_id=new_id, content_hash=payload.hash)
+        state.save()
+
+    async def on_added(self, bot, guild_id, info: dict) -> None:
+        """Publie (avec ping) dans un salon configuré via /botconfig.
+        `info` = {channel_id, is_thread, role_id}. Ne purge PAS le cache."""
+        target = config_destination(bot, guild_id, info)
+        if target is None:
+            return
+        payload = await self.payload(False)
+        if payload is None:
+            return
+        dest = target[1]
+        state = self.state()
+
+        # Suppression défensive d'un éventuel ancien message mémorisé.
+        await delete_message(dest, state.get(guild_id, self.topic).get("message_id"))
+        view, files = await self.build_view(payload.data)
+        mid = await send_view(dest, view, files, role_id=info.get("role_id"), ping=True)
+        if mid:
+            state.set(guild_id, self.topic, message_id=mid, content_hash=payload.hash)
             state.save()
+
+    async def on_removed(self, bot, guild_id, info: dict) -> None:
+        state = self.state()
+        target = config_destination(bot, guild_id, info)
+        if target is not None:
+            await delete_message(target[1], state.get(guild_id, self.topic).get("message_id"))
+        state.purge(guild_id, self.topic)
+        state.save()
+
+    async def refresh(self, bot) -> None:
+        """/refresh : invalide, purge le cache d'images puis republie SANS ping."""
+        self.state().invalidate(self.topic)
+        if self.purge_cache:
+            self.purge_cache()
+        await self.publish(bot, ping=False)

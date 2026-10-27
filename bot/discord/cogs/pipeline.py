@@ -215,23 +215,23 @@ class Pipeline(commands.Cog):
         # TOUJOURS : secteurs oubliés + Avant-garde + Eververse (tout reset est
         # quotidien). strict=True : refuse des données pas encore à jour (cf.
         # handlers.weekly / handlers.vanguard).
-        await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, strict=True)
-        await vanguard_handler.publish(self.bot, self.weekly_state, strict=True)
-        await eververse_handler.publish(self.bot, self.eververse_state)
+        await weekly_handler.lost_sectors.publish(self.bot, strict=True)
+        await vanguard_handler.publication.publish(self.bot, strict=True)
+        await eververse_handler.publication.publish(self.bot)
 
         # VENDREDI : Xûr arrive (seulement s'il est encore là : un hold mode
         # qui aurait débordé jusqu'au mardi ne doit pas le republier).
         if FRIDAY in weekdays and is_xur_active():
-            await xur_handler.publish_arrival(self.bot, self.xur_state)
+            await xur_handler.publish_arrival(self.bot)
 
         # MARDI : Xûr part + raids/donjons + Ada-1 (resets hebdo).
         # publish_raid_dungeon orchestre la purge unique du cache puis publie
         # les deux messages distincts (raids puis donjons). Ada-1 (vendor hebdo)
         # publie ensuite son propre message (cache d'icônes séparé, banners/ada/).
         if TUESDAY in weekdays:
-            await xur_handler.mark_departed(self.bot, self.xur_state)
-            await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state, strict=True)
-            await ada_handler.publish(self.bot, self.ada_state)
+            await xur_handler.mark_departed(self.bot)
+            await weekly_handler.publish_raid_dungeon(self.bot, strict=True)
+            await ada_handler.publication.publish(self.bot)
 
         # FIN DE RESET : réparation des messages disparus (sans ping).
         await self._verify_existence()
@@ -242,11 +242,13 @@ class Pipeline(commands.Cog):
         pour que le reset entier soit considéré en échec (hold mode) ; les
         autres erreurs sont seulement loguées."""
         try:
-            await weekly_handler.restore(self.bot, self.weekly_state)
-            await vanguard_handler.restore(self.bot, self.weekly_state)
-            await xur_handler.restore(self.bot, self.xur_state)
-            await eververse_handler.restore(self.bot, self.eververse_state)
-            await ada_handler.restore(self.bot, self.ada_state)
+            await weekly_handler.lost_sectors.restore(self.bot)
+            await weekly_handler.raids.restore(self.bot)
+            await weekly_handler.dungeons.restore(self.bot)
+            await vanguard_handler.publication.restore(self.bot)
+            await xur_handler.restore(self.bot)
+            await eververse_handler.publication.restore(self.bot)
+            await ada_handler.publication.restore(self.bot)
         except BungieUnavailableError:
             raise
         except Exception as e:
@@ -261,36 +263,30 @@ class Pipeline(commands.Cog):
     # déjà leur cache en interne dans publish_*.
 
     async def _refresh_sectors(self):
-        self.weekly_state.invalidate("daily_lost_sector")
-        await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, ping=False)
+        await weekly_handler.lost_sectors.refresh(self.bot)
 
     async def _refresh_raid(self):
-        self.weekly_state.invalidate("weekly_raid")
-        await weekly_handler.refresh_raid(self.bot, self.weekly_state)
+        await weekly_handler.raids.refresh(self.bot)
 
     async def _refresh_dungeon(self):
-        self.weekly_state.invalidate("weekly_dungeon")
-        await weekly_handler.refresh_dungeon(self.bot, self.weekly_state)
+        await weekly_handler.dungeons.refresh(self.bot)
 
     async def _refresh_vanguard(self):
-        self.weekly_state.invalidate("daily_vanguard")
-        await vanguard_handler.publish(self.bot, self.weekly_state, ping=False)
+        await vanguard_handler.publication.refresh(self.bot)
 
     async def _refresh_xur(self):
         self.xur_state.invalidate()
         if is_xur_active():
-            await xur_handler.publish_arrival(self.bot, self.xur_state, ping=False)
+            await xur_handler.publish_arrival(self.bot, ping=False)
         else:
             # Édition in-place du statut « absent » → aucune notification.
-            await xur_handler.refresh_absent_status(self.bot, self.xur_state)
+            await xur_handler.refresh_absent_status(self.bot)
 
     async def _refresh_eververse(self):
-        self.eververse_state.invalidate()
-        await eververse_handler.publish(self.bot, self.eververse_state, ping=False)
+        await eververse_handler.publication.refresh(self.bot)
 
     async def _refresh_ada(self):
-        self.ada_state.invalidate()
-        await ada_handler.publish(self.bot, self.ada_state, ping=False)
+        await ada_handler.publication.refresh(self.bot)
 
     async def _refresh_all(self):
         # Invalide tout (les IDs sont conservés pour supprimer les anciens).
@@ -299,18 +295,18 @@ class Pipeline(commands.Cog):
         self.eververse_state.invalidate()
         self.ada_state.invalidate()
 
-        await weekly_handler.publish_lost_sectors(self.bot, self.weekly_state, ping=False)
+        await weekly_handler.lost_sectors.publish(self.bot, ping=False)
         # Orchestrateur : purge unique du cache puis raids + donjons (sans ping).
-        await weekly_handler.publish_raid_dungeon(self.bot, self.weekly_state, ping=False)
-        await vanguard_handler.publish(self.bot, self.weekly_state, ping=False)
-        await eververse_handler.publish(self.bot, self.eververse_state, ping=False)
+        await weekly_handler.publish_raid_dungeon(self.bot, ping=False)
+        await vanguard_handler.publication.publish(self.bot, ping=False)
+        await eververse_handler.publication.publish(self.bot, ping=False)
         # Ada-1 : vendor permanent → on republie quel que soit le jour.
-        await ada_handler.publish(self.bot, self.ada_state, ping=False)
+        await ada_handler.publication.publish(self.bot, ping=False)
 
         if is_xur_active():
-            await xur_handler.publish_arrival(self.bot, self.xur_state, ping=False)
+            await xur_handler.publish_arrival(self.bot, ping=False)
         else:
-            await xur_handler.refresh_absent_status(self.bot, self.xur_state)
+            await xur_handler.refresh_absent_status(self.bot)
 
     def _dispatch(self):
         """Table {value → coroutine de refresh}."""

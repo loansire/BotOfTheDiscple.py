@@ -63,6 +63,10 @@ class WeeklyMessageState(JsonStore):
         guild = guilds.setdefault(str(guild_id), {})
         guild[topic] = {"message_ids": list(message_ids), "hash": content_hash}
 
+    def guilds_with(self, topic: str) -> list[str]:
+        """Serveurs ayant un état pour ce topic."""
+        return [gid for gid, topics in self._data.get("guilds", {}).items() if topic in topics]
+
     def purge(self, guild_id, topic: str):
         """Oublie l'état d'un topic pour un serveur (retrait d'un salon).
         Nettoie le dict serveur s'il devient vide."""
@@ -118,7 +122,51 @@ class WeeklyMessageState(JsonStore):
         self.save()
 
 
+class TopicSlot:
+    """Vue d'UN topic multi-message de WeeklyMessageState, à l'interface de
+    MultiMessageState (get / set / purge / invalidate / iter_guilds / save).
+
+    Permet au moteur générique (bot/publishing/repost.py) de traiter secteurs
+    oubliés et Avant-garde comme Ada-1 ou Eververse, sans changer le format du
+    fichier. Un éventuel `message_id` mono-message hérité est rangé avec les
+    message_ids (il sera supprimé au prochain repost)."""
+
+    def __init__(self, state: WeeklyMessageState, topic: str):
+        self._state = state
+        self.topic = topic
+
+    def get(self, guild_id) -> dict:
+        raw = self._state.get(guild_id, self.topic)
+        ids = list(raw.get("message_ids", []))
+        if raw.get("message_id"):
+            ids.append(raw["message_id"])
+        return {"message_ids": ids, "hash": raw.get("hash", "")}
+
+    def set(self, guild_id, *, message_ids, content_hash) -> None:
+        self._state.set_ids(guild_id, self.topic, message_ids=message_ids, content_hash=content_hash)
+
+    def iter_guilds(self):
+        """(guild_id, entrée normalisée) des serveurs ayant publié ce topic."""
+        for guild_id in self._state.guilds_with(self.topic):
+            yield guild_id, self.get(guild_id)
+
+    def purge(self, guild_id) -> None:
+        self._state.purge(guild_id, self.topic)
+
+    def invalidate(self) -> None:
+        self._state.invalidate(self.topic)
+
+    def save(self) -> None:
+        self._state.save()
+
+
 @cache
 def weekly_state() -> WeeklyMessageState:
     """Instance UNIQUE partagée (une seule copie mémoire écrit ce fichier)."""
     return WeeklyMessageState()
+
+
+@cache
+def weekly_slot(topic: str) -> TopicSlot:
+    """Vue partagée d'un topic multi-message (secteurs, Avant-garde)."""
+    return TopicSlot(weekly_state(), topic)

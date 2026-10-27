@@ -51,7 +51,7 @@ from bot.features.xur import (
     next_arrival_unix,
     next_departure_unix,
 )
-from bot.features.xur.state import TOPIC
+from bot.features.xur.state import TOPIC, xur_state
 from bot.core.logger import log
 
 
@@ -85,7 +85,7 @@ def _xur_hash(vendors) -> str:
 # ── VENDREDI : arrivée ──────────────────────────────────────────────────
 
 
-async def publish_arrival(bot, state, *, ping: bool = True) -> None:
+async def publish_arrival(bot, *, ping: bool = True) -> None:
     """Xûr arrive : par serveur, supprime tout puis republie statut, catégories,
     puis un message de ping rôle seul en dernier. Saute un serveur déjà à jour
     pour ce reset (évite de re-pinger tout le monde si on republie pour un seul
@@ -96,6 +96,7 @@ async def publish_arrival(bot, state, *, ping: bool = True) -> None:
     Purge le cache d'icônes (cadence hebdo) AVANT toute régénération, une fois
     le fetch confirmé : on ne supprime donc jamais une icône qu'on vient de
     composer."""
+    state = xur_state()
     vendors = await _fetch_vendors()
     if vendors is None:
         log.warning("[Xûr] Aucun item récupéré — arrivée non publiée.")
@@ -169,10 +170,11 @@ async def _repost_guild(
 # ── MARDI : départ ──────────────────────────────────────────────────────
 
 
-async def mark_departed(bot, state) -> None:
+async def mark_departed(bot) -> None:
     """Xûr part : supprime les catégories (et le message de ping) et édite le
     statut en « n'est pas là » (édition in-place → aucune notification). Aucun
     appel vendor."""
+    state = xur_state()
     return_unix = next_arrival_unix()
 
     for guild_id, guild, dest, entry in _known_destinations(bot, state):
@@ -208,7 +210,7 @@ async def _edit_or_post_status(dest, guild_id, status_view, state) -> None:
 # ── Réparation des messages disparus (point 4, sans ping) ───────────────
 
 
-async def restore(bot, state) -> None:
+async def restore(bot) -> None:
     """Répare les messages Xûr disparus (sans ping).
 
     Xûr actif : si le statut OU une catégorie (ou le ping) manque pour un
@@ -217,6 +219,7 @@ async def restore(bot, state) -> None:
     statut « absent » doit exister ; on le rétablit au besoin, sans fetch.
 
     Ne purge PAS le cache d'icônes (réparation = réutilisation du cache)."""
+    state = xur_state()
     active = is_xur_active()
     departure = next_departure_unix()
     return_unix = next_arrival_unix()
@@ -258,10 +261,11 @@ async def restore(bot, state) -> None:
 # ── Hooks /botconfig ────────────────────────────────────────────────────
 
 
-async def on_added(bot, state, guild_id, info) -> None:
+async def on_added(bot, guild_id, info) -> None:
     """Ajout d'un salon Xûr. `info` = {channel_id, is_thread, role_id}.
     Xûr actif → statut + catégories + message de ping seul en dernier ; inactif
     → statut absent (sans ping). Ne purge PAS le cache d'icônes."""
+    state = xur_state()
     target = config_destination(bot, guild_id, info)
     if target is None:
         return
@@ -293,9 +297,10 @@ async def on_added(bot, state, guild_id, info) -> None:
             state.save()
 
 
-async def on_removed(bot, state, guild_id, info) -> None:
+async def on_removed(bot, guild_id, info) -> None:
     """Retrait d'un salon Xûr : supprime statut + catégories (+ ping), purge
     l'état."""
+    state = xur_state()
     target = config_destination(bot, guild_id, info)
     if target is not None:
         entry = state.get(guild_id)
@@ -308,9 +313,10 @@ async def on_removed(bot, state, guild_id, info) -> None:
 # ── /refresh hors fenêtre Xûr ────────────────────────────────────────────
 
 
-async def refresh_absent_status(bot, state) -> None:
+async def refresh_absent_status(bot) -> None:
     """Met le statut à « n'est pas là » et purge d'éventuelles catégories
     (ou ping) résiduelles. Utilisé par /refresh quand Xûr est inactif."""
+    state = xur_state()
     return_unix = next_arrival_unix()
 
     for guild_id, guild, dest, entry in _known_destinations(bot, state):

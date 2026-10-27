@@ -15,12 +15,8 @@ prend effet au prochain repost (reset). Les topics événementiels
 Les états sont les instances UNIQUES partagées (mêmes objets que le poll → pas
 de seconde instance qui écrirait le même fichier en parallèle)."""
 from bot.features.ada import TOPIC as ADA_TOPIC
-from bot.features.ada.state import ada_state
 from bot.features.ascendant.state import ascendant_state
 from bot.features.distortion.state import distortion_state
-from bot.features.eververse.state import eververse_state
-from bot.features.weekly.state import weekly_state
-from bot.features.xur.state import xur_state
 from bot.features.eververse import TOPIC as EVERVERSE_TOPIC
 from bot.features.vanguard import TOPIC as VANGUARD_TOPIC
 from bot.features.xur.state import TOPIC as XUR_TOPIC
@@ -53,39 +49,44 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
     from bot.features.xur import handler as xur_handler
 
     # Topics weekly (secteurs, raids, donjons).
+    _WEEKLY = {
+        weekly_handler.LOST_SECTOR_TOPIC: weekly_handler.lost_sectors,
+        weekly_handler.RAID_TOPIC: weekly_handler.raids,
+        weekly_handler.DUNGEON_TOPIC: weekly_handler.dungeons,
+    }
     for topic, old, new in _channel_changes(before, after, _WEEKLY_TOPICS):
         if old is not None:
-            await weekly_handler.on_removed(bot, weekly_state(), guild_id, topic, before[topic])
+            await _WEEKLY[topic].on_removed(bot, guild_id, before[topic])
         if new is not None:
-            await weekly_handler.on_added(bot, weekly_state(), guild_id, topic, after[topic])
+            await _WEEKLY[topic].on_added(bot, guild_id, after[topic])
 
     # Topic Avant-garde (1 message par catégorie du Portail, état weekly).
     for topic, old, new in _channel_changes(before, after, (VANGUARD_TOPIC,)):
         if old is not None:
-            await vanguard_handler.on_removed(bot, weekly_state(), guild_id, before[topic])
+            await vanguard_handler.publication.on_removed(bot, guild_id, before[topic])
         if new is not None:
-            await vanguard_handler.on_added(bot, weekly_state(), guild_id, after[topic])
+            await vanguard_handler.publication.on_added(bot, guild_id, after[topic])
 
     # Topic Xûr (statut + catégories).
     for topic, old, new in _channel_changes(before, after, (XUR_TOPIC,)):
         if old is not None:
-            await xur_handler.on_removed(bot, xur_state(), guild_id, before[topic])
+            await xur_handler.on_removed(bot, guild_id, before[topic])
         if new is not None:
-            await xur_handler.on_added(bot, xur_state(), guild_id, after[topic])
+            await xur_handler.on_added(bot, guild_id, after[topic])
 
     # Topic Eververse (3 messages de sections).
     for topic, old, new in _channel_changes(before, after, (EVERVERSE_TOPIC,)):
         if old is not None:
-            await eververse_handler.on_removed(bot, eververse_state(), guild_id, before[topic])
+            await eververse_handler.publication.on_removed(bot, guild_id, before[topic])
         if new is not None:
-            await eververse_handler.on_added(bot, eververse_state(), guild_id, after[topic])
+            await eververse_handler.publication.on_added(bot, guild_id, after[topic])
 
     # Topic Ada-1 (message(s) de contenu).
     for topic, old, new in _channel_changes(before, after, (ADA_TOPIC,)):
         if old is not None:
-            await ada_handler.on_removed(bot, ada_state(), guild_id, before[topic])
+            await ada_handler.publication.on_removed(bot, guild_id, before[topic])
         if new is not None:
-            await ada_handler.on_added(bot, ada_state(), guild_id, after[topic])
+            await ada_handler.publication.on_added(bot, guild_id, after[topic])
 
     # Topic Distorsion (cog dédié, édition en place — aucun ping).
     for topic, old, new in _channel_changes(before, after, ("distortion",)):
