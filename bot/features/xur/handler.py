@@ -33,10 +33,13 @@ import discord
 
 from bot.bungie.reset import last_reset
 from bot.publishing.primitives import (
+    all_exist,
+    config_destination,
     content_hash,
-    delete_message,
+    delete_messages,
+    destinations_by_guild,
+    iter_destinations,
     message_exists,
-    resolve_destination,
     send_ping,
     send_view,
 )
@@ -50,32 +53,19 @@ from bot.features.xur import (
 )
 from bot.features.xur.state import TOPIC
 from bot.core.logger import log
-from bot.storage.subscriptions import iter_subscribers
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────
 
 
-async def _delete_messages(dest, ids) -> None:
-    """Supprime une liste de messages (ignore ceux déjà absents)."""
-    for mid in ids:
-        await delete_message(dest, mid)
-
-
-async def _all_exist(dest, ids) -> bool:
-    """True si tous les messages de la liste existent encore."""
-    for mid in ids:
-        if not await message_exists(dest, mid):
-            return False
-    return True
-
-
-def _dest_map() -> dict:
-    """guild_id → (dest_id, is_thread) pour les abonnés du topic Xûr."""
-    return {
-        gid: (did, info.get("is_thread", False))
-        for gid, did, info in iter_subscribers(TOPIC)
-    }
+def _known_destinations(bot, state):
+    """(guild_id, guild, dest, entry) des serveurs DÉJÀ publiés (présents dans
+    l'état) et toujours abonnés/joignables."""
+    dests = destinations_by_guild(bot, TOPIC)
+    for guild_id, entry in state.iter_guilds():
+        if guild_id in dests:
+            guild, dest = dests[guild_id]
+            yield guild_id, guild, dest, entry
 
 
 async def _fetch_vendors():
@@ -116,14 +106,7 @@ async def publish_arrival(bot, state, *, ping: bool = True) -> None:
     departure = next_departure_unix()
     xur_hash = _xur_hash(vendors)
 
-    for guild_id, dest_id, info in iter_subscribers(TOPIC):
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            continue
-        dest = resolve_destination(guild, dest_id, info.get("is_thread", False))
-        if dest is None:
-            continue
-
+    for guild_id, guild, dest, info in iter_destinations(bot, TOPIC):
         saved = state.get(guild_id)
         if saved["hash"] == xur_hash and saved["status_id"] and saved["category_ids"]:
             continue  # déjà publié pour ce reset
@@ -150,7 +133,7 @@ async def _repost_guild(
 
     # 1) Supprime TOUT (ancien statut + anciennes catégories + ancien ping).
     to_delete = ([old["status_id"]] if old["status_id"] else []) + old["category_ids"]
-    await _delete_messages(dest, to_delete)
+    await delete_messages(dest, to_delete)
 
     # 2) Nouveau statut « est là » (jamais de ping ici).
     status_view = build_xur_status_view(True, departure_unix=departure)
@@ -191,20 +174,10 @@ async def mark_departed(bot, state) -> None:
     statut en « n'est pas là » (édition in-place → aucune notification). Aucun
     appel vendor."""
     return_unix = next_arrival_unix()
-    dest_by_guild = _dest_map()
 
-    for guild_id, entry in state.iter_guilds():
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            continue
-        dest_info = dest_by_guild.get(guild_id)
-        if not dest_info:
-            continue
-        dest = resolve_destination(guild, dest_info[0], dest_info[1])
-        if dest is None:
-            continue
+    for guild_id, guild, dest, entry in _known_destinations(bot, state):
 
-        await _delete_messages(dest, entry["category_ids"])
+        await delete_messages(dest, entry["category_ids"])
         state.clear_categories(guild_id)
 
         status_view = build_xur_status_view(False, return_unix=return_unix)
@@ -244,30 +217,20 @@ async def restore(bot, state) -> None:
     statut « absent » doit exister ; on le rétablit au besoin, sans fetch.
 
     Ne purge PAS le cache d'icônes (réparation = réutilisation du cache)."""
-    dest_by_guild = _dest_map()
     active = is_xur_active()
     departure = next_departure_unix()
     return_unix = next_arrival_unix()
     vendors = None
     vendors_fetched = False
 
-    for guild_id, entry in state.iter_guilds():
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            continue
-        dest_info = dest_by_guild.get(guild_id)
-        if not dest_info:
-            continue
-        dest = resolve_destination(guild, dest_info[0], dest_info[1])
-        if dest is None:
-            continue
+    for guild_id, guild, dest, entry in _known_destinations(bot, state):
 
         status_ok = (
             await message_exists(dest, entry["status_id"]) if entry["status_id"] else False
         )
 
         if active:
-            cats_ok = bool(entry["category_ids"]) and await _all_exist(
+            cats_ok = bool(entry["category_ids"]) and await all_exist(
                 dest, entry["category_ids"]
             )
             if status_ok and cats_ok:
@@ -283,7 +246,7 @@ async def restore(bot, state) -> None:
         else:
             if status_ok:
                 if entry["category_ids"]:
-                    await _delete_messages(dest, entry["category_ids"])
+                    await delete_messages(dest, entry["category_ids"])
                     state.clear_categories(guild_id)
                 continue
             status_view = build_xur_status_view(False, return_unix=return_unix)
@@ -299,12 +262,10 @@ async def on_added(bot, state, guild_id, info) -> None:
     """Ajout d'un salon Xûr. `info` = {channel_id, is_thread, role_id}.
     Xûr actif → statut + catégories + message de ping seul en dernier ; inactif
     → statut absent (sans ping). Ne purge PAS le cache d'icônes."""
-    guild = bot.get_guild(int(guild_id))
-    if not guild:
+    target = config_destination(bot, guild_id, info)
+    if target is None:
         return
-    dest = resolve_destination(guild, info["channel_id"], info.get("is_thread", False))
-    if dest is None:
-        return
+    guild, dest = target
     role_id = info.get("role_id")
 
     if is_xur_active():
@@ -335,15 +296,11 @@ async def on_added(bot, state, guild_id, info) -> None:
 async def on_removed(bot, state, guild_id, info) -> None:
     """Retrait d'un salon Xûr : supprime statut + catégories (+ ping), purge
     l'état."""
-    guild = bot.get_guild(int(guild_id))
-    if guild:
-        dest = resolve_destination(guild, info["channel_id"], info.get("is_thread", False))
-        if dest is not None:
-            entry = state.get(guild_id)
-            to_delete = (
-                [entry["status_id"]] if entry["status_id"] else []
-            ) + entry["category_ids"]
-            await _delete_messages(dest, to_delete)
+    target = config_destination(bot, guild_id, info)
+    if target is not None:
+        entry = state.get(guild_id)
+        to_delete = ([entry["status_id"]] if entry["status_id"] else []) + entry["category_ids"]
+        await delete_messages(target[1], to_delete)
     state.purge(guild_id)
     state.save()
 
@@ -355,21 +312,11 @@ async def refresh_absent_status(bot, state) -> None:
     """Met le statut à « n'est pas là » et purge d'éventuelles catégories
     (ou ping) résiduelles. Utilisé par /refresh quand Xûr est inactif."""
     return_unix = next_arrival_unix()
-    dest_by_guild = _dest_map()
 
-    for guild_id, entry in state.iter_guilds():
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            continue
-        dest_info = dest_by_guild.get(guild_id)
-        if not dest_info:
-            continue
-        dest = resolve_destination(guild, dest_info[0], dest_info[1])
-        if dest is None:
-            continue
+    for guild_id, guild, dest, entry in _known_destinations(bot, state):
 
         if entry["category_ids"]:
-            await _delete_messages(dest, entry["category_ids"])
+            await delete_messages(dest, entry["category_ids"])
             state.clear_categories(guild_id)
 
         status_view = build_xur_status_view(False, return_unix=return_unix)

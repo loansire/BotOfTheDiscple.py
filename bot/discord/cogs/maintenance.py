@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 import asyncio
 
-import discord
-from discord import app_commands
 from discord.ext import commands, tasks
 
-from bot.publishing.primitives import publish_to_subscribers
+from bot.publishing.event import publish_to_subscribers
 from bot.features.maintenance.view import build_maintenance_embed
 from bot.features.maintenance import (
     extract_window,

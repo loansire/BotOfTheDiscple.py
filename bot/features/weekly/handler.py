@@ -48,14 +48,16 @@ from bot.bungie.client import bungie
 from bot.bungie.errors import BungieNotReadyError
 from bot.bungie.reset import TUESDAY, last_reset, last_weekday_reset
 from bot.publishing.primitives import (
+    all_exist,
     content_hash,
     delete_message,
+    delete_messages,
     message_exists,
-    publish_persistent_view,
     resolve_destination,
     send_ping,
     send_view,
 )
+from bot.publishing.single import publish_persistent_view
 from bot.render.banner import purge_banner_cache
 from bot.features.weekly.view import (
     build_dungeon_view,
@@ -76,26 +78,6 @@ STALE_GRACE = timedelta(hours=2)
 # Clés de feature pour la purge du cache d'images (cf. render/banner.py).
 _FEATURE_LOST_SECTOR = "secteur_oublie"
 _FEATURE_RAID_DUNGEON = "raid_donjon"  # partagé raids + donjons
-
-
-# ── Helpers messages ────────────────────────────────────────────────────
-
-
-async def _delete_messages(dest, ids) -> None:
-    """Supprime une liste de messages (ignore ceux déjà absents)."""
-    for mid in ids:
-        await delete_message(dest, mid)
-
-
-async def _all_exist(dest, ids) -> bool:
-    """True si tous les messages de la liste existent encore."""
-    for mid in ids:
-        if not await message_exists(dest, mid):
-            return False
-    return True
-
-
-# ── Payloads (fetch + hash), partagés par tous les chemins ──────────────
 
 
 # ── Garde-fou « données pas prêtes » ────────────────────────────────────
@@ -209,7 +191,7 @@ async def _ls_repost_guild(guild, dest, sectors, role_id, h, state, *, ping: boo
     old = state.get(guild_id, LOST_SECTOR_TOPIC)
 
     # 1) Supprime tout l'ancien (messages secteurs + éventuel ping + legacy).
-    await _delete_messages(dest, _ls_all_ids(old))
+    await delete_messages(dest, _ls_all_ids(old))
 
     # 2) Republie un message par secteur (jamais de ping ici).
     new_ids: list = []
@@ -288,7 +270,7 @@ async def _restore_lost_sectors(bot, state) -> None:
         ids = saved.get("message_ids", [])
         if not ids:
             continue  # jamais publié → géré au reset / à l'ajout
-        if await _all_exist(dest, ids):
+        if await all_exist(dest, ids):
             continue  # tout est en place
 
         if not fetched:
@@ -325,7 +307,7 @@ async def _ls_on_removed(bot, state, guild_id, info) -> None:
     if guild:
         dest = resolve_destination(guild, info["channel_id"], info.get("is_thread", False))
         if dest is not None:
-            await _delete_messages(dest, _ls_all_ids(state.get(guild_id, LOST_SECTOR_TOPIC)))
+            await delete_messages(dest, _ls_all_ids(state.get(guild_id, LOST_SECTOR_TOPIC)))
     state.purge(guild_id, LOST_SECTOR_TOPIC)
     state.save()
 

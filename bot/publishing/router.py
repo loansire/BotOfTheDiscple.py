@@ -12,13 +12,18 @@ changement de rôle SEUL (salon inchangé) ne déclenche rien : le nouveau rôle
 prend effet au prochain repost (reset). Les topics événementiels
 (maintenance_*/news_*) n'ont AUCUN hook (rien à republier/supprimer).
 
-Les états sont récupérés en mémoire via le cog Pipeline (mêmes objets que le
-poll → pas de seconde instance qui écrirait le même fichier en parallèle)."""
+Les états sont les instances UNIQUES partagées (mêmes objets que le poll → pas
+de seconde instance qui écrirait le même fichier en parallèle)."""
 from bot.features.ada import TOPIC as ADA_TOPIC
+from bot.features.ada.state import ada_state
+from bot.features.ascendant.state import ascendant_state
+from bot.features.distortion.state import distortion_state
+from bot.features.eververse.state import eververse_state
+from bot.features.weekly.state import weekly_state
+from bot.features.xur.state import xur_state
 from bot.features.eververse import TOPIC as EVERVERSE_TOPIC
 from bot.features.vanguard import TOPIC as VANGUARD_TOPIC
 from bot.features.xur.state import TOPIC as XUR_TOPIC
-from bot.core.logger import log
 
 # Topics weekly gérés (1 message persistant chacun).
 _WEEKLY_TOPICS = ("daily_lost_sector", "weekly_raid", "weekly_dungeon")
@@ -38,78 +43,60 @@ def _channel_changes(before: dict, after: dict, topics) -> list:
 
 async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
     """Applique les changements de salon de `before`→`after` pour un serveur."""
-    pipeline = bot.get_cog("Pipeline")
-    if pipeline is None:
-        log.warning("[Config] Cog Pipeline introuvable — changements non appliqués.")
-        return
-
     # Import différé : évite tout cycle au chargement du module de config.
     from bot.features.ada import handler as ada_handler
+    from bot.features.ascendant import handler as ascendant_handler
+    from bot.features.distortion import handler as distortion_handler
     from bot.features.eververse import handler as eververse_handler
     from bot.features.vanguard import handler as vanguard_handler
     from bot.features.weekly import handler as weekly_handler
     from bot.features.xur import handler as xur_handler
 
-    weekly_state = pipeline.weekly_state
-    xur_state = pipeline.xur_state
-    eververse_state = pipeline.eververse_state
-    ada_state = pipeline.ada_state
-
     # Topics weekly (secteurs, raids, donjons).
     for topic, old, new in _channel_changes(before, after, _WEEKLY_TOPICS):
         if old is not None:
-            await weekly_handler.on_removed(bot, weekly_state, guild_id, topic, before[topic])
+            await weekly_handler.on_removed(bot, weekly_state(), guild_id, topic, before[topic])
         if new is not None:
-            await weekly_handler.on_added(bot, weekly_state, guild_id, topic, after[topic])
+            await weekly_handler.on_added(bot, weekly_state(), guild_id, topic, after[topic])
 
     # Topic Avant-garde (1 message par catégorie du Portail, état weekly).
     for topic, old, new in _channel_changes(before, after, (VANGUARD_TOPIC,)):
         if old is not None:
-            await vanguard_handler.on_removed(bot, weekly_state, guild_id, before[topic])
+            await vanguard_handler.on_removed(bot, weekly_state(), guild_id, before[topic])
         if new is not None:
-            await vanguard_handler.on_added(bot, weekly_state, guild_id, after[topic])
+            await vanguard_handler.on_added(bot, weekly_state(), guild_id, after[topic])
 
     # Topic Xûr (statut + catégories).
     for topic, old, new in _channel_changes(before, after, (XUR_TOPIC,)):
         if old is not None:
-            await xur_handler.on_removed(bot, xur_state, guild_id, before[topic])
+            await xur_handler.on_removed(bot, xur_state(), guild_id, before[topic])
         if new is not None:
-            await xur_handler.on_added(bot, xur_state, guild_id, after[topic])
+            await xur_handler.on_added(bot, xur_state(), guild_id, after[topic])
 
     # Topic Eververse (3 messages de sections).
     for topic, old, new in _channel_changes(before, after, (EVERVERSE_TOPIC,)):
         if old is not None:
-            await eververse_handler.on_removed(bot, eververse_state, guild_id, before[topic])
+            await eververse_handler.on_removed(bot, eververse_state(), guild_id, before[topic])
         if new is not None:
-            await eververse_handler.on_added(bot, eververse_state, guild_id, after[topic])
+            await eververse_handler.on_added(bot, eververse_state(), guild_id, after[topic])
 
     # Topic Ada-1 (message(s) de contenu).
     for topic, old, new in _channel_changes(before, after, (ADA_TOPIC,)):
         if old is not None:
-            await ada_handler.on_removed(bot, ada_state, guild_id, before[topic])
+            await ada_handler.on_removed(bot, ada_state(), guild_id, before[topic])
         if new is not None:
-            await ada_handler.on_added(bot, ada_state, guild_id, after[topic])
+            await ada_handler.on_added(bot, ada_state(), guild_id, after[topic])
 
     # Topic Distorsion (cog dédié, édition en place — aucun ping).
-    distortion = bot.get_cog("Distortion")
-    if distortion is not None:
-        from bot.features.distortion import handler as distortion_handler
-        d_old = (before.get("distortion") or {}).get("channel_id")
-        d_new = (after.get("distortion") or {}).get("channel_id")
-        if d_old != d_new:
-            if d_old is not None:
-                await distortion_handler.on_removed(bot, distortion.state, guild_id, before["distortion"])
-            if d_new is not None:
-                await distortion_handler.on_added(bot, distortion.state, guild_id, after["distortion"])
+    for topic, old, new in _channel_changes(before, after, ("distortion",)):
+        if old is not None:
+            await distortion_handler.on_removed(bot, distortion_state(), guild_id, before[topic])
+        if new is not None:
+            await distortion_handler.on_added(bot, distortion_state(), guild_id, after[topic])
 
     # Topic Défis ascendants (cog dédié, édition en place — aucun ping).
-    ascendant = bot.get_cog("Ascendant")
-    if ascendant is not None:
-        from bot.features.ascendant import handler as ascendant_handler
-        a_old = (before.get("ascendant") or {}).get("channel_id")
-        a_new = (after.get("ascendant") or {}).get("channel_id")
-        if a_old != a_new:
-            if a_old is not None:
-                await ascendant_handler.on_removed(bot, ascendant.state, guild_id, before["ascendant"])
-            if a_new is not None:
-                await ascendant_handler.on_added(bot, ascendant.state, guild_id, after["ascendant"])
+    for topic, old, new in _channel_changes(before, after, ("ascendant",)):
+        if old is not None:
+            await ascendant_handler.on_removed(bot, ascendant_state(), guild_id, before[topic])
+        if new is not None:
+            await ascendant_handler.on_added(bot, ascendant_state(), guild_id, after[topic])

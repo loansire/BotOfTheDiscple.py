@@ -17,9 +17,8 @@ from typing import Callable
 
 import discord
 
-from bot.publishing.primitives import delete_message, resolve_destination
 from bot.core.logger import log
-from bot.storage.subscriptions import iter_subscribers
+from bot.publishing.primitives import config_destination, delete_message, iter_destinations
 
 # Factory renvoyant une vue NEUVE (et ses fichiers) à chaque appel : un
 # discord.File est consommé après envoi.
@@ -61,14 +60,7 @@ async def publish(
     est identique (/refresh)."""
     changed = False
 
-    for guild_id, dest_id, info in iter_subscribers(topic):
-        guild = bot.get_guild(int(guild_id))
-        if guild is None:
-            continue
-        dest = resolve_destination(guild, dest_id, info.get("is_thread", False))
-        if dest is None:
-            continue
-
+    for guild_id, _, dest, _ in iter_destinations(bot, topic):
         saved = state.get(guild_id)
         message_id = saved.get("message_id")
         if not force and message_id and saved.get("hash") == chash:
@@ -94,15 +86,10 @@ async def on_added(
     bot, state, guild_id, dest_info: dict, build: ViewFactory, chash: str, *, tag: str
 ) -> None:
     """Nouveau salon configuré → publication initiale immédiate."""
-    guild = bot.get_guild(int(guild_id))
-    if guild is None:
+    target = config_destination(bot, guild_id, dest_info)
+    if target is None:
         return
-    dest = resolve_destination(
-        guild, dest_info["channel_id"], dest_info.get("is_thread", False)
-    )
-    if dest is None:
-        return
-    new_id = await _send(dest, build, tag)
+    new_id = await _send(target[1], build, tag)
     if new_id:
         state.set(guild_id, message_id=new_id, content_hash=chash)
         state.save()
@@ -110,13 +97,8 @@ async def on_added(
 
 async def on_removed(bot, state, guild_id, dest_info: dict) -> None:
     """Salon retiré → suppression du message + purge de l'état."""
-    guild = bot.get_guild(int(guild_id))
-    message_id = state.get(guild_id).get("message_id")
-    if guild is not None and message_id:
-        dest = resolve_destination(
-            guild, dest_info["channel_id"], dest_info.get("is_thread", False)
-        )
-        if dest is not None:
-            await delete_message(dest, message_id)
+    target = config_destination(bot, guild_id, dest_info)
+    if target is not None:
+        await delete_message(target[1], state.get(guild_id).get("message_id"))
     state.purge(guild_id)
     state.save()

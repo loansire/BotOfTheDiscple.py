@@ -12,14 +12,14 @@ L'état des messages (`self.state`) est exposé pour le routeur /botconfig
 from discord.ext import commands, tasks
 
 from bot.features.ascendant import handler
-from bot.features.ascendant.state import AscendantMessageState
+from bot.features.ascendant.state import ascendant_state
 from bot.core.logger import log
 
 
 class Ascendant(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.state = AscendantMessageState()
+        self.state = ascendant_state()
         self.poll.start()
 
     def cog_unload(self):

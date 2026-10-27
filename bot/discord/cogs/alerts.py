@@ -6,7 +6,7 @@ L'abonnement est désormais géré par la commande unifiée `/alerte`
 """
 from discord.ext import commands, tasks
 
-from bot.publishing.primitives import publish_to_subscribers
+from bot.publishing.event import publish_to_subscribers
 from bot.features.news.view import build_news_alert
 from bot.features.news import get_latest_article
 from bot.features.news.state import NewsState

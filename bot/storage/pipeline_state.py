@@ -10,6 +10,8 @@ Fichier :
   "last_reset": "<iso>"   # dernier reset quotidien déjà traité par la pipeline
 }
 """
+from functools import cache
+
 from bot.core.config import ALERTS_DIR
 from bot.storage.json_store import JsonStore
 
@@ -40,3 +42,9 @@ class PipelineState(JsonStore):
             self._data["pending_weekdays"] = sorted(set(value))
         else:
             self._data.pop("pending_weekdays", None)
+
+
+@cache
+def pipeline_state() -> PipelineState:
+    """Instance UNIQUE partagée (une seule copie mémoire écrit ce fichier)."""
+    return PipelineState()

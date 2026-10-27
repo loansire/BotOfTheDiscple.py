@@ -47,12 +47,12 @@ from bot.features.eververse import handler as eververse_handler
 from bot.features.vanguard import handler as vanguard_handler
 from bot.features.weekly import handler as weekly_handler
 from bot.features.xur import handler as xur_handler
-from bot.features.ada.state import AdaMessageState
-from bot.features.eververse.state import EververseMessageState
-from bot.storage.pipeline_state import PipelineState
-from bot.features.weekly.state import WeeklyMessageState
+from bot.features.ada.state import ada_state
+from bot.features.eververse.state import eververse_state
+from bot.storage.pipeline_state import pipeline_state
+from bot.features.weekly.state import weekly_state
 from bot.features.xur import is_xur_active
-from bot.features.xur.state import XurMessageState
+from bot.features.xur.state import xur_state
 from bot.core.logger import log
 
 # Délais successifs entre deux tentatives en hold mode (minutes, le dernier
@@ -95,11 +95,11 @@ _REFRESH_LABELS = {
 class Pipeline(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.state = PipelineState()
-        self.weekly_state = WeeklyMessageState()
-        self.xur_state = XurMessageState()
-        self.eververse_state = EververseMessageState()
-        self.ada_state = AdaMessageState()
+        self.state = pipeline_state()
+        self.weekly_state = weekly_state()
+        self.xur_state = xur_state()
+        self.eververse_state = eververse_state()
+        self.ada_state = ada_state()
         self._hold = False  # True tant que le reset n'a pas pu être traité
         self._hold_since: float | None = None   # time.monotonic() d'entrée en hold
         self._hold_reason = ""

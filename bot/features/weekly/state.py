@@ -26,6 +26,8 @@ Le `hash` évite de reposter un message dont le contenu n'a pas changé. Le
 refresh manuel passe par `invalidate()`. Le retrait d'un salon via /botconfig
 passe par `purge()`.
 """
+from functools import cache
+
 from bot.core.config import ALERTS_DIR
 from bot.storage.json_store import JsonStore
 
@@ -114,3 +116,9 @@ class WeeklyMessageState(JsonStore):
                 if topic is None or t == topic:
                     topic_data.pop("hash", None)
         self.save()
+
+
+@cache
+def weekly_state() -> WeeklyMessageState:
+    """Instance UNIQUE partagée (une seule copie mémoire écrit ce fichier)."""
+    return WeeklyMessageState()

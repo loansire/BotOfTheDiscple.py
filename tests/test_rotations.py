@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Rotations fixes (Distorsion horaire, Défi ascendant hebdo) et leurs hash."""
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from bot.features import ascendant, distortion
 from bot.features.ascendant.constants import CONTRAT_VERS_DEFI, DEFIS_ORDRE

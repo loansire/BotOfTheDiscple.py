@@ -26,6 +26,8 @@ Rétro-compatibilité : l'ancien schéma stockait une liste plate `message_ids`.
 À la lecture, on la convertit (1er ID → status_id, reste → category_ids) pour
 ne pas casser au redémarrage après mise à jour.
 """
+from functools import cache
+
 from bot.core.config import ALERTS_DIR
 from bot.storage.json_store import JsonStore
 
@@ -124,3 +126,9 @@ class XurMessageState(JsonStore):
         for guild_id in list(self._data.get("guilds", {})):
             self.set(guild_id, content_hash="")
         self.save()
+
+
+@cache
+def xur_state() -> XurMessageState:
+    """Instance UNIQUE partagée (une seule copie mémoire écrit ce fichier)."""
+    return XurMessageState()

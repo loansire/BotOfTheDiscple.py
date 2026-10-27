@@ -13,14 +13,14 @@ L'état des messages (`self.state`) est exposé pour le routeur /botconfig
 from discord.ext import commands, tasks
 
 from bot.features.distortion import handler
-from bot.features.distortion.state import DistortionMessageState
+from bot.features.distortion.state import distortion_state
 from bot.core.logger import log
 
 
 class Distortion(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.state = DistortionMessageState()
+        self.state = distortion_state()
         self.poll.start()
 
     def cog_unload(self):

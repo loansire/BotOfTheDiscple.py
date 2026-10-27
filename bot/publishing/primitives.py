@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
-"""Dispatch vers les abonnés d'un topic.
+"""Briques Discord bas niveau partagées par tous les moteurs de publication.
 
-Deux régimes de publication :
-- publish_to_subscribers : événementiel — un nouveau message par événement
-  (news, maintenance). Conserve l'historique.
-- publish_persistent_view : persistant — UN message par abonné, supprimé puis
-  reposté à chaque actualisation. Le repost (et non l'édition) permet de
-  déclencher une notification et donc de ré-activer le ping rôle.
-
-Helpers partagés (utilisés aussi par les handlers de la pipeline) :
-- content_hash()       : hash court et stable d'un itérable de chaînes.
-- resolve_destination(): résout un salon texte ou un thread cible.
-- send_view()          : envoie une LayoutView (+ ping rôle optionnel) → id|None.
-- send_ping()          : envoie un message de mention rôle SEUL (hors CV2) → id|None.
-- message_exists()     : True si le message existe encore (NotFound → False).
-- delete_message()     : supprime un message (ignore s'il a déjà disparu).
+- content_hash()        : hash court et stable d'un itérable de chaînes.
+- resolve_destination() : résout un salon texte ou un thread cible.
+- iter_destinations()   : abonnés JOIGNABLES d'un topic (guild + salon résolus).
+- config_destination()  : idem pour une destination au format /botconfig.
+- send_view()           : envoie une LayoutView (+ ping rôle optionnel) → id|None.
+- send_ping()           : envoie un message de mention rôle SEUL (hors CV2) → id|None.
+- message_exists()      : True si le message existe encore (NotFound → False).
+- all_exist()           : idem pour une liste (vérifications en parallèle).
+- delete_message(s)()   : supprime un/des message(s) (ignore ceux déjà disparus).
+- destinations_by_guild(): guild_id → (guild, dest) des abonnés joignables.
 """
+from __future__ import annotations
+
+import asyncio
 import hashlib
-from typing import Awaitable, Callable, Optional
+from typing import Iterator, Optional
 
 import discord
 from discord import ui
@@ -32,6 +31,9 @@ def content_hash(parts) -> str:
     return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:16]
 
 
+# ── Destinations ────────────────────────────────────────────────────────
+
+
 def resolve_destination(
     guild: discord.Guild, dest_id: str, is_thread: bool
 ) -> Optional[discord.abc.Messageable]:
@@ -41,6 +43,49 @@ def resolve_destination(
         return th if isinstance(th, discord.Thread) else None
     ch = guild.get_channel(int(dest_id))
     return ch if isinstance(ch, discord.TextChannel) else None
+
+
+def iter_destinations(
+    bot: discord.Client, topic: str
+) -> Iterator[tuple[str, discord.Guild, discord.abc.Messageable, dict]]:
+    """Abonnés joignables d'un topic : (guild_id, guild, dest, info).
+
+    `info` = {name, is_thread, role} (forme subscriptions.json). Les serveurs
+    quittés et les salons supprimés/incompatibles sont ignorés."""
+    for guild_id, dest_id, info in iter_subscribers(topic):
+        guild = bot.get_guild(int(guild_id))
+        if guild is None:
+            continue
+        dest = resolve_destination(guild, dest_id, info.get("is_thread", False))
+        if dest is None:
+            continue
+        yield guild_id, guild, dest, info
+
+
+def destinations_by_guild(
+    bot: discord.Client, topic: str
+) -> dict[str, tuple[discord.Guild, discord.abc.Messageable]]:
+    """guild_id → (guild, dest) des abonnés joignables d'un topic. Sert aux
+    boucles qui parcourent un ÉTAT (serveurs déjà publiés) plutôt que les
+    abonnements."""
+    return {gid: (guild, dest) for gid, guild, dest, _ in iter_destinations(bot, topic)}
+
+
+def config_destination(
+    bot: discord.Client, guild_id, info: dict
+) -> Optional[tuple[discord.Guild, discord.abc.Messageable]]:
+    """(guild, dest) d'une destination au format /botconfig
+    ({channel_id, is_thread, role_id}), ou None si injoignable."""
+    guild = bot.get_guild(int(guild_id))
+    if guild is None:
+        return None
+    dest = resolve_destination(guild, info["channel_id"], info.get("is_thread", False))
+    if dest is None:
+        return None
+    return guild, dest
+
+
+# ── Envoi ───────────────────────────────────────────────────────────────
 
 
 async def send_view(
@@ -95,6 +140,9 @@ async def send_ping(dest, role_id: Optional[str]) -> Optional[str]:
         return None
 
 
+# ── Existence / suppression ─────────────────────────────────────────────
+
+
 async def message_exists(dest, message_id) -> bool:
     """True si le message existe encore. NotFound → False. Erreur transitoire
     → True (on ne reposte pas, pour éviter un doublon en cas de rate-limit)."""
@@ -107,6 +155,14 @@ async def message_exists(dest, message_id) -> bool:
         return False
     except discord.DiscordException:
         return True
+
+
+async def all_exist(dest, ids) -> bool:
+    """True si tous les messages de la liste existent encore (liste vide →
+    True). Les vérifications partent en parallèle ; en cas de rate-limit,
+    discord.py met lui-même les requêtes en attente."""
+    results = await asyncio.gather(*(message_exists(dest, mid) for mid in ids))
+    return all(results)
 
 
 async def delete_message(dest, message_id) -> None:
@@ -122,69 +178,7 @@ async def delete_message(dest, message_id) -> None:
         log.warning(f"[Publisher] Suppression échouée : {e}")
 
 
-async def publish_to_subscribers(bot: discord.Client, topic: str, build: Callable):
-    """`build()` doit renvoyer (embed, files, view) NEUFS à chaque appel
-    (un discord.File est consommé après envoi)."""
-    for guild_id, dest_id, info in iter_subscribers(topic):
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            continue
-        dest = resolve_destination(guild, dest_id, info.get("is_thread", False))
-        if dest is None:
-            continue
-
-        role_id = info.get("role")
-        mention = f"<@&{role_id}>" if role_id else None
-        try:
-            # build() DANS le try : un échec pour un abonné ne doit pas
-            # interrompre la boucle (les autres serveurs seraient privés du
-            # message, puis re-servis en double au poll suivant).
-            embed, files, view = build()
-            if view:
-                await dest.send(content=mention, embed=embed, files=files, view=view)
-            else:
-                await dest.send(content=mention, embed=embed, files=files)
-        except Exception as e:
-            log.error(f"[Publisher] Envoi échoué dans {dest} ({topic}) : {e}")
-
-
-async def publish_persistent_view(
-    bot: discord.Client,
-    topic: str,
-    build_view: Callable[[], Awaitable[tuple[discord.ui.LayoutView, list[discord.File]]]],
-    content_hash: str,
-    state,
-    *,
-    ping: bool = True,
-):
-    """Publie/reposte UN message persistant par abonné du topic.
-
-    `build_view()` est une factory asynchrone renvoyant (view, files) NEUFS à
-    chaque appel. `content_hash` identifie le contenu : si identique au dernier
-    publié (et un message_id est connu), on ne fait rien. Sinon l'ancien message
-    est supprimé puis reposté — ce repost (re)déclenche la notification.
-    `state` est un WeeklyMessageState.
-
-    `ping` (défaut True) : injecte la mention rôle sur le repost. Un refresh
-    manuel (/refresh) passe `ping=False` pour reposter SANS re-notifier —
-    exception à la règle « repost = ping »."""
-    for guild_id, dest_id, info in iter_subscribers(topic):
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            continue
-        dest = resolve_destination(guild, dest_id, info.get("is_thread", False))
-        if dest is None:
-            continue
-
-        saved = state.get(guild_id, topic)
-        message_id = saved.get("message_id")
-        if message_id and saved.get("hash") == content_hash:
-            continue  # contenu inchangé → rien à faire
-
-        await delete_message(dest, message_id)
-
-        view, files = await build_view()
-        new_id = await send_view(dest, view, files, role_id=info.get("role"), ping=ping)
-        if new_id:
-            state.set(guild_id, topic, message_id=new_id, content_hash=content_hash)
-            state.save()
+async def delete_messages(dest, ids) -> None:
+    """Supprime une liste de messages, dans l'ordre (ignore ceux déjà absents)."""
+    for mid in ids:
+        await delete_message(dest, mid)

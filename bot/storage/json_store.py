@@ -87,6 +87,7 @@ class MultiMessageState(JsonStore):
         anciens messages avant repost. Utilisé par /refresh."""
         for guild_id in list(self._data.get("guilds", {})):
             self.set(guild_id, content_hash="")
+        self.save()
 
 
 class SingleMessageState(JsonStore):
@@ -112,6 +113,7 @@ class SingleMessageState(JsonStore):
 
     def invalidate(self) -> None:
         """Efface les hash (conserve les message_id) → force une ré-édition au
-        prochain publish. Le caller appelle save()."""
+        prochain publish."""
         for entry in self._data.values():
             entry["hash"] = None
+        self.save()
