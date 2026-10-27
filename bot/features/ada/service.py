@@ -18,8 +18,8 @@ import os
 
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
-from bot.utils.aio import gather_limited
-from bot.utils.logger import log
+from bot.core.aio import gather_limited
+from bot.core.logger import log
 
 from .constants import ADA_VENDOR_HASH
 from .filtering import filtered_items, sorted_keys

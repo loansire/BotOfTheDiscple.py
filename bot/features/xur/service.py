@@ -22,8 +22,8 @@ from datetime import datetime
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
 from bot.bungie.reset import last_reset, next_weekday_reset
-from bot.utils.aio import gather_limited
-from bot.utils.logger import log
+from bot.core.aio import gather_limited
+from bot.core.logger import log
 
 from bot.features.vanguard.service import armor_set
 

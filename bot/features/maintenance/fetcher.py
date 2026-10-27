@@ -7,7 +7,7 @@ from typing import Optional
 
 import aiohttp
 
-from bot.utils.http import NETWORK_ERRORS, get_session
+from bot.core.http import NETWORK_ERRORS, get_session
 
 from .models import Game
 

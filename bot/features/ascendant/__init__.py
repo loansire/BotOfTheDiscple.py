@@ -30,7 +30,7 @@ from bot.features.ascendant.constants import (
     DEFIS_ORDRE,
     UPCOMING_COUNT,
 )
-from bot.utils.logger import log
+from bot.core.logger import log
 
 TOPIC = "ascendant"
 

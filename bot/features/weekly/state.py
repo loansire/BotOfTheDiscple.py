@@ -26,8 +26,8 @@ Le `hash` évite de reposter un message dont le contenu n'a pas changé. Le
 refresh manuel passe par `invalidate()`. Le retrait d'un salon via /botconfig
 passe par `purge()`.
 """
-from bot.config import ALERTS_DIR
-from bot.utils.json_store import JsonStore
+from bot.core.config import ALERTS_DIR
+from bot.storage.json_store import JsonStore
 
 STATE_PATH = ALERTS_DIR / "weekly_messages.json"
 

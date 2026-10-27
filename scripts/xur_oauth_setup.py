@@ -30,7 +30,7 @@ from bot.bungie.oauth import (  # noqa: E402
     authorize_url,
     exchange_code,
 )
-from bot.utils.http import close_session  # noqa: E402
+from bot.core.http import close_session  # noqa: E402
 
 
 def _extract_code(raw: str) -> str:

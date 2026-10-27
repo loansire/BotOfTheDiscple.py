@@ -23,9 +23,9 @@ sont pas conservées."""
 import asyncio
 
 from bot.bungie.client import bungie
-from bot.config import MANIFEST_DIR
-from bot.utils.jsonio import load_json, save_json
-from bot.utils.logger import log
+from bot.core.config import MANIFEST_DIR
+from bot.core.jsonio import load_json, save_json
+from bot.core.logger import log
 
 # Sous-ensemble de définitions téléchargées localement.
 # Volontairement SANS DestinyInventoryItemDefinition (trop volumineux) :

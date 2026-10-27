@@ -3,8 +3,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.embeds.wishwall import WishWallView, build_intro_embed
-from bot.features import wishwall as feature
+from bot.features.wishwall.view import WishWallView, build_intro_embed
+from bot.features.wishwall import service as feature
 
 
 class WishWall(commands.Cog):

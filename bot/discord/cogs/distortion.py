@@ -9,12 +9,12 @@ ré-édités (aucun ping). Couvre aussi :
   disparu).
 
 L'état des messages (`self.state`) est exposé pour le routeur /botconfig
-(bot.discord.handlers.topics.apply_config_change)."""
+(bot.publishing.router.apply_config_change)."""
 from discord.ext import commands, tasks
 
-from bot.discord.handlers import distortion as handler
+from bot.features.distortion import handler
 from bot.features.distortion.state import DistortionMessageState
-from bot.utils.logger import log
+from bot.core.logger import log
 
 
 class Distortion(commands.Cog):

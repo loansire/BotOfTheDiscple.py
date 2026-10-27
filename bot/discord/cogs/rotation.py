@@ -7,8 +7,8 @@ publiés restent cliquables après un redémarrage du bot.
 """
 from discord.ext import commands
 
-from bot.discord.rotation_components import RotationPersistentView
-from bot.utils.logger import log
+from bot.features.weekly.rotation_buttons import RotationPersistentView
+from bot.core.logger import log
 
 
 class Rotation(commands.Cog):

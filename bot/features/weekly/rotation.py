@@ -20,7 +20,7 @@ Un nom featured absent de la séquence n'invalide plus toute la prédiction : il
 est remonté à part (« hors cycle ») pour être affiché et logué.
 
 Les libellés des séquences sont exactement ceux des tables d'emotes (cf.
-bot/embeds/activity_emojis.py) : l'emote est donc toujours résolue, et un seul
+bot/render/activity_emojis.py) : l'emote est donc toujours résolue, et un seul
 endroit à éditer quand une activité entre dans la rotation.
 """
 from __future__ import annotations
@@ -88,7 +88,7 @@ def norm_name(name: str) -> str:
     - minuscules, retrait de l'article initial (le/la/les/l')
     - suppression des accents (NFKD + filtrage des diacritiques)
 
-    Vit dans la couche données (et non dans embeds/) parce que le matching
+    Vit dans la couche données (et non dans render/) parce que le matching
     séquence ↔ API en dépend : la résolution d'emote n'en est qu'un second
     consommateur.
     """

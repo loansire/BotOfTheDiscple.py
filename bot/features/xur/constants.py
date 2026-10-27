@@ -15,7 +15,7 @@ vendor_whitelist.json). Le fetch réseau est mutualisé par hash dans service.py
 (get_vendor_sales n'a pas de cache).
 """
 from bot.bungie.reset import FRIDAY, TUESDAY  # noqa: F401  (ré-export — dédup avec reset.py)
-from bot.config import MANIFEST_DIR
+from bot.core.config import MANIFEST_DIR
 
 # clé interne → (vendor_hash, libellé affiché, emoji custom de catégorie)
 XUR_VENDORS: dict[str, tuple[int, str, str]] = {

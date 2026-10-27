@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
-from bot.utils.jsonio import load_json_cached
-from bot.utils.logger import log
+from bot.core.jsonio import load_json_cached
+from bot.core.logger import log
 
 from .constants import LOOT_TABLES_PATH, TIER_EXOTIC, activity_type_order
 from .models import LootActivity, LootItem

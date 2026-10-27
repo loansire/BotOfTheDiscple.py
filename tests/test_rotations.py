@@ -52,14 +52,14 @@ class AscendantTests(unittest.TestCase):
 
 class ContentHashTests(unittest.TestCase):
     def test_rotation_hashes(self):
-        from bot.embeds.ascendant import content_hash as asc_hash
-        from bot.embeds.distortion import content_hash as dis_hash
+        from bot.features.ascendant.view import content_hash as asc_hash
+        from bot.features.distortion.view import content_hash as dis_hash
 
         self.assertEqual(dis_hash(distortion.ANCHOR), "distortion:0")
         self.assertEqual(asc_hash(ascendant.ANCHOR), f"ascendant:0:{DEFIS_ORDRE[0]}")
 
     def test_parts_hash_is_order_independent(self):
-        from bot.discord.publisher import content_hash
+        from bot.publishing.primitives import content_hash
 
         self.assertEqual(content_hash(["a", "b"]), content_hash(["b", "a"]))
         self.assertNotEqual(content_hash(["a"]), content_hash(["b"]))

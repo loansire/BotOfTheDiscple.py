@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from bot.utils.json_store import MultiMessageState, SingleMessageState
+from bot.storage.json_store import MultiMessageState, SingleMessageState
 
 
 class _TmpDir(unittest.TestCase):

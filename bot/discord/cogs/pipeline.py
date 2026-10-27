@@ -41,19 +41,19 @@ from discord.ext import commands, tasks
 
 from bot.bungie.errors import BungieMaintenanceError, BungieUnavailableError
 from bot.bungie.reset import FRIDAY, TUESDAY, last_reset
-from bot.config import OWNER_ID
-from bot.discord.handlers import ada as ada_handler
-from bot.discord.handlers import eververse as eververse_handler
-from bot.discord.handlers import vanguard as vanguard_handler
-from bot.discord.handlers import weekly as weekly_handler
-from bot.discord.handlers import xur as xur_handler
+from bot.core.config import OWNER_ID
+from bot.features.ada import handler as ada_handler
+from bot.features.eververse import handler as eververse_handler
+from bot.features.vanguard import handler as vanguard_handler
+from bot.features.weekly import handler as weekly_handler
+from bot.features.xur import handler as xur_handler
 from bot.features.ada.state import AdaMessageState
 from bot.features.eververse.state import EververseMessageState
-from bot.features.pipeline_state import PipelineState
+from bot.storage.pipeline_state import PipelineState
 from bot.features.weekly.state import WeeklyMessageState
 from bot.features.xur import is_xur_active
 from bot.features.xur.state import XurMessageState
-from bot.utils.logger import log
+from bot.core.logger import log
 
 # Délais successifs entre deux tentatives en hold mode (minutes, le dernier
 # se répète).

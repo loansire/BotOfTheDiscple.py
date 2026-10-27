@@ -8,12 +8,12 @@ affichée est périmée sont ré-édités (aucun ping). Couvre aussi :
 - la réparation des messages supprimés à la main (renvoi si le message a disparu).
 
 L'état des messages (`self.state`) est exposé pour le routeur /botconfig
-(bot.discord.handlers.topics.apply_config_change)."""
+(bot.publishing.router.apply_config_change)."""
 from discord.ext import commands, tasks
 
-from bot.discord.handlers import ascendant as handler
+from bot.features.ascendant import handler
 from bot.features.ascendant.state import AscendantMessageState
-from bot.utils.logger import log
+from bot.core.logger import log
 
 
 class Ascendant(commands.Cog):

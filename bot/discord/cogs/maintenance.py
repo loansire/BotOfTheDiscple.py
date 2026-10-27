@@ -5,15 +5,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from bot.discord.publisher import publish_to_subscribers
-from bot.embeds.maintenance import build_maintenance_embed
+from bot.publishing.primitives import publish_to_subscribers
+from bot.features.maintenance.view import build_maintenance_embed
 from bot.features.maintenance import (
     extract_window,
     format_discord_message,
     get_maintenances,
 )
-from bot.features.maintenance_state import MaintenanceState
-from bot.utils.logger import log
+from bot.features.maintenance.state import MaintenanceState
+from bot.core.logger import log
 
 GAMES = ("destiny", "marathon")
 

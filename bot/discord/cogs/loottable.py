@@ -21,10 +21,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.embeds.loottable import build_loot_page
+from bot.features.loottable.view import build_loot_page
 from bot.features.loottable import get_loot_table, list_activities
 from bot.features.loottable.constants import activity_type_label
-from bot.utils.logger import log
+from bot.core.logger import log
 
 # Discord n'accepte que 25 suggestions d'autocomplétion par requête.
 # Les séparateurs sont des Choice comme les autres : ils CONSOMMENT ce quota.

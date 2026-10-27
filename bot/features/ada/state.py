@@ -22,8 +22,8 @@ chargement.
 Le `hash` (calculé par le handler : id de reset + itemHash) évite de reposter un
 contenu inchangé. Le refresh manuel passe par `invalidate()` ; le retrait d'un
 salon via /botconfig passe par `purge()`."""
-from bot.config import ALERTS_DIR
-from bot.utils.json_store import MultiMessageState
+from bot.core.config import ALERTS_DIR
+from bot.storage.json_store import MultiMessageState
 
 STATE_PATH = ALERTS_DIR / "ada_messages.json"
 

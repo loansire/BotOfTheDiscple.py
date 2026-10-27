@@ -10,8 +10,8 @@ aussi le rattrapage automatique après une coupure du bot.
 Schéma (Ressources/AlertDatabase/distortion_state.json) :
     { "<guild_id>": { "message_id": "<id>" | null, "hash": "<str>" | null } }
 """
-from bot.config import ALERTS_DIR
-from bot.utils.json_store import SingleMessageState
+from bot.core.config import ALERTS_DIR
+from bot.storage.json_store import SingleMessageState
 
 STORE_PATH = ALERTS_DIR / "distortion_state.json"
 

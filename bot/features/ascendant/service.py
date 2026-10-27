@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from bot.bungie.client import bungie
 from bot.features.ascendant import current_window
 from bot.features.ascendant.constants import CONTRAT_VERS_DEFI
-from bot.utils.logger import log
+from bot.core.logger import log
 
 # Vendor Petra Venj (Cité des Rêves).
 PETRA_VENDOR_HASH = 1841717884

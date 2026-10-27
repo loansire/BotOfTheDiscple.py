@@ -9,7 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.discord.configbot_view import ConfigView
+from bot.discord.configbot.view import ConfigView
 
 
 class ConfigBot(commands.Cog):
