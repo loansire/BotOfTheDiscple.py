@@ -1,7 +1,5 @@
-discord.py
+discord.py>=2.6
 python-dotenv
-pytz
-requests
 aiohttp
 beautifulsoup4
 langdetect

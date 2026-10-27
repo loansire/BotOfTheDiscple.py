@@ -41,6 +41,7 @@ from discord.ext import commands, tasks
 
 from bot.bungie.errors import BungieMaintenanceError, BungieUnavailableError
 from bot.bungie.reset import FRIDAY, TUESDAY, last_reset
+from bot.config import OWNER_ID
 from bot.discord.handlers import ada as ada_handler
 from bot.discord.handlers import eververse as eververse_handler
 from bot.discord.handlers import vanguard as vanguard_handler
@@ -53,9 +54,6 @@ from bot.features.weekly.state import WeeklyMessageState
 from bot.features.xur import is_xur_active
 from bot.features.xur.state import XurMessageState
 from bot.utils.logger import log
-
-# Seul utilisateur autorisé à déclencher /refresh (auteur du bot).
-OWNER_ID = 222465158075777035
 
 # Délais successifs entre deux tentatives en hold mode (minutes, le dernier
 # se répète).

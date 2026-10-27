@@ -36,11 +36,20 @@ BUNGIE_CLIENT_SECRET = os.getenv("BUNGIE_CLIENT_SECRET")
 # bot est invité, /refresh est totalement invisible (pas seulement bloquée).
 # OPTIONNEL et fail-safe : si absent/invalide, /refresh n'est enregistrée nulle
 # part — le bot ne peut donc jamais l'exposer publiquement par oubli.
-_control_guild_raw = os.getenv("CONTROL_GUILD_ID")
-try:
-    CONTROL_GUILD_ID = int(_control_guild_raw) if _control_guild_raw else None
-except ValueError:
-    CONTROL_GUILD_ID = None
+def _int_env(name: str, default: int | None = None) -> int | None:
+    """Variable d'environnement entière ; absente ou invalide → `default`."""
+    raw = os.getenv(name)
+    try:
+        return int(raw) if raw else default
+    except ValueError:
+        return default
+
+
+CONTROL_GUILD_ID = _int_env("CONTROL_GUILD_ID")
+
+# Auteur du bot : seul autorisé à lancer /refresh et destinataire des DM
+# d'alerte de la pipeline (hold mode prolongé). Surchargeable via le .env.
+OWNER_ID = _int_env("OWNER_ID", 222465158075777035)
 
 # Validation au démarrage : on échoue tôt et clairement
 _missing = [
