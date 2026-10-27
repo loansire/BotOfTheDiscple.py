@@ -5,9 +5,10 @@ import unittest
 from pathlib import Path
 
 from bot.features.weekly.state import TopicSlot, WeeklyMessageState
+from bot.publishing.edit_in_place import EditInPlaceTopic
 from bot.publishing.repost import Payload, RepostTopic
 from bot.publishing.single import SingleTopic
-from bot.storage.json_store import MultiMessageState
+from bot.storage.json_store import MultiMessageState, SingleMessageState
 from tests.fake_discord import FakeBot, FakeChannel, FakeGuild, FakeView, subscriptions
 
 TOPIC = "demo"
@@ -157,6 +158,42 @@ class SingleTopicTests(_Base):
 
             await pub.refresh(self.bot)
             self.assertEqual(len(self.ch1.messages), 1)
+
+
+class EditInPlaceTopicTests(_Base):
+    def make(self, state):
+        self.period = 0
+        self.contexts = 0
+
+        async def context(now):
+            self.contexts += 1
+            return "ctx"
+
+        return EditInPlaceTopic(
+            topic=TOPIC, tag="Demo", state=lambda: state,
+            build=lambda now, ctx: (FakeView(f"{self.period}-{ctx}"), []),
+            chash=lambda now, ctx: f"p{self.period}",
+            context=context,
+        )
+
+    async def test_edit_in_place_lifecycle(self):
+        state = SingleMessageState(self.dir / "s.json")
+        pub = self.make(state)
+        with subscriptions(TOPIC, self.subs):
+            await pub.publish(self.bot)
+            mid = state.get("1")["message_id"]
+            self.assertEqual(self.ch1.pings, [])  # jamais de ping
+
+            self.period = 1
+            await pub.publish(self.bot)  # nouvelle période → édition, même message
+            self.assertEqual(state.get("1")["message_id"], mid)
+            self.assertEqual(self.ch1.messages[int(mid)].view.label, "1-ctx")
+
+            await self.ch1.messages[int(mid)].delete()
+            await pub.publish(self.bot, force=True)  # message disparu → renvoyé
+            self.assertNotEqual(state.get("1")["message_id"], mid)
+            self.assertEqual(len(self.ch1.messages), 1)
+            self.assertEqual(self.contexts, 3)
 
 
 if __name__ == "__main__":

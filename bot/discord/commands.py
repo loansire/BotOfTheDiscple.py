@@ -13,10 +13,9 @@ COGS = (
     "bot.discord.cogs.alerts",
     "bot.discord.cogs.configbot",
     "bot.discord.cogs.pipeline",
-    "bot.discord.cogs.distortion",
-    "bot.discord.cogs.ascendant",
+    "bot.discord.cogs.rotations",
     "bot.discord.cogs.loottable",
-    "bot.discord.cogs.rotation",
+    "bot.discord.cogs.persistent_views",
 )
 
 # Commandes réservées au SEUL serveur de contrôle (CONTROL_GUILD_ID) :

@@ -15,8 +15,6 @@ prend effet au prochain repost (reset). Les topics événementiels
 Les états sont les instances UNIQUES partagées (mêmes objets que le poll → pas
 de seconde instance qui écrirait le même fichier en parallèle)."""
 from bot.features.ada import TOPIC as ADA_TOPIC
-from bot.features.ascendant.state import ascendant_state
-from bot.features.distortion.state import distortion_state
 from bot.features.eververse import TOPIC as EVERVERSE_TOPIC
 from bot.features.vanguard import TOPIC as VANGUARD_TOPIC
 from bot.features.xur.state import TOPIC as XUR_TOPIC
@@ -91,13 +89,13 @@ async def apply_config_change(bot, guild_id, before: dict, after: dict) -> None:
     # Topic Distorsion (cog dédié, édition en place — aucun ping).
     for topic, old, new in _channel_changes(before, after, ("distortion",)):
         if old is not None:
-            await distortion_handler.on_removed(bot, distortion_state(), guild_id, before[topic])
+            await distortion_handler.publication.on_removed(bot, guild_id, before[topic])
         if new is not None:
-            await distortion_handler.on_added(bot, distortion_state(), guild_id, after[topic])
+            await distortion_handler.publication.on_added(bot, guild_id, after[topic])
 
     # Topic Défis ascendants (cog dédié, édition en place — aucun ping).
     for topic, old, new in _channel_changes(before, after, ("ascendant",)):
         if old is not None:
-            await ascendant_handler.on_removed(bot, ascendant_state(), guild_id, before[topic])
+            await ascendant_handler.publication.on_removed(bot, guild_id, before[topic])
         if new is not None:
-            await ascendant_handler.on_added(bot, ascendant_state(), guild_id, after[topic])
+            await ascendant_handler.publication.on_added(bot, guild_id, after[topic])

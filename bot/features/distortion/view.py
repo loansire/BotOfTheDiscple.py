@@ -46,14 +46,14 @@ def _image_file(destination: str) -> discord.File | None:
 def _active_block(window: DistortionWindow) -> str:
     return (
         f"# {DISTORTION_EMOJI} Distorsion active\n"
-        f"## {window.destination}\n"
+        f"## {window.key}\n"
         f"-# Fin : <t:{window.end_unix}:t> (<t:{window.end_unix}:R>)"
     )
 
 
 def _upcoming_line(window: DistortionWindow) -> str:
     return (
-        f"**{window.destination}**\n"
+        f"**{window.key}**\n"
         f"-# Début : <t:{window.start_unix}:t> (<t:{window.start_unix}:R>)"
     )
 
@@ -76,7 +76,7 @@ def build_distortion_view(now=None) -> tuple[DistortionView, list[discord.File]]
     container = ui.Container(accent_color=_ACCENT)
     container.add_item(ui.TextDisplay(_active_block(active)))
 
-    img = _image_file(active.destination)
+    img = _image_file(active.key)
     if img is not None:
         files.append(img)
         container.add_item(
