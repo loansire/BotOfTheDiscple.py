@@ -31,8 +31,8 @@ import copy
 from typing import Optional
 
 from bot.core.config import ALERTS_DIR
-from bot.topics import TOPICS
 from bot.core.jsonio import load_json_cached, save_json
+from bot.topics import TOPICS
 
 STORE_PATH = ALERTS_DIR / "subscriptions.json"
 

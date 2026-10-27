@@ -32,8 +32,8 @@ import discord
 from discord import ui
 
 from bot.bungie.reset import TUESDAY, next_reset, next_weekday_reset
-from bot.render.banner import BANNER_RATIO, get_banner
 from bot.features.weekly.models import ActivityVariant, LostSector, WeeklyActivity
+from bot.render.banner import BANNER_RATIO, get_banner
 
 from bot.features.weekly.rotation_buttons import RotationActionRow
 from bot.render.activity_emojis import DJ_EMOJI as _DJ_EMOJI

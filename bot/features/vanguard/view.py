@@ -29,8 +29,7 @@ from discord import ui
 from PIL import Image, ImageChops, ImageDraw
 
 from bot.bungie.reset import next_reset
-from bot.render.banner import BANNER_RATIO, get_banner
-from bot.render.item_icon import get_item_icon
+from bot.core.logger import log
 from bot.features.loottable.constants import ammo_type_tag, damage_type_tag, weapon_type_tag
 from bot.features.vanguard.constants import (
     ALERT_LABELS,
@@ -40,7 +39,8 @@ from bot.features.vanguard.constants import (
     PORTAL_ICON_DIR,
 )
 from bot.features.vanguard.models import FocusItem, PortalActivity, PortalCategory
-from bot.core.logger import log
+from bot.render.banner import BANNER_RATIO, get_banner
+from bot.render.item_icon import get_item_icon
 from bot.render.layout import StaticView
 
 _ACCENT = discord.Color.dark_red()

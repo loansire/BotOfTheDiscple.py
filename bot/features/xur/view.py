@@ -25,10 +25,10 @@ from io import BytesIO
 import discord
 from discord import ui
 
-from bot.features.vanguard.view import armor_lines, weapon_tags
-from bot.render.item_icon import get_vendor_icon
 from bot.features.vanguard.constants import ARMOR_SUBTYPE_LABELS
+from bot.features.vanguard.view import armor_lines, weapon_tags
 from bot.features.xur.models import XurVendor
+from bot.render.item_icon import get_vendor_icon
 from bot.render.layout import StaticView, chunked, item_section
 
 _ACCENT = discord.Color.gold()

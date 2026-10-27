@@ -18,11 +18,7 @@ from datetime import datetime
 import discord
 from discord import ui
 
-from bot.render.activity_emojis import (
-    DJ_EMOJI,
-    RD_EMOJI,
-    activity_emoji_for,
-)
+from bot.core.logger import log
 from bot.features.weekly.models import WeeklyActivity
 from bot.features.weekly.rotation import (
     DUNGEON_SEQUENCE,
@@ -31,7 +27,11 @@ from bot.features.weekly.rotation import (
     matches_reference,
     predict_rotation,
 )
-from bot.core.logger import log
+from bot.render.activity_emojis import (
+    DJ_EMOJI,
+    RD_EMOJI,
+    activity_emoji_for,
+)
 from bot.render.layout import StaticView
 
 _ACCENT = discord.Color.dark_red()

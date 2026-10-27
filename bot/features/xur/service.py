@@ -23,8 +23,8 @@ from bot.bungie.items import item_display, log_vendor_positions
 from bot.bungie.manifest import manifest
 from bot.bungie.reset import FRIDAY, TUESDAY, last_reset, next_weekday_reset
 from bot.bungie.sales import first_cost_quantity, sorted_keys
-from bot.core.jsonio import load_json
 from bot.core.aio import gather_limited
+from bot.core.jsonio import load_json
 from bot.core.logger import log
 
 from bot.features.vanguard.service import armor_set

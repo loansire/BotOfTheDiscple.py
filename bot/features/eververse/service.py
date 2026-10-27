@@ -22,8 +22,8 @@ from __future__ import annotations
 from bot.bungie.client import bungie
 from bot.bungie.items import item_display
 from bot.bungie.sales import first_cost_quantity, sale_index, sorted_keys
-from bot.core.config import BUNGIE_CHARACTER_ID, BUNGIE_HUNTER_ID, BUNGIE_WARLOCK_ID
 from bot.core.aio import gather_limited
+from bot.core.config import BUNGIE_CHARACTER_ID, BUNGIE_HUNTER_ID, BUNGIE_WARLOCK_ID
 from bot.core.logger import log
 
 from .constants import ARMOR_ORNAMENT_CLASSES, ARMOR_ORNAMENTS_VENDOR

@@ -22,9 +22,9 @@ from __future__ import annotations
 import discord
 from discord import ui
 
-from bot.features.weekly.rotation_view import build_rotation_view
-from bot.features.weekly import get_raid_dungeon
 from bot.core.logger import log
+from bot.features.weekly import get_raid_dungeon
+from bot.features.weekly.rotation_view import build_rotation_view
 
 _LABELS = {
     "raid": "Rotation prédictive",

@@ -5,8 +5,8 @@ from discord.ui import Button, View
 
 from bot.bungie.client import BUNGIE_BASE
 from bot.core.config import RESOURCES_DIR
-from bot.render.embed import build_embed
 from bot.features.news import get_latest_article
+from bot.render.embed import build_embed
 
 FOOTER_ICON_PATH = RESOURCES_DIR / "footer_icon.png"
 _FR_UNAVAILABLE = "⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*"

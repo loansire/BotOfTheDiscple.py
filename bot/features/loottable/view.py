@@ -25,7 +25,7 @@ from io import BytesIO
 import discord
 from discord import ui
 
-from bot.render.item_icon import get_item_icon
+from bot.core.logger import log
 from bot.features.loottable.constants import (
     ACTIVITY_BANNER_DIR,
     ICON_FEATURE,
@@ -37,7 +37,7 @@ from bot.features.loottable.constants import (
     weapon_type_tag, EXOTIC_NOTE, activity_type_tag,
 )
 from bot.features.loottable.models import LootActivity, LootItem
-from bot.core.logger import log
+from bot.render.item_icon import get_item_icon
 
 _ACCENT = discord.Color(0x2E86AB)
 

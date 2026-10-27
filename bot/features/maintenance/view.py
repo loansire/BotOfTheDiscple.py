@@ -4,9 +4,9 @@ import random
 import discord
 
 from bot.core.config import RESOURCES_DIR
-from bot.render.embed import build_embed
 from bot.features.maintenance.fetcher import ARTICLES
 from bot.features.maintenance.models import resolve_game
+from bot.render.embed import build_embed
 
 MAINTENANCE_DIR = RESOURCES_DIR / "Maintenance"
 FOOTER_ICON_PATH = RESOURCES_DIR / "footer_icon.png"

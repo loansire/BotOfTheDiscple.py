@@ -34,6 +34,15 @@ from types import SimpleNamespace
 import discord
 
 from bot.bungie.reset import last_reset
+from bot.core.logger import log
+from bot.features.xur import (
+    get_xur,
+    is_xur_active,
+    next_arrival_unix,
+    next_departure_unix,
+)
+from bot.features.xur.state import TOPIC, xur_state
+from bot.features.xur.view import build_xur_category_views, build_xur_status_view
 from bot.publishing.primitives import (
     all_exist,
     config_destination,
@@ -45,16 +54,7 @@ from bot.publishing.primitives import (
     send_ping,
     send_view,
 )
-from bot.features.xur.view import build_xur_category_views, build_xur_status_view
 from bot.render.item_icon import purge_xur_cache
-from bot.features.xur import (
-    get_xur,
-    is_xur_active,
-    next_arrival_unix,
-    next_departure_unix,
-)
-from bot.features.xur.state import TOPIC, xur_state
-from bot.core.logger import log
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────

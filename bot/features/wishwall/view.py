@@ -2,8 +2,8 @@
 import discord
 from discord.ui import Select, View
 
-from bot.render.embed import build_embed
 from bot.features.wishwall import service as feature
+from bot.render.embed import build_embed
 
 _COLOR = 0x6E00F5
 

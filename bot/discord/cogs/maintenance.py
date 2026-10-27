@@ -3,15 +3,15 @@ import asyncio
 
 from discord.ext import commands, tasks
 
-from bot.publishing.event import publish_to_subscribers
-from bot.features.maintenance.view import build_maintenance_embed
+from bot.core.logger import log
 from bot.features.maintenance import (
     extract_window,
     format_discord_message,
     get_maintenances,
 )
 from bot.features.maintenance.state import MaintenanceState
-from bot.core.logger import log
+from bot.features.maintenance.view import build_maintenance_embed
+from bot.publishing.event import publish_to_subscribers
 
 GAMES = ("destiny", "marathon")
 
