@@ -7,8 +7,8 @@ renvoie une liste de (vue, fichiers). Chaque message :
   sur le 1er message seulement) et l'icône Portal_Ico en accessoire, rendue
   CARRÉE (les icônes sources ne le sont pas, la vignette Discord rognerait) ;
 - un `ui.Separator` sous l'en-tête (comme raids/donjons) ;
-- par activité : un `TextDisplay` (nom, tags alerte/défi, item focus) PUIS le
-  bandeau pgcr avec l'icône de l'item INCRUSTÉE à droite. Pas de vignette à
+- par activité : un `TextDisplay` (nom, tags alerte, item focus, arme de défi)
+  PUIS le bandeau pgcr avec les icônes (focus, arme de défi) INCRUSTÉES à droite. Pas de vignette à
   côté du texte : le bandeau suit directement, sans décalage.
 
 Item focus : « Focus : nom » puis le détail sur sa propre ligne (largeur des
@@ -16,7 +16,7 @@ containers homogène) :
 - arme → nom en lien light.gg, ligne d'emojis type / élément / munitions ;
 - armure → nom sans lien, puis le set et ses bonus 2 / 4 pièces en liens
   D2Glossary.
-Activité défi (sans focus) : « Défi : arme » avec le même rendu.
+Activité avec défi hebdo : « Arme de défi : arme » sous le focus, même rendu.
 
 Cache d'images : bandeaux sous `banners/avant_garde/` (purge quotidienne
 orchestrée par le handler)."""
@@ -119,17 +119,23 @@ def _bordered(icon: bytes, size: int, gold: bool) -> Image.Image:
     return framed
 
 
-def _compose(banner: bytes, icon: bytes, grandmaster: bool = False) -> bytes:
-    """Incruste l'icône (carrée, bordée) à droite du bandeau, centrée
-    verticalement ; ajoute le liseré en biais derrière pour le grand maître."""
+def _compose(banner: bytes, icons: list[bytes], grandmaster: bool = False) -> bytes:
+    """Incruste les icônes (carrées, bordées) à droite du bandeau, de droite à
+    gauche (focus puis arme de défi), centrées verticalement. Grand maître :
+    bordure dorée sur le focus et liseré en biais derrière les icônes."""
     base = Image.open(BytesIO(banner)).convert("RGBA")
     size = round(base.height * _ICON_HEIGHT)
     margin = round(base.height * _ICON_MARGIN)
-    ico = _bordered(icon, size, grandmaster)
-    x = base.width - ico.width - margin
+    framed = [_bordered(icon, size, grandmaster and i == 0) for i, icon in enumerate(icons)]
+    xs, x = [], base.width - margin
+    for ico in framed:
+        x -= ico.width
+        xs.append(x)
+        x -= margin // 2
     if grandmaster:
-        base = Image.alpha_composite(base, _stripes(base.size, x))
-    base.paste(ico, (x, (base.height - ico.height) // 2), ico)
+        base = Image.alpha_composite(base, _stripes(base.size, xs[-1]))
+    for ico, x in zip(framed, xs):
+        base.paste(ico, (x, (base.height - ico.height) // 2), ico)
     base = base.convert("RGB")
     out = BytesIO()
     base.save(out, format="WEBP", quality=90)
@@ -137,18 +143,23 @@ def _compose(banner: bytes, icon: bytes, grandmaster: bool = False) -> bytes:
 
 
 async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
-    """Bandeau pgcr recadré, avec l'icône de l'item focus incrustée si dispo."""
+    """Bandeau pgcr recadré, avec les icônes de l'item focus et de l'arme de
+    défi incrustées si dispo."""
     if not act.pgcr_image:
         return None
     banner = await get_banner(act.pgcr_image, FEATURE, ratio)
-    if banner is None or act.focus is None or not act.focus.icon:
+    if banner is None:
+        return None
+    icons = []
+    for item in (act.focus, act.challenge):
+        if item is None or not item.icon:
+            continue
+        icon = await get_item_icon(item.item_hash, item.icon, item.watermark, feature=FEATURE)
+        if icon:
+            icons.append(icon)
+    if not icons:
         return banner
-    icon = await get_item_icon(
-        act.focus.item_hash, act.focus.icon, act.focus.watermark, feature=FEATURE
-    )
-    if icon is None:
-        return banner
-    return await asyncio.to_thread(_compose, banner, icon, act.is_grandmaster)
+    return await asyncio.to_thread(_compose, banner, icons, act.is_grandmaster)
 
 
 # ── Texte ───────────────────────────────────────────────────────────────
@@ -185,18 +196,22 @@ def _weapon_tags(f: FocusItem) -> str:
     return " ".join(t for t in tags if t)
 
 
-def _focus_lines(act: PortalActivity) -> list[str]:
-    """« Focus : item » (ou « Défi : arme ») puis le détail ligne à ligne."""
-    label = "Focus" if act.is_focused else "Récompense du défi"
-    f = act.focus
-    if f is None:
-        return [f"-# Aucun {label.lower()} détecté."]
+def _item_lines(label: str, f: FocusItem) -> list[str]:
+    """« <label> : item » puis le détail ligne à ligne (set d'armure ou tags d'arme)."""
     if f.sub_type in ARMOR_SUBTYPE_LABELS:
         return [f"{label} : **{f.name}**", *_armor_lines(f)]
     lines = [f"{label} : [**{f.name}**]({LIGHT_GG_BASE}{f.item_hash})"]
     tags = _weapon_tags(f)
     if tags:
         lines.append(tags)
+    return lines
+
+
+def _focus_lines(act: PortalActivity) -> list[str]:
+    """Item focus, puis arme de défi de la semaine si l'activité en a une."""
+    lines = _item_lines("Focus", act.focus) if act.focus else ["-# Aucun focus détecté."]
+    if act.challenge:
+        lines += _item_lines("Arme de défi", act.challenge)
     return lines
 
 

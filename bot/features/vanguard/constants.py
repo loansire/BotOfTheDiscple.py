@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Constantes de la feature Avant-garde (Portail : activités en focus du jour)."""
+from datetime import datetime, timezone
+
 from bot.config import RESOURCES_DIR
 
 TOPIC = "daily_vanguard"
@@ -36,4 +38,16 @@ ARMOR_SUBTYPE_LABELS: dict[int, str] = {
     28: "Armure de torse",
     29: "Jambières",
     30: "Objet de classe",
+}
+
+# ── Armes de défi (rotation hebdomadaire) ──────────────────────────────
+# Le manifest liste le POOL complet des récompenses d'un défi
+# (challenges[].displayRewards, armes puis récompenses génériques) sans
+# indiquer l'arme de la semaine : elle avance d'un cran par semaine dans
+# l'ordre des ARMES du pool. Ancrage = arme observée en jeu la semaine de
+# référence, par objectif de défi. Un défi absent d'ici n'affiche pas d'arme.
+CHALLENGE_REFERENCE_WEEK = datetime(2026, 10, 20, 17, 0, tzinfo=timezone.utc)
+CHALLENGE_ANCHORS: dict[int, int] = {
+    907263283: 1479562935,   # Partie rapide (Escouade) → Aube de l'aurore
+    3511848321: 189854537,   # Berceau du mal (Grand-maître) → Coup violent
 }

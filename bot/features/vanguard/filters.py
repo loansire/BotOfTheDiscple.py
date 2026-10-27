@@ -12,7 +12,7 @@ disparaissent une fois le défi accompli, alors que le défi (et son arme) tourn
 défi vu plus tôt dans la semaine (mémorisé par le handler)."""
 from __future__ import annotations
 
-from .constants import CATEGORIES, OPS_BONUS_REWARD
+from .constants import CATEGORIES, CHALLENGE_ANCHORS, OPS_BONUS_REWARD
 from .models import PortalActivity, PortalCategory
 
 _PLACEHOLDER = "placeholder"
@@ -46,6 +46,29 @@ def focus_item_hash(raw: dict) -> int | None:
             if qty.get("hasConditionalVisibility") and ih and ih != OPS_BONUS_REWARD:
                 return ih
     return None
+
+
+def challenge_pool(adef: dict) -> tuple[int, list[int]] | None:
+    """(objectif, pool de récompenses) du 1er défi ANCRÉ de l'activité (cf.
+    CHALLENGE_ANCHORS), ou None. Le pool mêle armes et récompenses génériques :
+    le tri par type d'item se fait à la résolution (service)."""
+    for challenge in adef.get("challenges", []):
+        objective = challenge.get("objectiveHash")
+        if objective in CHALLENGE_ANCHORS:
+            pool = [
+                r.get("itemQuantity", {}).get("itemHash")
+                for r in challenge.get("displayRewards", [])
+            ]
+            return objective, [h for h in pool if h]
+    return None
+
+
+def rotate_challenge(weapons: list[int], anchor: int, weeks: int) -> int | None:
+    """Arme de la semaine : l'ancre avance de `weeks` crans dans le pool
+    d'armes (cyclique). None si l'ancre n'est plus dans le pool."""
+    if anchor not in weapons:
+        return None
+    return weapons[(weapons.index(anchor) + weeks) % len(weapons)]
 
 
 def _real_pgcr(adef: dict) -> str | None:
@@ -128,6 +151,8 @@ def collect_portal(
         act.activity_hashes.append(ah)
         act.focus_hash = act.focus_hash or focus_item_hash(raw) or remembered.get(ah)
         act.is_focused = act.is_focused or bool(raw.get("isFocusedActivity"))
+        if act.challenge_objective is None and (pool := challenge_pool(adef)):
+            act.challenge_objective, act.challenge_pool = pool
         act.is_grandmaster = act.is_grandmaster or ah in grandmaster
         act.is_alert = (act.is_alert or ah in alerts) and not act.is_grandmaster
         label = variant_label(full_name)

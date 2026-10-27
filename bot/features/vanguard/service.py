@@ -5,11 +5,15 @@ Réutilise le fetch profil (components=204, cache aligné sur le reset
 quotidien) de la feature weekly."""
 from __future__ import annotations
 
+from datetime import datetime
+
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
+from bot.bungie.reset import TUESDAY, last_weekday_reset
 from bot.utils.logger import log
 
-from .filters import collect_portal
+from .constants import CHALLENGE_ANCHORS, CHALLENGE_REFERENCE_WEEK
+from .filters import collect_portal, rotate_challenge
 from .models import FocusItem, PortalCategory
 
 
@@ -52,6 +56,25 @@ async def _resolve_focus(item_hash: int) -> FocusItem | None:
     )
 
 
+# DestinyItemType : arme.
+_WEAPON = 3
+
+
+async def _challenge_weapon(objective: int, pool: list[int], now: datetime | None) -> int | None:
+    """Arme de défi de la semaine : pool réduit aux ARMES (type résolu via
+    l'API), puis rotation hebdomadaire depuis l'ancre de l'objectif."""
+    weapons = []
+    for item_hash in pool:
+        defn = await bungie.get_item_definition(item_hash)
+        if defn and defn.get("itemType") == _WEAPON:
+            weapons.append(item_hash)
+    weeks = (last_weekday_reset(TUESDAY, now) - CHALLENGE_REFERENCE_WEEK).days // 7
+    weapon = rotate_challenge(weapons, CHALLENGE_ANCHORS[objective], weeks)
+    if weapon is None:
+        log.warning(f"[Avant-garde] Ancre de défi {objective} absente du pool — ancrage à revoir.")
+    return weapon
+
+
 async def get_portal(remembered: dict[int, int] | None = None) -> list[PortalCategory]:
     """Catégories du Portail avec leurs activités du jour (focus résolus).
 
@@ -78,8 +101,12 @@ async def get_portal(remembered: dict[int, int] | None = None) -> list[PortalCat
         for act in cat.activities:
             if act.focus_hash:
                 act.focus = await _resolve_focus(act.focus_hash)
+            if act.is_challenge and act.challenge_objective:
+                weapon = await _challenge_weapon(act.challenge_objective, act.challenge_pool, None)
+                if weapon:
+                    act.challenge = await _resolve_focus(weapon)
         log.debug(
             f"[Avant-garde] {cat.label} : "
-            f"{[(a.base_name, a.focus and a.focus.name) for a in cat.activities]}"
+            f"{[(a.base_name, a.focus and a.focus.name, a.challenge and a.challenge.name) for a in cat.activities]}"
         )
     return categories
