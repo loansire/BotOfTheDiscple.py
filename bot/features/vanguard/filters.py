@@ -119,7 +119,7 @@ def collect_portal(
     defs = manifest.definitions("DestinyActivityDefinition")
 
     categories = [PortalCategory(key, label, icon) for key, _, label, icon in CATEGORIES]
-    groups: list[dict[str, PortalActivity]] = [{} for _ in CATEGORIES]
+    groups: list[dict[tuple[str, str], PortalActivity]] = [{} for _ in CATEGORIES]
 
     # Défis mémorisés absents du profil (déjà accomplis) : réinjectés tels quels.
     seen = {raw.get("activityHash") for raw in activities}
@@ -144,10 +144,25 @@ def collect_portal(
         if not name:
             continue
 
-        act = groups[idx].get(name)
+        # Une alerte et le focus du jour peuvent porter le même nom (ex. un
+        # champ de bataille) : on les sépare pour ne pas mélanger leurs items.
+        # Seules des variantes de difficulté distinctes (Normal / Maîtrise)
+        # restent regroupées malgré un statut différent.
+        label = variant_label(full_name)
+        kind = "grandmaster" if ah in grandmaster else "alert" if ah in alerts else "focus"
+        act = groups[idx].get((name, kind))
+        if act is None and label:
+            act = next(
+                (
+                    a
+                    for (n, _), a in groups[idx].items()
+                    if n == name and a.difficulties and label not in a.difficulties
+                ),
+                None,
+            )
         if act is None:
             act = PortalActivity(base_name=name, pgcr_image=pgcr_for(adef, defs))
-            groups[idx][name] = act
+            groups[idx][(name, kind)] = act
         act.activity_hashes.append(ah)
         act.focus_hash = act.focus_hash or focus_item_hash(raw) or remembered.get(ah)
         act.is_focused = act.is_focused or bool(raw.get("isFocusedActivity"))
@@ -155,7 +170,6 @@ def collect_portal(
             act.challenge_objective, act.challenge_pool = pool
         act.is_grandmaster = act.is_grandmaster or ah in grandmaster
         act.is_alert = (act.is_alert or ah in alerts) and not act.is_grandmaster
-        label = variant_label(full_name)
         if label and label not in _NOT_DIFFICULTY and label not in act.difficulties:
             act.difficulties.append(label)
         act.is_challenge = act.is_challenge or is_challenge
