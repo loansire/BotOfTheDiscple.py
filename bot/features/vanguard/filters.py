@@ -8,7 +8,7 @@ elle appartient à une catégorie publiée d'après l'extrait Portail du manifes
 
 Défis : les challenges sont lus sur le profil du personnage de référence et
 disparaissent une fois le défi accompli, alors que le défi (et son arme) tourne
-à la SEMAINE. `remembered` ({activity_hash: arme défi}) permet de réafficher un
+à la SEMAINE. `remembered` ({activity_hash: focus mémorisé}) permet de réafficher un
 défi vu plus tôt dans la semaine (mémorisé par le handler)."""
 from __future__ import annotations
 
@@ -168,12 +168,15 @@ def collect_portal(
 
 
 def challenges_of(categories: list[PortalCategory]) -> dict[int, int]:
-    """{activity_hash: arme défi} des activités défi (sans focus) à mémoriser
-    pour la semaine."""
+    """{activity_hash: item focus mémorisé} de TOUTES les activités défi, à
+    mémoriser pour la semaine (le défi tourne à la semaine alors que le profil
+    le fait disparaître une fois accompli, y compris sur une activité déjà en
+    focus). Le focus n'est retenu que pour une activité hors focus : sinon 0,
+    le focus du jour primant."""
     return {
-        ah: act.focus_hash
+        ah: 0 if act.is_focused else (act.focus_hash or 0)
         for cat in categories
         for act in cat.activities
-        if act.is_challenge and not act.is_focused and act.focus_hash
+        if act.is_challenge
         for ah in act.activity_hashes
     }

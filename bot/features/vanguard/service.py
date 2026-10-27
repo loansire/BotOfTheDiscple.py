@@ -78,7 +78,7 @@ async def _challenge_weapon(objective: int, pool: list[int], now: datetime | Non
 async def get_portal(remembered: dict[int, int] | None = None) -> list[PortalCategory]:
     """Catégories du Portail avec leurs activités du jour (focus résolus).
 
-    `remembered` : défis de la semaine déjà vus ({activity_hash: arme défi}),
+    `remembered` : défis de la semaine déjà vus ({activity_hash: focus mémorisé}),
     cf. filters.collect_portal. Renvoie [] si le profil ou l'extrait Portail
     est indisponible."""
     await manifest.sync()
@@ -101,6 +101,11 @@ async def get_portal(remembered: dict[int, int] | None = None) -> list[PortalCat
         for act in cat.activities:
             if act.focus_hash:
                 act.focus = await _resolve_focus(act.focus_hash)
+            if act.is_challenge and not act.challenge_objective:
+                log.warning(
+                    f"[Avant-garde] Défi sans ancre pour « {act.base_name} » "
+                    f"(hashes {act.activity_hashes}) — ajouter l'objectif à CHALLENGE_ANCHORS."
+                )
             if act.is_challenge and act.challenge_objective:
                 weapon = await _challenge_weapon(act.challenge_objective, act.challenge_pool, None)
                 if weapon:

@@ -34,6 +34,7 @@ from bot.embeds.banner import BANNER_RATIO, get_banner
 from bot.embeds.xur_image import get_item_icon
 from bot.features.loottable.constants import ammo_type_tag, damage_type_tag, weapon_type_tag
 from bot.features.vanguard.constants import (
+    ALERT_LABELS,
     ARMOR_SUBTYPE_LABELS,
     D2GLOSSARY_SET_PERK,
     LIGHT_GG_BASE,
@@ -59,6 +60,7 @@ _ICON_MARGIN = 0.14
 _BORDER = 2
 _BORDER_COLOR = (220, 220, 220, 255)
 _BORDER_GOLD = (230, 190, 70, 255)
+_BORDER_CHALLENGE = (41, 182, 178, 255)  # turquoise de l'icône de défi en jeu
 
 # Liseré en biais derrière l'icône (alerte grand maître), de gauche à droite :
 # blanc, orange, orange, bleu marine Avant-garde, en dégradé vers la
@@ -111,22 +113,24 @@ def _stripes(size: tuple[int, int], left: int) -> Image.Image:
     return layer
 
 
-def _bordered(icon: bytes, size: int, gold: bool) -> Image.Image:
-    """Icône redimensionnée avec une fine bordure (dorée pour le grand maître)."""
+def _bordered(icon: bytes, size: int, color: tuple[int, int, int, int]) -> Image.Image:
+    """Icône redimensionnée avec une fine bordure de la couleur donnée."""
     ico = Image.open(BytesIO(icon)).convert("RGBA").resize((size, size), Image.LANCZOS)
-    framed = Image.new("RGBA", (size + 2 * _BORDER, size + 2 * _BORDER), _BORDER_GOLD if gold else _BORDER_COLOR)
+    framed = Image.new("RGBA", (size + 2 * _BORDER, size + 2 * _BORDER), color)
     framed.paste(ico, (_BORDER, _BORDER), ico)
     return framed
 
 
-def _compose(banner: bytes, icons: list[bytes], grandmaster: bool = False) -> bytes:
+def _compose(
+    banner: bytes, icons: list[tuple[bytes, tuple[int, int, int, int]]], grandmaster: bool = False
+) -> bytes:
     """Incruste les icônes (carrées, bordées) à droite du bandeau, de droite à
-    gauche (focus puis arme de défi), centrées verticalement. Grand maître :
-    bordure dorée sur le focus et liseré en biais derrière les icônes."""
+    gauche (focus puis arme de défi), centrées verticalement. `icons` =
+    (icône, couleur de bordure). Grand maître : liseré en biais derrière."""
     base = Image.open(BytesIO(banner)).convert("RGBA")
     size = round(base.height * _ICON_HEIGHT)
     margin = round(base.height * _ICON_MARGIN)
-    framed = [_bordered(icon, size, grandmaster and i == 0) for i, icon in enumerate(icons)]
+    framed = [_bordered(icon, size, color) for icon, color in icons]
     xs, x = [], base.width - margin
     for ico in framed:
         x -= ico.width
@@ -151,12 +155,13 @@ async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
     if banner is None:
         return None
     icons = []
-    for item in (act.focus, act.challenge):
+    focus_color = _BORDER_GOLD if act.is_grandmaster else _BORDER_COLOR
+    for item, color in ((act.focus, focus_color), (act.challenge, _BORDER_CHALLENGE)):
         if item is None or not item.icon:
             continue
         icon = await get_item_icon(item.item_hash, item.icon, item.watermark, feature=FEATURE)
         if icon:
-            icons.append(icon)
+            icons.append((icon, color))
     if not icons:
         return banner
     return await asyncio.to_thread(_compose, banner, icons, act.is_grandmaster)
@@ -165,13 +170,15 @@ async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
 # ── Texte ───────────────────────────────────────────────────────────────
 
 
-def _tags_line(act: PortalActivity) -> str:
-    """Ligne « Alerte de l'Avant-garde (…) », ou '' si aucun tag."""
+def _tags_line(act: PortalActivity, cat_key: str) -> str:
+    """Ligne « Alerte de l'Avant-garde (…) », ou '' si aucun tag. L'alerte
+    simple est qualifiée par la catégorie (Escouade, Arène)."""
     tags = []
     if act.is_grandmaster:
         tags.append("Alerte de l'Avant-garde (Grand-maître)")
     elif act.is_alert:
-        tags.append("Alerte de l'Avant-garde (Escouade)")
+        label = ALERT_LABELS.get(cat_key)
+        tags.append(f"Alerte de l'Avant-garde ({label})" if label else "Alerte de l'Avant-garde")
     return f"-# {' · '.join(tags)}" if tags else ""
 
 
@@ -215,11 +222,11 @@ def _focus_lines(act: PortalActivity) -> list[str]:
     return lines
 
 
-def _activity_text(act: PortalActivity) -> ui.TextDisplay:
+def _activity_text(act: PortalActivity, cat_key: str) -> ui.TextDisplay:
     title = f"### {act.base_name}"
     if len(act.difficulties) > 1:
         title += f" ({' / '.join(act.difficulties)})"
-    lines = [title, _tags_line(act), *_focus_lines(act)]
+    lines = [title, _tags_line(act, cat_key), *_focus_lines(act)]
     return ui.TextDisplay("\n".join(line for line in lines if line))
 
 
@@ -257,7 +264,7 @@ async def _build_category(
 
     banners = 0
     for act in cat.activities:
-        container.add_item(_activity_text(act))
+        container.add_item(_activity_text(act, cat.key))
         if banners >= _MAX_BANNERS:
             continue
         banner = await _activity_banner(act, ratio)

@@ -49,5 +49,12 @@ ARMOR_SUBTYPE_LABELS: dict[int, str] = {
 CHALLENGE_REFERENCE_WEEK = datetime(2026, 10, 20, 17, 0, tzinfo=timezone.utc)
 CHALLENGE_ANCHORS: dict[int, int] = {
     907263283: 1479562935,   # Partie rapide (Escouade) → Aube de l'aurore
+    2673092981: 1479562935,  # Partie rapide (Arène) → Aube de l'aurore (pool identique à l'Escouade)
     3511848321: 189854537,   # Berceau du mal (Grand-maître) → Coup violent
+}
+
+# Libellé de l'alerte selon la catégorie du Portail (clé de CATEGORIES).
+ALERT_LABELS: dict[str, str] = {
+    "fireteam": "Escouade",
+    "arena": "Arène",
 }
