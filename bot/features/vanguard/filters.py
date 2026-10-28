@@ -173,6 +173,8 @@ def collect_portal(
         if label and label not in _NOT_DIFFICULTY and label not in act.difficulties:
             act.difficulties.append(label)
         act.is_challenge = act.is_challenge or is_challenge
+        if is_challenge:
+            act.challenge_hashes.append(ah)
 
     for cat, group in zip(categories, groups):
         cat.activities = sorted(
@@ -186,11 +188,11 @@ def challenges_of(categories: list[PortalCategory]) -> dict[int, int]:
     mémoriser pour la semaine (le défi tourne à la semaine alors que le profil
     le fait disparaître une fois accompli, y compris sur une activité déjà en
     focus). Le focus n'est retenu que pour une activité hors focus : sinon 0,
-    le focus du jour primant."""
+    le focus du jour primant. Seuls les hashes portant eux-mêmes le défi sont
+    retenus, pas les autres variantes regroupées sous le même nom."""
     return {
         ah: 0 if act.is_focused else (act.focus_hash or 0)
         for cat in categories
         for act in cat.activities
-        if act.is_challenge
-        for ah in act.activity_hashes
+        for ah in act.challenge_hashes
     }
