@@ -90,7 +90,7 @@ class EditInPlaceTopic:
     async def _publish(self, bot, *, force: bool) -> None:
         build, chash = await self._snapshot()
         state = self.state()
-        changed = False
+        edited, sent = 0, 0
 
         for guild_id, _, dest, _ in iter_destinations(bot, self.topic):
             saved = state.get(guild_id)
@@ -101,17 +101,19 @@ class EditInPlaceTopic:
             new_id, ok = (None, False)
             if message_id:
                 new_id, ok = await _edit(dest, message_id, build, self.tag)
+                edited += ok
             if new_id is None:
                 # (pas d'id connu, ou message disparu) → message neuf
                 new_id = await _send(dest, build, self.tag)
                 ok = new_id is not None
+                sent += ok
 
             if new_id:
                 state.set(guild_id, message_id=new_id, content_hash=chash if ok else None)
-                changed = True
 
-        if changed:
+        if edited or sent:
             state.save()
+            log.info(f"[{self.tag}] {edited} message(s) édité(s), {sent} envoyé(s) ({chash}).")
 
     async def refresh(self, bot) -> None:
         """/refresh : ré-édition forcée (sans ping), donnée live re-tirée."""
@@ -131,6 +133,7 @@ class EditInPlaceTopic:
             state = self.state()
             state.set(guild_id, message_id=new_id, content_hash=chash)
             state.save()
+            log.info(f"[{self.tag}] Message publié dans {target[0].name} (nouveau salon).")
 
     async def on_removed(self, bot, guild_id, info: dict) -> None:
         """Salon retiré → suppression du message + purge de l'état."""

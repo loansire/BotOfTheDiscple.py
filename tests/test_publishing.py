@@ -137,7 +137,7 @@ class SingleTopicTests(_Base):
         return FakeView(data), []
 
     def make(self, state):
-        return SingleTopic(topic=TOPIC, state=lambda: state, payload=self._payload, build_view=self._view)
+        return SingleTopic(topic=TOPIC, tag="Demo", state=lambda: state, payload=self._payload, build_view=self._view)
 
     async def test_publish_restore_refresh(self):
         weekly = WeeklyMessageState(self.dir / "w.json")

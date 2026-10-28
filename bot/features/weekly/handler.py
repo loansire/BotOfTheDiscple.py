@@ -97,9 +97,10 @@ def _activity_payload(topic: str, activity_type: str):
     return payload
 
 
-def _single(topic: str, activity_type: str, build_view) -> SingleTopic:
+def _single(topic: str, tag: str, activity_type: str, build_view) -> SingleTopic:
     return SingleTopic(
         topic=topic,
+        tag=tag,
         state=weekly_state,
         payload=_activity_payload(topic, activity_type),
         build_view=build_view,
@@ -108,8 +109,8 @@ def _single(topic: str, activity_type: str, build_view) -> SingleTopic:
     )
 
 
-raids = _single(RAID_TOPIC, "Raid", build_raid_view)
-dungeons = _single(DUNGEON_TOPIC, "Donjon", build_dungeon_view)
+raids = _single(RAID_TOPIC, "Raids", "Raid", build_raid_view)
+dungeons = _single(DUNGEON_TOPIC, "Donjons", "Donjon", build_dungeon_view)
 
 
 async def publish_raid_dungeon(bot, *, ping: bool = True, strict: bool = False) -> None:

@@ -180,23 +180,24 @@ async def mark_departed(bot) -> None:
     return_unix = next_arrival_unix()
 
     for guild_id, guild, dest, entry in _known_destinations(bot, state):
-
         await delete_messages(dest, entry["category_ids"])
         state.clear_categories(guild_id)
 
         status_view = build_xur_status_view(False, return_unix=return_unix)
-        await _edit_or_post_status(dest, guild_id, status_view, state)
+        await _edit_or_post_status(dest, guild, status_view, state)
 
     state.save()
 
 
-async def _edit_or_post_status(dest, guild_id, status_view, state) -> None:
-    """Édite le statut existant ; s'il a disparu, le reposte SANS ping."""
+async def _edit_or_post_status(dest, guild, status_view, state) -> None:
+    """Édite le statut « absent » existant ; s'il a disparu, le reposte SANS ping."""
+    guild_id = str(guild.id)
     status_id = state.status_id(guild_id)
     if status_id:
         try:
             msg = await dest.fetch_message(int(status_id))
             await msg.edit(view=status_view)
+            log.info(f"[Xûr] Statut « absent » édité dans {guild.name}.")
             return
         except discord.NotFound:
             log.warning(f"[Xûr] Statut {status_id} introuvable (guild {guild_id}) — repost.")
@@ -207,6 +208,7 @@ async def _edit_or_post_status(dest, guild_id, status_view, state) -> None:
     mid = await send_view(dest, status_view, ping=False)
     if mid:
         state.set(guild_id, status_id=mid)
+        log.info(f"[Xûr] Statut « absent » reposté dans {guild.name}.")
 
 
 # ── Réparation des messages disparus (point 4, sans ping) ───────────────
@@ -229,7 +231,6 @@ async def restore(bot) -> None:
     vendors_fetched = False
 
     for guild_id, guild, dest, entry in _known_destinations(bot, state):
-
         status_ok = (
             await message_exists(dest, entry["status_id"]) if entry["status_id"] else False
         )
@@ -255,7 +256,7 @@ async def restore(bot) -> None:
                     state.clear_categories(guild_id)
                 continue
             status_view = build_xur_status_view(False, return_unix=return_unix)
-            await _edit_or_post_status(dest, guild_id, status_view, state)
+            await _edit_or_post_status(dest, guild, status_view, state)
 
     state.save()
 
@@ -286,6 +287,7 @@ async def on_added(bot, guild_id, info) -> None:
             if mid:
                 state.set(guild_id, status_id=mid, category_ids=[], content_hash="")
                 state.save()
+                log.info(f"[Xûr] Statut seul publié dans {guild.name} (inventaire indisponible).")
             return
         await _repost_guild(
             guild, dest, vendors, departure, role_id, _xur_hash(vendors), state, ping=True
@@ -297,6 +299,7 @@ async def on_added(bot, guild_id, info) -> None:
         if mid:
             state.set(guild_id, status_id=mid, category_ids=[], content_hash="")
             state.save()
+            log.info(f"[Xûr] Statut « absent » publié dans {guild.name} (nouveau salon).")
 
 
 async def on_removed(bot, guild_id, info) -> None:
@@ -322,13 +325,12 @@ async def refresh_absent_status(bot) -> None:
     return_unix = next_arrival_unix()
 
     for guild_id, guild, dest, entry in _known_destinations(bot, state):
-
         if entry["category_ids"]:
             await delete_messages(dest, entry["category_ids"])
             state.clear_categories(guild_id)
 
         status_view = build_xur_status_view(False, return_unix=return_unix)
-        await _edit_or_post_status(dest, guild_id, status_view, state)
+        await _edit_or_post_status(dest, guild, status_view, state)
 
     state.save()
 

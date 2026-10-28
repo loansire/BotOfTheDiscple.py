@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Optional
 
+from bot.core.logger import log
 from bot.publishing.primitives import (
     config_destination,
     delete_message,
@@ -31,6 +32,7 @@ from bot.publishing.repost import Payload
 @dataclass
 class SingleTopic:
     topic: str
+    tag: str  # préfixe des logs, ex. "Raids"
     state: Callable[[], Any]
     payload: Callable[[bool], Awaitable[Optional[Payload]]]
     build_view: Callable[[Any], Awaitable[tuple]]  # data → (vue, fichiers) NEUFS
@@ -44,7 +46,7 @@ class SingleTopic:
         if payload is None:
             return
         state = self.state()
-        for guild_id, _, dest, info in iter_destinations(bot, self.topic):
+        for guild_id, guild, dest, info in iter_destinations(bot, self.topic):
             saved = state.get(guild_id, self.topic)
             message_id = saved.get("message_id")
             if message_id and saved.get("hash") == payload.hash:
@@ -56,6 +58,7 @@ class SingleTopic:
             if new_id:
                 state.set(guild_id, self.topic, message_id=new_id, content_hash=payload.hash)
                 state.save()
+                log.info(f"[{self.tag}] Message publié dans {guild.name}.")
 
         if self.on_published:
             self.on_published(payload)
@@ -66,23 +69,24 @@ class SingleTopic:
         paresseux (aucun fetch si rien ne manque). Ne purge PAS le cache."""
         state = self.state()
         missing = []
-        for guild_id, _, dest, _ in iter_destinations(bot, self.topic):
+        for guild_id, guild, dest, _ in iter_destinations(bot, self.topic):
             mid = state.get(guild_id, self.topic).get("message_id")
             if not mid:
                 continue  # jamais publié → géré au reset / à l'ajout
             if not await message_exists(dest, mid):
-                missing.append((guild_id, dest))
+                missing.append((guild_id, guild, dest))
         if not missing:
             return
 
         payload = await self.payload(False)
         if payload is None:
             return
-        for guild_id, dest in missing:
+        for guild_id, guild, dest in missing:
             view, files = await self.build_view(payload.data)
             new_id = await send_view(dest, view, files)
             if new_id:
                 state.set(guild_id, self.topic, message_id=new_id, content_hash=payload.hash)
+                log.info(f"[{self.tag}] Message restauré dans {guild.name}.")
         state.save()
 
     async def on_added(self, bot, guild_id, info: dict) -> None:
@@ -94,7 +98,7 @@ class SingleTopic:
         payload = await self.payload(False)
         if payload is None:
             return
-        dest = target[1]
+        guild, dest = target
         state = self.state()
 
         # Suppression défensive d'un éventuel ancien message mémorisé.
@@ -104,6 +108,7 @@ class SingleTopic:
         if mid:
             state.set(guild_id, self.topic, message_id=mid, content_hash=payload.hash)
             state.save()
+            log.info(f"[{self.tag}] Message publié dans {guild.name} (nouveau salon).")
 
     async def on_removed(self, bot, guild_id, info: dict) -> None:
         state = self.state()
