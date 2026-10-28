@@ -17,47 +17,27 @@ from __future__ import annotations
 import os
 
 from bot.bungie.client import bungie
-from bot.bungie.manifest import manifest
-from bot.utils.aio import gather_limited
-from bot.utils.logger import log
+from bot.bungie.items import item_display, log_vendor_positions
+from bot.core.aio import gather_limited
+from bot.core.logger import log
 
 from .constants import ADA_VENDOR_HASH
-from .filtering import filtered_items, sorted_keys
+from .filtering import filtered_items
 from .models import AdaItem
 
 
 async def _resolve_item(item_hash: int, cost_quantity: int | None) -> AdaItem | None:
-    """itemHash → AdaItem (icon + watermark + coût) via DestinyInventoryItemDefinition.
-
-    Nom résolu en EN via l'API live, surchargé en FR si l'extrait manifest local
-    (item_names_fr.json) contient une traduction (sinon fallback EN)."""
-    defn = await bungie.get_item_definition(item_hash)
-    if defn is None:
+    """itemHash → AdaItem (icon + watermark + coût), nom FR si disponible."""
+    item = await item_display(item_hash)
+    if item is None:
         return None
-    display = defn.get("displayProperties", {})
-    name = manifest.item_name_fr(item_hash) or display.get("name", f"Item {item_hash}")
     return AdaItem(
         item_hash=item_hash,
-        name=name,
-        icon=display.get("icon") or None,
-        watermark=defn.get("iconWatermark") or None,
+        name=item.name,
+        icon=item.icon,
+        watermark=item.watermark,
         cost_quantity=cost_quantity,
     )
-
-
-async def _log_vendor_indices(sales: dict) -> None:
-    """Diagnostic (ADA_DEBUG) : position (1-based) → nom d'item, pour vérifier le
-    filtre positionnel sur données réelles avant de le figer."""
-    keys = sorted_keys(sales)
-    log.info(f"[Ada-1][debug] {len(keys)} case(s) :")
-    for rank, k in enumerate(keys, start=1):
-        ih = sales[k].get("itemHash")
-        name = f"hash={ih}"
-        if isinstance(ih, int):
-            defn = await bungie.get_item_definition(ih)
-            if defn:
-                name = defn.get("displayProperties", {}).get("name", name)
-        log.info(f"[Ada-1][debug]   position {rank} (clé {k}) → {name}")
 
 
 async def get_ada() -> list[AdaItem]:
@@ -71,7 +51,7 @@ async def get_ada() -> list[AdaItem]:
         return []
 
     if os.getenv("ADA_DEBUG"):
-        await _log_vendor_indices(sales)
+        await log_vendor_positions("Ada-1", sales)
 
     resolved = await gather_limited(
         _resolve_item(item_hash, cost_quantity)

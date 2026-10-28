@@ -12,10 +12,10 @@ from bot.bungie.errors import (
     is_transient,
 )
 from bot.bungie.reset import last_reset
-from bot.config import BUNGIE_API_KEY, BUNGIE_CHARACTER, MANIFEST_DIR
-from bot.utils.http import NETWORK_ERRORS, get_session
-from bot.utils.jsonio import load_json, save_json
-from bot.utils.logger import log
+from bot.core.config import BUNGIE_API_KEY, BUNGIE_CHARACTER, MANIFEST_DIR
+from bot.core.http import NETWORK_ERRORS, get_session
+from bot.core.jsonio import load_json, save_json
+from bot.core.logger import log
 
 BUNGIE_BASE = "https://www.bungie.net"
 PLATFORM_BASE = f"{BUNGIE_BASE}/Platform"

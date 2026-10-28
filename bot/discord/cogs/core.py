@@ -2,8 +2,8 @@
 import discord
 from discord.ext import commands
 
-from bot.config import CONTROL_GUILD_ID
-from bot.utils.logger import log
+from bot.core.config import CONTROL_GUILD_ID
+from bot.core.logger import log
 
 
 class Core(commands.Cog):

@@ -6,11 +6,11 @@ L'abonnement est désormais géré par la commande unifiée `/alerte`
 """
 from discord.ext import commands, tasks
 
-from bot.discord.publisher import publish_to_subscribers
-from bot.embeds.news import build_news_alert
+from bot.core.logger import log
 from bot.features.news import get_latest_article
-from bot.features.news_state import NewsState
-from bot.utils.logger import log
+from bot.features.news.state import NewsState
+from bot.features.news.view import build_news_alert
+from bot.publishing.event import publish_to_subscribers
 
 # type d'alerte → (keyword Bungie, topic d'abonnement, libellé)
 NEWS_TYPES = {

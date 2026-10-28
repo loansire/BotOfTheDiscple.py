@@ -22,10 +22,6 @@ ORDER: tuple[str, ...] = (
     "Zone Morte Européenne",
 )
 
-# Nombre de destinations À VENIR affichées sous l'active
-# (cycle complet SANS doublon : 7 - 1 = 6).
-UPCOMING_COUNT = len(ORDER) - 1
-
 
 def image_filename(destination: str) -> str:
     """Nom de fichier image d'une destination : ASCII, espaces → « _ », .png.

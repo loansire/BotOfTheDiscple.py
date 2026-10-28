@@ -8,9 +8,9 @@ from __future__ import annotations
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
 from bot.bungie.reset import last_reset
-from bot.config import RESOURCES_DIR
-from bot.utils.jsonio import load_json
-from bot.utils.logger import log
+from bot.core.config import RESOURCES_DIR
+from bot.core.jsonio import load_json
+from bot.core.logger import log
 
 from . import filters
 from .models import LostSector, WeeklyActivity

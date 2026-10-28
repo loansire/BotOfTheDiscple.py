@@ -2,7 +2,7 @@
 """Constantes de la feature Avant-garde (Portail : activités en focus du jour)."""
 from datetime import datetime, timezone
 
-from bot.config import RESOURCES_DIR
+from bot.core.config import RESOURCES_DIR
 
 TOPIC = "daily_vanguard"
 

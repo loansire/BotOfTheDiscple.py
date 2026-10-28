@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import asyncio
 
-from bot.config import DISCORD_TOKEN
+from bot.core.config import DISCORD_TOKEN
 from bot.discord.client import bot
-from bot.utils.http import close_session
-from bot.utils.logger import log
+from bot.core.http import close_session
+from bot.core.logger import log
 
 
 async def main():

@@ -1,8 +1,0 @@
-discord.py
-python-dotenv
-pytz
-requests
-aiohttp
-beautifulsoup4
-langdetect
-Pillow
