@@ -21,12 +21,16 @@ chargement.
 Le `hash` (calculé par le handler : id de reset + itemHash) évite de reposter un
 contenu inchangé. Le refresh manuel passe par `invalidate()` ; le retrait d'un
 salon via /botconfig passe par `purge()`."""
-from bot.config import ALERTS_DIR
-from bot.utils.json_store import MultiMessageState
+from functools import cache
+
+from bot.core.config import ALERTS_DIR
+from bot.storage.json_store import MultiMessageState
 
 STATE_PATH = ALERTS_DIR / "eververse_messages.json"
 
 
-class EververseMessageState(MultiMessageState):
-    def __init__(self, path=STATE_PATH):
-        super().__init__(path)
+@cache
+def eververse_state() -> MultiMessageState:
+    """Instance UNIQUE partagée (pipeline, cogs, routeur /botconfig) : une
+    seule copie mémoire écrit ce fichier."""
+    return MultiMessageState(STATE_PATH)

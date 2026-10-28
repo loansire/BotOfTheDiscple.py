@@ -44,10 +44,6 @@ CONTRAT_VERS_DEFI: dict[int, str] = {
     2338128705: "keep_of_honed_edges",  # Fort des Tranchants Aiguisés
 }
 
-# Nombre de défis À VENIR affichés sous l'actif
-# (cycle complet SANS doublon : 6 - 1 = 5).
-UPCOMING_COUNT = len(DEFIS_ORDRE) - 1
-
 
 def image_filename(challenge: str) -> str:
     """Nom de fichier image d'un défi : « <clé>.png ».

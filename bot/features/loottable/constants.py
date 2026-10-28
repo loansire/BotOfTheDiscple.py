@@ -12,7 +12,7 @@ sont des valeurs NUMÉRIQUES du manifest : elles sont stables et indépendantes 
 la langue, contrairement à `itemTypeDisplayName` (renvoyé en anglais par l'API
 live). C'est donc sur elles qu'on mappe emojis et libellés FR.
 """
-from bot.config import RESOURCES_DIR
+from bot.core.config import RESOURCES_DIR
 
 # Fichier de données, maintenu à la main (hors code).
 LOOT_TABLES_PATH = RESOURCES_DIR / "LootTable" / "loot_tables.json"

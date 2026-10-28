@@ -39,7 +39,7 @@ ARMOR_ORNAMENTS_VENDOR = 2031393824
 
 # Ordre d'affichage des classes pour ce vendor.
 #   (clé de personnage, libellé affiché AU-DESSUS du coût)
-# La clé est résolue en character_id côté service.py (via bot.config).
+# La clé est résolue en character_id côté service.py (via bot.core.config).
 ARMOR_ORNAMENT_CLASSES = [
     ("main", "Ornement Titan"),
     ("warlock", "Ornement Arcaniste"),

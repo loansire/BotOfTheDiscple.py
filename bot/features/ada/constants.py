@@ -7,7 +7,7 @@ hashes de type d'activité) : il vit dans le code, pas dans le .env.
 Ada-1 est un vendor PERMANENT (toujours présente à la Tour) : pas de fenêtre
 présent/absent. Son inventaire tourne une fois par semaine, au reset du MARDI.
 
-Module volontairement SANS import (aucun `bot.config`) : la logique de filtrage
+Module volontairement SANS import (aucun `bot.core.config`) : la logique de filtrage
 (filtering.py) peut ainsi être testée sans .env.
 """
 

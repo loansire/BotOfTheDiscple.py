@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from bot.utils.logger import log
+from bot.core.logger import log
 
 from .fetcher import fetch_article_body
 from .formatter import (

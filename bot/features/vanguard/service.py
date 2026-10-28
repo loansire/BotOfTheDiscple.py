@@ -10,7 +10,7 @@ from datetime import datetime
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
 from bot.bungie.reset import TUESDAY, last_weekday_reset
-from bot.utils.logger import log
+from bot.core.logger import log
 
 from .constants import CHALLENGE_ANCHORS, CHALLENGE_REFERENCE_WEEK
 from .filters import collect_portal, rotate_challenge

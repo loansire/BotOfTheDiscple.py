@@ -37,7 +37,7 @@ FEATURED_REWARD_HASHES: set[int] = {
 # via ses modifierHashes.
 #
 # NB : ces ensembles servent à CLASSIFIER les modificateurs (data). Le mapping
-# hash → emoji vit à part dans embeds/weekly.py (_LS_MODIFIER_EMOJIS) ;
+# hash → emoji vit à part dans features/weekly/view.py (_LS_MODIFIER_EMOJIS) ;
 # duplication assumée, factoriser coupleraient feature → embeds (mauvais sens de
 # dépendance). Les commentaires rappellent l'abréviation d'emoji correspondante
 # pour la traçabilité entre les deux tables.
