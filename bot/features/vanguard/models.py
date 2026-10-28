@@ -34,6 +34,7 @@ class PortalActivity:
     is_grandmaster: bool = False        # alerte de l'Avant-garde (Grand-maître)
     difficulties: list[str] = field(default_factory=list)  # « Normal », « Maîtrise »…
     is_challenge: bool = False          # défi de la semaine (engramme + arme défi)
+    challenge_hashes: list[int] = field(default_factory=list)  # hashes portant le défi
     # Arme de défi : pool du manifest (objectif ancré) puis arme résolue.
     challenge_objective: int | None = None
     challenge_pool: list[int] = field(default_factory=list)
