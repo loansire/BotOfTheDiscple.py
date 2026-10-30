@@ -137,14 +137,14 @@ async def _add_activities(
         container.add_item(ui.TextDisplay(f"### {_activity_emoji(g)} {g.base_name}"))
         if not with_banner:
             continue
-        if g.pgcr_image:
-            banner = await get_banner(g.pgcr_image, _FEATURE_RAID_DUNGEON, ratio)
-            if banner:
-                fname = f"rd_{len(files)}.webp"
-                files.append(discord.File(BytesIO(banner), filename=fname))
-                container.add_item(
-                    ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
-                )
+        # pgcr absente ou placeholder → bandeau générique (cf. get_banner).
+        banner = await get_banner(g.pgcr_image, _FEATURE_RAID_DUNGEON, ratio)
+        if banner:
+            fname = f"rd_{len(files)}.webp"
+            files.append(discord.File(BytesIO(banner), filename=fname))
+            container.add_item(
+                ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
+            )
 
 
 async def _build_activity_container(
@@ -371,14 +371,14 @@ async def build_lost_sectors_view(
         container.add_item(ui.TextDisplay("\n".join(lines)))
 
         files: list[discord.File] = []
-        if sector.pgcr_image:
-            banner = await get_banner(sector.pgcr_image, _FEATURE_LOST_SECTOR, ratio)
-            if banner:
-                fname = f"ls_{i}.webp"
-                files.append(discord.File(BytesIO(banner), filename=fname))
-                container.add_item(
-                    ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
-                )
+        # pgcr absente ou placeholder → bandeau générique (cf. get_banner).
+        banner = await get_banner(sector.pgcr_image, _FEATURE_LOST_SECTOR, ratio)
+        if banner:
+            fname = f"ls_{i}.webp"
+            files.append(discord.File(BytesIO(banner), filename=fname))
+            container.add_item(
+                ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
+            )
 
         # Ligne d'actualisation (courte), TOUT EN BAS — sous l'image.
         container.add_item(ui.TextDisplay(_refresh_line_short(next_refresh_unix)))
