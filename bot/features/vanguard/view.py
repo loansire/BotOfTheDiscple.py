@@ -26,7 +26,7 @@ from io import BytesIO
 
 import discord
 from discord import ui
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from bot.bungie.reset import next_reset
 from bot.core.logger import log
@@ -67,6 +67,17 @@ _BORDER_CHALLENGE = (41, 182, 178, 255)  # turquoise de l'icône de défi en jeu
 # transparence. Largeur de bande relative à la hauteur du bandeau.
 _STRIPE_COLORS = ((255, 255, 255), (235, 120, 30), (235, 120, 30), (24, 38, 82))
 _STRIPE_WIDTH = 0.16
+
+# Ombre portée sous chaque icône : opacité, rayon de flou, décalage (px).
+_SHADOW_ALPHA = 170
+_SHADOW_BLUR = 3
+_SHADOW_OFFSET = (2, 3)
+
+# Halo de la couleur de la bordure (défi, grand maître ; pas la bordure claire
+# par défaut), façon aura masterwork : opacité, rayon de flou, débord (px).
+_GLOW_ALPHA = 255
+_GLOW_BLUR = 7
+_GLOW_SPREAD = 3
 
 
 # ── Images ──────────────────────────────────────────────────────────────
@@ -112,25 +123,55 @@ def _bordered(icon: bytes, size: int, color: tuple[int, int, int, int]) -> Image
     return framed
 
 
+def _halo(
+    size: tuple[int, int],
+    box: tuple[int, int, int, int],
+    color: tuple[int, ...],
+    alpha: int,
+    blur: int,
+    offset: tuple[int, int] = (0, 0),
+    spread: int = 0,
+) -> Image.Image:
+    """Calque RGBA : rectangle `box` (élargi de `spread`, décalé de `offset`)
+    de la couleur donnée, flouté. Sert d'ombre portée ou de halo."""
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    x0, y0, x1, y1 = box
+    dx, dy = offset
+    rect = (x0 - spread + dx, y0 - spread + dy, x1 + spread + dx, y1 + spread + dy)
+    ImageDraw.Draw(layer).rectangle(rect, fill=(*color[:3], alpha))
+    return layer.filter(ImageFilter.GaussianBlur(blur))
+
+
 def _compose(
     banner: bytes, icons: list[tuple[bytes, tuple[int, int, int, int]]], grandmaster: bool = False
 ) -> bytes:
     """Incruste les icônes (carrées, bordées) à droite du bandeau, de droite à
     gauche (focus puis arme de défi), centrées verticalement. `icons` =
-    (icône, couleur de bordure). Grand maître : liseré en biais derrière."""
+    (icône, couleur de bordure). Chaque icône a une ombre portée, et un halo
+    de sa couleur de bordure si elle n'est pas la bordure claire par défaut.
+    Grand maître : liseré en biais derrière."""
     base = Image.open(BytesIO(banner)).convert("RGBA")
     size = round(base.height * _ICON_HEIGHT)
     margin = round(base.height * _ICON_MARGIN)
-    framed = [_bordered(icon, size, color) for icon, color in icons]
+    framed = [(_bordered(icon, size, color), color) for icon, color in icons]
     xs, x = [], base.width - margin
-    for ico in framed:
+    for ico, _ in framed:
         x -= ico.width
         xs.append(x)
         x -= margin // 2
     if grandmaster:
         base = Image.alpha_composite(base, _stripes(base.size, xs[-1]))
-    for ico, x in zip(framed, xs):
-        base.paste(ico, (x, (base.height - ico.height) // 2), ico)
+    for (ico, color), x in zip(framed, xs):
+        y = (base.height - ico.height) // 2
+        box = (x, y, x + ico.width - 1, y + ico.height - 1)
+        base = Image.alpha_composite(
+            base, _halo(base.size, box, (0, 0, 0), _SHADOW_ALPHA, _SHADOW_BLUR, offset=_SHADOW_OFFSET)
+        )
+        if color != _BORDER_COLOR:
+            base = Image.alpha_composite(
+                base, _halo(base.size, box, color, _GLOW_ALPHA, _GLOW_BLUR, spread=_GLOW_SPREAD)
+            )
+        base.paste(ico, (x, y), ico)
     base = base.convert("RGB")
     out = BytesIO()
     base.save(out, format="WEBP", quality=90)
@@ -139,9 +180,8 @@ def _compose(
 
 async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
     """Bandeau pgcr recadré, avec les icônes de l'item focus et de l'arme de
-    défi incrustées si dispo."""
-    if not act.pgcr_image:
-        return None
+    défi incrustées si dispo. Sans pgcr exploitable, get_banner fournit le
+    bandeau générique : les icônes restent affichées."""
     banner = await get_banner(act.pgcr_image, FEATURE, ratio)
     if banner is None:
         return None
