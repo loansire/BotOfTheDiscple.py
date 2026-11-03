@@ -99,6 +99,38 @@ class GetBannerTests(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(w / h, banner.BANNER_RATIO, delta=0.05)
 
 
+    async def test_blur_only_on_request(self):
+        """Net par défaut ; flou seulement si demandé (fichiers de cache distincts)."""
+        img = Image.new("RGB", (1280, 720), (0, 0, 0))
+        img.paste((255, 255, 255), (640, 0, 1280, 720))
+        out = BytesIO()
+        img.save(out, format="JPEG")
+        path = "/img/destiny_content/pgcr/edge.jpg"
+        with mock.patch.object(image_cache, "download", mock.AsyncMock(return_value=out.getvalue())):
+            default = await banner.get_banner(path, "test")
+            sharp = await banner.get_banner(path, "test", blur=0)
+            blurred = await banner.get_banner(path, "test", blur=banner.BANNER_BLUR)
+        self.assertEqual(default, sharp)
+        self.assertNotEqual(sharp, blurred)
+
+
+class VanguardBlurTests(unittest.IsolatedAsyncioTestCase):
+    async def test_no_icons_no_blur(self):
+        act = mock.Mock(pgcr_image="/p.jpg", focus=None, challenge=None, is_grandmaster=False)
+        with mock.patch.object(view, "get_banner", mock.AsyncMock(return_value=b"x")) as gb:
+            self.assertEqual(await view._activity_banner(act, 3.0), b"x")
+        self.assertEqual(gb.call_args.kwargs["blur"], 0)
+
+    async def test_icons_blur(self):
+        item = mock.Mock(item_hash=1, icon="/i.png", watermark=None)
+        act = mock.Mock(pgcr_image="/p.jpg", focus=item, challenge=None, is_grandmaster=False)
+        with mock.patch.object(view, "get_banner", mock.AsyncMock(return_value=b"x")) as gb, \
+             mock.patch.object(view, "get_item_icon", mock.AsyncMock(return_value=b"i")), \
+             mock.patch.object(view, "_compose", return_value=b"composed"):
+            self.assertEqual(await view._activity_banner(act, 3.0), b"composed")
+        self.assertEqual(gb.call_args.kwargs["blur"], banner.BANNER_BLUR)
+
+
 class ComposeTests(unittest.TestCase):
     def setUp(self):
         self.banner = banner._crop(_jpeg((40, 40, 40)), banner.BANNER_RATIO, banner.BANNER_SCALE)

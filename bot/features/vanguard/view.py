@@ -39,7 +39,7 @@ from bot.features.vanguard.constants import (
     PORTAL_ICON_DIR,
 )
 from bot.features.vanguard.models import FocusItem, PortalActivity, PortalCategory
-from bot.render.banner import BANNER_RATIO, get_banner
+from bot.render.banner import BANNER_BLUR, BANNER_RATIO, get_banner
 from bot.render.item_icon import get_item_icon
 from bot.render.layout import StaticView
 
@@ -181,10 +181,9 @@ def _compose(
 async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
     """Bandeau pgcr recadré, avec les icônes de l'item focus et de l'arme de
     défi incrustées si dispo. Sans pgcr exploitable, get_banner fournit le
-    bandeau générique : les icônes restent affichées."""
-    banner = await get_banner(act.pgcr_image, FEATURE, ratio)
-    if banner is None:
-        return None
+    bandeau générique : les icônes restent affichées.
+
+    Le bandeau n'est flouté que s'il porte au moins une icône."""
     icons = []
     focus_color = _BORDER_GOLD if act.is_grandmaster else _BORDER_COLOR
     for item, color in ((act.focus, focus_color), (act.challenge, _BORDER_CHALLENGE)):
@@ -193,7 +192,8 @@ async def _activity_banner(act: PortalActivity, ratio: float) -> bytes | None:
         icon = await get_item_icon(item.item_hash, item.icon, item.watermark, feature=FEATURE)
         if icon:
             icons.append((icon, color))
-    if not icons:
+    banner = await get_banner(act.pgcr_image, FEATURE, ratio, blur=BANNER_BLUR if icons else 0)
+    if banner is None or not icons:
         return banner
     return await asyncio.to_thread(_compose, banner, icons, act.is_grandmaster)
 
