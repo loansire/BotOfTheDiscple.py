@@ -36,7 +36,9 @@ BANNER_RATIO = 1920 / 590
 BANNER_SCALE = 1 / 4
 
 # ⚙️ Rayon du flou gaussien (px) appliqué APRÈS redimensionnement : détache
-#    du décor le texte / les icônes posés sur le bandeau. 0 → aucun flou.
+#    du décor les icônes posées sur le bandeau. 0 → aucun flou.
+#    Appliqué UNIQUEMENT quand l'appelant incruste des éléments par-dessus
+#    (get_banner(..., blur=BANNER_BLUR)) ; par défaut le bandeau reste net.
 BANNER_BLUR = 1
 
 # Image générique de repli (pgcr « tower » de Bungie, 1280x720).
@@ -49,9 +51,9 @@ _PLACEHOLDER = "placeholder"
 purge_banner_cache = image_cache.purge_cache
 
 
-def _crop(data: bytes, ratio: float, scale: float, blur: float = BANNER_BLUR) -> bytes:
+def _crop(data: bytes, ratio: float, scale: float, blur: float = 0) -> bytes:
     """Recadre une bande centrale au ratio donné, réduit par `scale`, puis
-    floute légèrement (`blur`). Renvoie du WEBP."""
+    floute légèrement si `blur` > 0. Renvoie du WEBP."""
     img = Image.open(BytesIO(data)).convert("RGB")
     w, h = img.size
     target_h = round(w / ratio)
@@ -77,7 +79,7 @@ def _crop(data: bytes, ratio: float, scale: float, blur: float = BANNER_BLUR) ->
     return out.getvalue()
 
 
-def _cache_name(pgcr_path: str, ratio: float, scale: float, blur: float = BANNER_BLUR) -> str:
+def _cache_name(pgcr_path: str, ratio: float, scale: float, blur: float = 0) -> str:
     stem = os.path.splitext(os.path.basename(pgcr_path))[0]
     safe = "".join(c for c in stem if c.isalnum() or c in "-_") or "banner"
     return f"{safe}_{int(ratio * 1000)}_{int(scale * 1000)}_b{int(blur * 10)}.webp"
@@ -88,13 +90,17 @@ def is_placeholder(pgcr_path: str | None) -> bool:
     return not pgcr_path or _PLACEHOLDER in pgcr_path
 
 
-async def _fallback_banner(feature: str, ratio: float, scale: float) -> bytes | None:
+async def _fallback_banner(
+    feature: str, ratio: float, scale: float, blur: float = 0
+) -> bytes | None:
     """Bandeau tiré de l'image générique locale (même cache que les autres)."""
-    cache_file = image_cache.feature_dir(feature) / _cache_name(FALLBACK_BANNER.name, ratio, scale)
+    cache_file = image_cache.feature_dir(feature) / _cache_name(
+        FALLBACK_BANNER.name, ratio, scale, blur
+    )
 
     async def produce() -> bytes | None:
         data = await asyncio.to_thread(FALLBACK_BANNER.read_bytes)
-        return await asyncio.to_thread(_crop, data, ratio, scale)
+        return await asyncio.to_thread(_crop, data, ratio, scale, blur)
 
     return await image_cache.cached(cache_file, produce, "Banner")
 
@@ -104,6 +110,7 @@ async def get_banner(
     feature: str,
     ratio: float = BANNER_RATIO,
     scale: float = BANNER_SCALE,
+    blur: float = 0,
 ) -> bytes | None:
     """Renvoie les octets WEBP du bandeau recadré et redimensionné (cache
     disque sous `banners/<feature>/`), ou None si même le repli échoue.
@@ -111,21 +118,24 @@ async def get_banner(
     `feature` isole le cache (ex. "secteur_oublie", "raid_donjon") pour
     permettre une purge ciblée par cadence.
 
+    `blur` : rayon du flou (0 par défaut → bandeau net). À passer
+    (BANNER_BLUR) uniquement quand des éléments sont incrustés par-dessus.
+
     Le ratio, le scale ET le flou sont inclus dans le nom de cache : changer
     `BANNER_RATIO`, `BANNER_SCALE` ou `BANNER_BLUR` régénère automatiquement
     les bandeaux au prochain rendu.
 
     Chemin vide, placeholder ou échec → bandeau générique (FALLBACK_BANNER)."""
     if is_placeholder(pgcr_path):
-        return await _fallback_banner(feature, ratio, scale)
+        return await _fallback_banner(feature, ratio, scale, blur)
 
-    cache_file = image_cache.feature_dir(feature) / _cache_name(pgcr_path, ratio, scale)
+    cache_file = image_cache.feature_dir(feature) / _cache_name(pgcr_path, ratio, scale, blur)
 
     async def produce() -> bytes | None:
         data = await image_cache.download(pgcr_path, "Banner")
         if data is None:
             return None
-        return await asyncio.to_thread(_crop, data, ratio, scale)
+        return await asyncio.to_thread(_crop, data, ratio, scale, blur)
 
     banner = await image_cache.cached(cache_file, produce, "Banner")
-    return banner if banner is not None else await _fallback_banner(feature, ratio, scale)
+    return banner if banner is not None else await _fallback_banner(feature, ratio, scale, blur)
