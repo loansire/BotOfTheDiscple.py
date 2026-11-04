@@ -3,7 +3,8 @@
 
 Chaque topic déclare ici son identité d'affichage (libellés et emoji pour
 /botconfig), s'il accepte un rôle à pinger, et le libellé qu'il prend dans
-/refresh (None = non rafraîchissable : topics événementiels news/maintenance).
+/refresh (None = non rafraîchissable : topics événementiels news/maintenance ;
+les maintenances ont leurs choix /refresh propres, cf. cogs/pipeline.py).
 
 La publication associée à chaque topic persistant est déclarée dans
 bot/publishing/registry.py. Ajouter une feature = une entrée ici + une ligne

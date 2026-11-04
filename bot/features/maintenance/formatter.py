@@ -55,6 +55,24 @@ def extract_window(data: dict) -> Optional[dict]:
     return None
 
 
+def format_window_message(
+    game: str, event_type: Optional[str], off_unix: int, on_unix: Optional[int]
+) -> str:
+    """Texte prêt à copier-coller pour UNE maintenance."""
+    emoji = GAME_EMOJIS.get(game, "🎮")
+    label = GAME_LABELS.get(game, game.title())
+
+    lines = [f"{emoji} __**Maintenance {label}**__ du <t:{off_unix}:D>:"]
+    if event_type:
+        lines.append(f"- :pencil:: {event_type}")
+    ret_part = f" | :white_check_mark: Retour serv <t:{on_unix}:t>" if on_unix else ""
+    lines.append(
+        f":x: Arrêt serv <t:{off_unix}:t>{ret_part}"
+        f" | :repeat: Débute: __**<t:{off_unix}:R>**__"
+    )
+    return "\n".join(lines)
+
+
 def format_discord_message(data: dict) -> str | None:
     """Texte prêt à copier-coller (peut couvrir plusieurs événements)."""
     messages: list[str] = []
@@ -63,20 +81,11 @@ def format_discord_message(data: dict) -> str | None:
         if off is None or not off.get("time_utc"):
             continue
         on = _find_step(event, ONLINE_TRIGGER)
-        off_unix = _iso_to_unix(off["time_utc"])
-
-        emoji = GAME_EMOJIS.get(data["game"], "🎮")
-        label = GAME_LABELS.get(data["game"], data["game"].title())
-
-        lines = [f"{emoji} __**Maintenance {label}**__ du <t:{off_unix}:D>:"]
-        lines.append(f"- :pencil:: {event.get('event_type', '')}")
-        ret_part = ""
-        if on and on.get("time_utc"):
-            ret_part = f" | :white_check_mark: Retour serv <t:{_iso_to_unix(on['time_utc'])}:t>"
-        lines.append(
-            f":x: Arrêt serv <t:{off_unix}:t>{ret_part}"
-            f" | :repeat: Débute: __**<t:{off_unix}:R>**__"
+        on_unix = _iso_to_unix(on["time_utc"]) if on and on.get("time_utc") else None
+        messages.append(
+            format_window_message(
+                data["game"], event.get("event_type"), _iso_to_unix(off["time_utc"]), on_unix
+            )
         )
-        messages.append("\n".join(lines))
 
     return "\n\n".join(messages) if messages else None

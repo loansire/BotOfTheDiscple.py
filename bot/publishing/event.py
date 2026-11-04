@@ -11,11 +11,14 @@ from bot.core.logger import log
 from bot.publishing.primitives import iter_destinations
 
 
-async def publish_to_subscribers(bot: discord.Client, topic: str, build: Callable):
+async def publish_to_subscribers(
+    bot: discord.Client, topic: str, build: Callable, *, ping: bool = True
+):
     """`build()` doit renvoyer (embed, files, view) NEUFS à chaque appel
-    (un discord.File est consommé après envoi)."""
+    (un discord.File est consommé après envoi). `ping=False` : sans mention
+    du rôle (republication manuelle)."""
     for _, _, dest, info in iter_destinations(bot, topic):
-        role_id = info.get("role")
+        role_id = info.get("role") if ping else None
         mention = f"<@&{role_id}>" if role_id else None
         try:
             # build() DANS le try : un échec pour un abonné ne doit pas
