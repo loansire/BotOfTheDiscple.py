@@ -5,6 +5,7 @@ import discord
 
 from bot.core.config import RESOURCES_DIR
 from bot.features.maintenance.fetcher import ARTICLES
+from bot.features.maintenance.formatter import GAME_LABELS
 from bot.features.maintenance.models import resolve_game
 from bot.render.embed import build_embed
 
@@ -108,3 +109,31 @@ def build_maintenance_embed(window: dict, copy_text: str | None = None):
 
     view = MaintenanceCopyView(copy_text) if copy_text else None
     return embed, files, view
+
+
+def build_maintenance_end_embed(game: str):
+    """Message de fin de maintenance. Renvoie (embed, files NEUFS, None)."""
+    label = GAME_LABELS.get(game, game.title())
+    meta = GAME_META.get(game, {})
+    link = _article_link(game) if meta else ""
+
+    files: list[discord.File] = []
+    footer_icon_url = None
+    if FOOTER_ICON_PATH.is_file():
+        files.append(discord.File(FOOTER_ICON_PATH, filename="footer_icon.png"))
+        footer_icon_url = "attachment://footer_icon.png"
+
+    embed = build_embed(
+        description=(
+            f"## [Maintenance {label} terminée]({link})\n"
+            f"*Les serveurs de {label} sont de retour. Bon jeu !*\n"
+        ),
+        color=0x2ECC71,
+        author=meta.get("author_name"),
+        author_url=meta.get("author_url"),
+        author_icon_url=_emoji_icon_url(game) if meta else None,
+        footer_text="BotOfTheDisciple",
+        footer_icon_url=footer_icon_url,
+        add_date_to_footer=True,
+    )
+    return embed, files, None

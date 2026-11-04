@@ -7,7 +7,7 @@ from typing import Optional
 
 from bot.core.logger import log
 
-from .fetcher import fetch_article_body
+from .fetcher import fetch_article_body, is_rate_limited
 from .formatter import (
     extract_window,
     format_discord_message,
@@ -46,7 +46,9 @@ async def get_maintenances(
 
     body, updated_at = await fetch_article_body(game_enum)
     if body is None:
-        log.error(f"[Maintenance] Fetch impossible pour {game_enum.value}")
+        # Un 429 est déjà signalé (warning) par le fetcher.
+        if not is_rate_limited(game_enum):
+            log.error(f"[Maintenance] Fetch impossible pour {game_enum.value}")
         return None
     if known_updated_at and updated_at == known_updated_at:
         return {"game": game_enum.value, "article_updated_at": updated_at, "unchanged": True}

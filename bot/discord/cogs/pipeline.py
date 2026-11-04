@@ -69,6 +69,17 @@ _REFRESH_CHOICES = [app_commands.Choice(name="Tout", value=_REFRESH_ALL)] + [
     app_commands.Choice(name=t.refresh, value=t.key) for t in TOPICS.values() if t.refresh
 ]
 
+# Maintenances : topics événementiels, mais /refresh republie la dernière
+# maintenance ACTIVE du jeu (sans ping). Hors de « Tout » : un repost de plus
+# dans tous les salons abonnés n'est jamais anodin.
+_MAINTENANCE_REFRESH = {
+    "maintenance_destiny": ("Maintenance Destiny 2", "destiny"),
+    "maintenance_marathon": ("Maintenance Marathon", "marathon"),
+}
+_REFRESH_CHOICES += [
+    app_commands.Choice(name=label, value=key) for key, (label, _) in _MAINTENANCE_REFRESH.items()
+]
+
 
 class Pipeline(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -253,7 +264,11 @@ class Pipeline(commands.Cog):
             )
             return
 
-        if publication != _REFRESH_ALL and publication not in publications():
+        if (
+            publication != _REFRESH_ALL
+            and publication not in publications()
+            and publication not in _MAINTENANCE_REFRESH
+        ):
             # garde-fou (les choices contraignent déjà la valeur)
             await interaction.response.send_message(
                 f":x: Publication inconnue : `{publication}`.", ephemeral=True
@@ -261,6 +276,9 @@ class Pipeline(commands.Cog):
             return
 
         await interaction.response.defer(ephemeral=True)
+        if publication in _MAINTENANCE_REFRESH:
+            await self._refresh_maintenance(interaction, publication)
+            return
         label = (
             "Toutes les publications" if publication == _REFRESH_ALL
             else TOPICS[publication].refresh
@@ -285,6 +303,27 @@ class Pipeline(commands.Cog):
         await interaction.followup.send(
             f"✅ {label} : actualisation effectuée (sans ping).", ephemeral=True
         )
+
+    async def _refresh_maintenance(self, interaction: discord.Interaction, key: str) -> None:
+        label, game = _MAINTENANCE_REFRESH[key]
+        cog = self.bot.get_cog("Maintenance")
+        if cog is None:
+            await interaction.followup.send(":x: Module maintenance non chargé.", ephemeral=True)
+            return
+        try:
+            done = await cog.republish(game, ping=False)
+        except Exception as e:
+            log.error(f"[Pipeline] /refresh ({key}) a échoué : {e}")
+            await interaction.followup.send(":x: Échec de la republication.", ephemeral=True)
+            return
+        if done:
+            await interaction.followup.send(
+                f"✅ {label} : actualisation effectuée (sans ping).", ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                f":x: {label} : aucune maintenance enregistrée.", ephemeral=True
+            )
 
 
 async def setup(bot: commands.Bot):

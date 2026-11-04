@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Optional
 
 import aiohttp
@@ -27,7 +28,29 @@ ARTICLES = {
 }
 
 
+def is_rate_limited(game: Game) -> bool:
+    """True tant qu'un 429 récent impose de ne pas interroger ce jeu."""
+    return time.monotonic() < _blocked_until.get(game, 0.0)
+
+
+def _retry_after(resp: aiohttp.ClientResponse) -> int:
+    try:
+        seconds = int(resp.headers.get("Retry-After", ""))
+    except ValueError:
+        seconds = DEFAULT_BACKOFF
+    return max(MIN_BACKOFF, min(seconds, MAX_BACKOFF))
+
+
+# Pause après un 429 (secondes) : Retry-After si fourni, borné à [MIN, MAX].
+DEFAULT_BACKOFF = 300
+MIN_BACKOFF = 60
+MAX_BACKOFF = 3600
+_blocked_until: dict[Game, float] = {}  # time.monotonic() de reprise, par jeu
+
+
 async def _fetch_article_raw(game: Game) -> Optional[dict]:
+    if is_rate_limited(game):
+        return None
     cfg = ARTICLES[game]
     url = (
         f"{cfg['base_url']}/api/v2/help_center"
@@ -35,6 +58,13 @@ async def _fetch_article_raw(game: Game) -> Optional[dict]:
     )
     try:
         async with get_session().get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            if resp.status == 429:
+                delay = _retry_after(resp)
+                _blocked_until[game] = time.monotonic() + delay
+                logger.warning(
+                    "HTTP 429 pour %s : requêtes suspendues %d s (Retry-After)", game.value, delay
+                )
+                return None
             if resp.status != 200:
                 logger.error("Erreur HTTP %d pour %s (%s)", resp.status, game.value, url)
                 return None
