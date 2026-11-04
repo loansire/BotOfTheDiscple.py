@@ -11,11 +11,9 @@ Plusieurs catégories peuvent partager le MÊME vendor_hash : le vendor « Armes
 (3751514131) expose à la fois les armes exotiques, les armes légendaires et les
 armures légendaires. On le déclare donc en trois clés distinctes pointant vers
 le même hash, chacune filtrée par sa propre plage de positions (cf.
-vendor_whitelist.json). Le fetch réseau est mutualisé par hash dans service.py
+table compute_vendor_whitelist). Le fetch réseau est mutualisé par hash dans service.py
 (get_vendor_sales n'a pas de cache).
 """
-from bot.core.config import MANIFEST_DIR
-
 # clé interne → (vendor_hash, libellé affiché, emoji custom de catégorie)
 XUR_VENDORS: dict[str, tuple[int, str, str]] = {
     "armor": (2190858386, "ARMURES<:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258>", "<:Xur:1527021351368659205>"),
@@ -28,7 +26,8 @@ XUR_VENDORS: dict[str, tuple[int, str, str]] = {
 # Composant Vendors à demander (sales = items en vente).
 VENDOR_COMPONENTS = "402"
 
-# Whitelist de POSITIONS par catégorie (maintenue à la main, hors code).
+# Whitelist de POSITIONS par catégorie (maintenue à la main en base, table
+# compute_vendor_whitelist, cf. bot/storage/static_data.py).
 # Clés = clés internes de XUR_VENDORS ; valeurs = liste de positions 1-based
 # des « cases » à conserver (1 = 1ère case du PNJ, dans l'ordre des clés
 # sales.data triées). On filtre par RANG, pas par clé : la case n°6 reste la
@@ -38,7 +37,6 @@ VENDOR_COMPONENTS = "402"
 # chacune découpées dans le MÊME bloc sales via des plages de positions
 # disjointes (ex. exotics-weapons = [2..7], legendaries-weapons = [8..16],
 # legendaries-armors = [19..23]). Conventions :
-#   - catégorie absente / fichier inexistant → on garde TOUT le vendor
+#   - catégorie absente                        → on garde TOUT le vendor
 #   - catégorie présente avec liste de positions → on ne garde que ces cases
-#   - catégorie présente avec liste vide []      → on n'affiche rien
-VENDOR_WHITELIST_PATH = MANIFEST_DIR / "vendor_whitelist.json"
+#   - catégorie présente avec liste vide ''     → on n'affiche rien

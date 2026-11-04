@@ -60,7 +60,7 @@ class NewsAlerts(commands.Cog):
             build=lambda a=article, k=cfg["keyword"]: build_news_alert(a, AUTO_LANG, is_both, k),
         )
         self.state.set_last_id(alert_type, article_id)
-        self.state.save()
+        await self.state.save()
         log.info(f"[NewsAlerts] Nouvel article {alert_type} publié : {article_id}")
 
 

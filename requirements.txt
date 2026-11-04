@@ -1,6 +1,7 @@
 discord.py>=2.6
 python-dotenv
 aiohttp
+aiomysql>=0.2
 beautifulsoup4
 langdetect
 Pillow

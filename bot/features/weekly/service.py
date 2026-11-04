@@ -8,19 +8,11 @@ from __future__ import annotations
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
 from bot.bungie.reset import last_reset
-from bot.core.config import RESOURCES_DIR
-from bot.core.jsonio import load_json
 from bot.core.logger import log
+from bot.storage.static_data import lost_sector_extra, permanent_activities
 
 from . import filters
 from .models import LostSector, WeeklyActivity
-
-# Greffe maison (vide par défaut) : { "<activity_hash>": { ... } }
-EXTRA_PATH = RESOURCES_DIR / "Weekly" / "lost_sector_extra.json"
-
-# Activités "permanentes" (contenu le plus récent, toujours actif) : liste de
-# hashes (str) affichés dans une sous-section dédiée. Maintenu hors code.
-PERMANENT_PATH = RESOURCES_DIR / "Weekly" / "permanent_activities.json"
 
 
 # Reset pour lequel une resynchro forcée du manifest a déjà été tentée (une
@@ -30,17 +22,15 @@ _forced_resync_reset: str | None = None
 
 
 def _load_extra() -> dict:
-    data = load_json(EXTRA_PATH, {})
-    return data if isinstance(data, dict) else {}
+    """Greffe maison (boucliers / champions) : { "<activity_hash>": { ... } },
+    éditée à la main en base (compute_lost_sector_extra)."""
+    return lost_sector_extra()
 
 
 def _load_permanent() -> set[int]:
-    """Hashes d'activités permanentes (set d'int). Vide si fichier absent/illisible."""
-    try:
-        return {int(h) for h in load_json(PERMANENT_PATH, []) or []}
-    except (ValueError, TypeError) as e:
-        log.warning(f"[Weekly] permanent_activities.json illisible : {e}")
-        return set()
+    """Activités « permanentes » (contenu le plus récent, toujours actif),
+    affichées dans une sous-section dédiée (compute_permanent_activity)."""
+    return permanent_activities()
 
 
 async def _ensure_resolvable(available: list[dict]) -> None:

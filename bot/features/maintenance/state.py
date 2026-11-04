@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
-"""État persistant anti-spam, par jeu."""
-from bot.core.config import ALERTS_DIR
-from bot.storage.json_store import JsonStore
-
-STATE_PATH = ALERTS_DIR / "state.json"
+"""État persistant anti-spam, par jeu (compute_state, clés `maintenance.<jeu>`)."""
+from bot.storage.compute_state import compute_state
 
 
-class MaintenanceState(JsonStore):
-    def __init__(self, path=STATE_PATH):
-        super().__init__(path)
-
+class MaintenanceState:
     def get(self, game: str) -> dict:
-        return self._data.get(game, {})
+        return dict(compute_state.get(f"maintenance.{game}", {}))
 
     def set(self, game: str, state: dict):
-        self._data[game] = state
+        compute_state.set(f"maintenance.{game}", state)
+
+    async def save(self) -> None:
+        await compute_state.save()

@@ -2,7 +2,7 @@
 """Constantes de la feature Table de butin (co-localisées).
 
 Feature 100 % MANUELLE côté données : la liste des items de chaque activité est
-maintenue à la main dans `Ressources/LootTable/loot_tables.json`. Seules les
+maintenue à la main en base (tables compute_loot_table*). Seules les
 MÉTADONNÉES d'un item (nom FR, icône, watermark, façonnabilité, type d'arme,
 élément, type de munitions) sont résolues automatiquement via la définition
 Bungie — exactement comme Xûr.
@@ -13,9 +13,6 @@ la langue, contrairement à `itemTypeDisplayName` (renvoyé en anglais par l'API
 live). C'est donc sur elles qu'on mappe emojis et libellés FR.
 """
 from bot.core.config import RESOURCES_DIR
-
-# Fichier de données, maintenu à la main (hors code).
-LOOT_TABLES_PATH = RESOURCES_DIR / "LootTable" / "loot_tables.json"
 
 # Bannières d'activité (images locales, optionnelles).
 ACTIVITY_BANNER_DIR = RESOURCES_DIR / "ActivityBanner"

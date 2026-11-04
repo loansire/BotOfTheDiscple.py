@@ -51,6 +51,21 @@ CONTROL_GUILD_ID = _int_env("CONTROL_GUILD_ID")
 # d'alerte de la pipeline (hold mode prolongé). Surchargeable via le .env.
 OWNER_ID = _int_env("OWNER_ID", 222465158075777035)
 
+# --- Base MySQL ---
+# Toutes les données du bot (abonnements, messages publiés, état de la
+# pipeline, données éditées à la main) vivent en base. Les tables sont créées
+# par le bot lui-même au démarrage (cf. bot/db/migrate.py). Validées à la
+# connexion (bot/db/database.py) et non ici : les tests tournent sans base.
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = _int_env("DB_PORT", 3306)
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+
+# Identifiant de CE bot dans les tables bot_* : deux bots (live / lite) peuvent
+# partager une même base sans mélanger leurs abonnements ni leurs messages.
+BOT_ID = os.getenv("BOT_ID", "live")
+
 # Validation au démarrage : on échoue tôt et clairement
 _missing = [
     name
@@ -78,6 +93,8 @@ BUNGIE_CHARACTER = {
 # --- Chemins transverses (utilisés par les features) ---
 BASE_DIR = Path(__file__).resolve().parents[2]
 RESOURCES_DIR = BASE_DIR / "Ressources"
+# Anciens états JSON : lus UNE fois par l'import automatique vers la base
+# (cf. bot/storage/legacy_import.py), plus jamais écrits.
 ALERTS_DIR = RESOURCES_DIR / "AlertDatabase"
 OUTPUT_DIR = BASE_DIR / "Output"
 

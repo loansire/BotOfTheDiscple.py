@@ -6,13 +6,13 @@ X-API-Key renvoie ErrorCode 12 (InsufficientPrivileges, masqué en HTTP 500).
 
 Flux :
 - Une fois à la main (scripts/xur_oauth_setup.py) : on échange un code
-  d'autorisation contre access_token + refresh_token, persistés sur disque.
+  d'autorisation contre access_token + refresh_token, persistés en base.
 - Au runtime : get_access_token() renvoie un access_token valide, le
   rafraîchissant via le refresh_token si expiré. Le refresh_token est
   lui-même régénéré à chaque refresh (~90 j glissants) et re-persisté.
 
-Le fichier de tokens contient un secret de longue durée → à ajouter au
-.gitignore (cf. TOKENS_PATH).
+Les tokens sont un secret de longue durée : ils vivent dans compute_state
+(clé TOKENS_KEY), jamais dans le dépôt.
 """
 from __future__ import annotations
 
@@ -28,16 +28,16 @@ from bot.bungie.errors import (
     is_maintenance,
     is_transient,
 )
-from bot.core.config import BUNGIE_CLIENT_ID, BUNGIE_CLIENT_SECRET, MANIFEST_DIR
+from bot.core.config import BUNGIE_CLIENT_ID, BUNGIE_CLIENT_SECRET
 from bot.core.http import NETWORK_ERRORS, get_session
-from bot.core.jsonio import load_json, save_json
 from bot.core.logger import log
+from bot.storage.compute_state import compute_state
 
 TOKEN_URL = "https://www.bungie.net/Platform/App/OAuth/token/"
 AUTHORIZE_URL = "https://www.bungie.net/en/OAuth/Authorize"
 
-# Secret de longue durée — à exclure du versionnage (.gitignore).
-TOKENS_PATH = MANIFEST_DIR / "bungie_tokens.json"
+# Secret de longue durée, en base (compute_state) : jamais dans le dépôt.
+TOKENS_KEY = "bungie.oauth"
 
 # Marge de sécurité : on rafraîchit un peu avant l'expiration réelle.
 _EXPIRY_MARGIN = 60  # secondes
@@ -58,14 +58,15 @@ def _basic_auth_header() -> dict:
 
 
 def _load_tokens() -> dict:
-    return load_json(TOKENS_PATH, {}) or {}
+    return dict(compute_state.get(TOKENS_KEY, {}) or {})
 
 
-def _save_tokens(data: dict) -> None:
-    save_json(TOKENS_PATH, data)
+async def _save_tokens(data: dict) -> None:
+    compute_state.set(TOKENS_KEY, data)
+    await compute_state.save()
 
 
-def _store_response(payload: dict) -> dict:
+async def _store_response(payload: dict) -> dict:
     """Normalise une réponse token Bungie → dict persistable (timestamps absolus).
 
     Bungie renvoie expires_in / refresh_expires_in (secondes relatives) ;
@@ -78,7 +79,7 @@ def _store_response(payload: dict) -> dict:
         "refresh_expires": now + int(payload.get("refresh_expires_in", 7776000)),
         "membership_id": payload.get("membership_id"),
     }
-    _save_tokens(tokens)
+    await _save_tokens(tokens)
     return tokens
 
 
@@ -132,7 +133,7 @@ async def _post_token(data: dict) -> dict:
             raise BungieNotReadyError(f"OAuth token → HTTP {status}")
         detail = (body.get("error_description") or body) if readable else "corps illisible"
         raise OAuthError(f"Échange token échoué (HTTP {status}) : {detail}")
-    return _store_response(body)
+    return await _store_response(body)
 
 
 async def get_access_token() -> str:

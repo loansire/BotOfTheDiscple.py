@@ -148,7 +148,7 @@ class Maintenance(commands.Cog):
 
             if window is None:
                 self.state.set(game, new_state)
-                self.state.save()
+                await self.state.save()
                 return
 
             record = {**window, "source": "zendesk", "copy_text": format_discord_message(data)}
@@ -162,13 +162,13 @@ class Maintenance(commands.Cog):
             new_state["active"] = record
             if same:
                 self.state.set(game, new_state)
-                self.state.save()
+                await self.state.save()
                 return
 
             new_state["expiry_notified"] = False
             await self._announce(game, record)
             self.state.set(game, new_state)
-            self.state.save()
+            await self.state.save()
             log.info(f"[Maintenance] Alerte publiée pour {game} ({window['offline_iso']})")
 
     # ---------- Expiration ----------
@@ -191,7 +191,7 @@ class Maintenance(commands.Cog):
             )
             if sent:
                 self.state.set(game, {**st, "expiry_notified": True})
-                self.state.save()
+                await self.state.save()
             else:
                 self._dm_retry_at[game] = time.monotonic() + DM_RETRY
 
@@ -218,7 +218,7 @@ class Maintenance(commands.Cog):
         async with self._lock:
             st = self.state.get(game)
             self.state.set(game, {**st, "active": window, "expiry_notified": False})
-            self.state.save()
+            await self.state.save()
             await self._announce(game, window)
         log.info(f"[Maintenance] Déclaration manuelle pour {game} ({window['offline_unix']})")
 
@@ -241,7 +241,7 @@ class Maintenance(commands.Cog):
                 self.bot, f"maintenance_{game}", build=lambda: build_maintenance_end_embed(game)
             )
             self.state.set(game, {k: v for k, v in st.items() if k not in ("active", "expiry_notified")})
-            self.state.save()
+            await self.state.save()
         log.info(f"[Maintenance] Maintenance {game} terminée et clearée")
         return True
 

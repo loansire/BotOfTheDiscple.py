@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
-import json
-
 import discord
 
 from bot.core.config import RESOURCES_DIR
+from bot.storage.static_data import wishes
 
 WISHES_DIR = RESOURCES_DIR / "RivenWishes"
-WISHES_JSON = WISHES_DIR / "wishes.json"
 DEFAULT_IMAGE = "Default.webp"
 THUMBNAIL_PATH = WISHES_DIR / "Lastwish.png"
 FOOTER_ICON_PATH = RESOURCES_DIR / "footer_icon.png"
 
 
 def load_wishes() -> list[dict]:
-    with open(WISHES_JSON, "r", encoding="utf-8") as f:
-        return json.load(f)["voeux"]
+    """Vœux édités à la main en base (table compute_wish)."""
+    return wishes()
 
 
 def load_image(file_name: str) -> discord.File:

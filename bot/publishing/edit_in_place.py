@@ -112,14 +112,14 @@ class EditInPlaceTopic:
                 state.set(guild_id, message_id=new_id, content_hash=chash if ok else None)
 
         if edited or sent:
-            state.save()
+            await state.save()
             log.info(f"[{self.tag}] {edited} message(s) édité(s), {sent} envoyé(s) ({chash}).")
 
     async def refresh(self, bot) -> None:
         """/refresh : ré-édition forcée (sans ping), donnée live re-tirée."""
         if self.reset_context:
             self.reset_context()
-        self.state().invalidate()
+        await self.state().invalidate()
         await self.publish(bot, force=True)
 
     async def on_added(self, bot, guild_id, info: dict) -> None:
@@ -132,7 +132,7 @@ class EditInPlaceTopic:
         if new_id:
             state = self.state()
             state.set(guild_id, message_id=new_id, content_hash=chash)
-            state.save()
+            await state.save()
             log.info(f"[{self.tag}] Message publié dans {target[0].name} (nouveau salon).")
 
     async def on_removed(self, bot, guild_id, info: dict) -> None:
@@ -142,4 +142,4 @@ class EditInPlaceTopic:
         if target is not None:
             await delete_message(target[1], state.get(guild_id).get("message_id"))
         state.purge(guild_id)
-        state.save()
+        await state.save()

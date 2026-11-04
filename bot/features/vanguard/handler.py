@@ -3,7 +3,7 @@
 
 Moteur multi-message partagé : cf. bot/publishing/repost.py. Un message par
 catégorie (Escouade, Prestige, Arène, Solo), puis le ping rôle seul. L'état
-vit dans WeeklyMessageState sous le topic `daily_vanguard` (vue TopicSlot).
+vit en base sous le topic `daily_vanguard` (cf. bot/features/weekly/state.py).
 
 Le hash inclut le reset courant : repost quotidien, mais un serveur déjà à
 jour dans la même journée n'est pas reposté. En mode `strict` (pipeline au
@@ -35,7 +35,7 @@ async def _payload(strict: bool) -> Payload | None:
     seen = challenges_of(categories)
     if categories and seen != remembered:
         state.set_week_challenges(week, {**remembered, **seen})
-        state.save()
+        await state.save()
 
     sig = [f"{a.base_name}|{a.focus_hash}" for c in categories for a in c.activities]
     if not sig:

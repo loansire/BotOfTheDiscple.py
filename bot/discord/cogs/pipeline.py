@@ -114,7 +114,7 @@ class Pipeline(commands.Cog):
         if reset.weekday() not in weekdays:
             weekdays.add(reset.weekday())
             self.state.pending_weekdays = list(weekdays)
-            self.state.save()
+            await self._save_state()
 
         if self._hold:
             log.debug(f"[Pipeline] Hold mode — tentative n°{self._attempts + 1} (weekdays={sorted(weekdays)}).")
@@ -135,7 +135,16 @@ class Pipeline(commands.Cog):
         await self._leave_hold()
         self.state.pending_weekdays = []
         self.state.last_reset_iso = current
-        self.state.save()
+        await self._save_state()
+
+    async def _save_state(self) -> None:
+        """Persiste l'état sans jamais faire tomber la boucle : en cas d'échec
+        (base injoignable), la valeur reste en mémoire et en attente
+        d'écriture, et part avec la prochaine sauvegarde réussie."""
+        try:
+            await self.state.save()
+        except Exception as e:
+            log.warning(f"[Pipeline] Sauvegarde de l'état reportée (base indisponible ?) : {e!r}")
 
     async def _enter_hold(self, reason: str, *, level: str) -> None:
         """Hold mode : planifie la prochaine tentative (backoff) et prévient

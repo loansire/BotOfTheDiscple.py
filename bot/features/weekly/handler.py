@@ -26,7 +26,7 @@ from __future__ import annotations
 from bot.bungie.reset import last_reset
 from bot.features.weekly import get_lost_sectors, get_raid_dungeon
 from bot.features.weekly.freshness import check_fresh, not_ready, remember
-from bot.features.weekly.state import weekly_slot, weekly_state
+from bot.features.weekly.state import weekly_single, weekly_slot, weekly_state
 from bot.features.weekly.view import (
     build_dungeon_view,
     build_lost_sectors_view,
@@ -101,7 +101,7 @@ def _single(topic: str, tag: str, activity_type: str, build_view) -> SingleTopic
     return SingleTopic(
         topic=topic,
         tag=tag,
-        state=weekly_state,
+        state=lambda: weekly_single(topic),
         payload=_activity_payload(topic, activity_type),
         build_view=build_view,
         purge_cache=lambda: purge_banner_cache(_FEATURE_RAID_DUNGEON),

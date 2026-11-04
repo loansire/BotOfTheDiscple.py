@@ -214,7 +214,7 @@ class ValidateButton(ui.Button):
         guild = view.guild
         gid = str(guild.id)
 
-        # État RÉEL sur disque au moment de valider (et non celui capturé à
+        # État RÉEL en base au moment de valider (et non celui capturé à
         # l'ouverture de /botconfig) : un autre admin a pu modifier d'autres
         # topics entre-temps. On n'écrit QUE les topics modifiés dans cette vue.
         before = load_config_state(gid)
@@ -226,7 +226,7 @@ class ValidateButton(ui.Button):
         for topic in changed:
             p = view.pending[topic]
             ch = guild.get_channel_or_thread(int(p["channel_id"])) if p["channel_id"] else None
-            set_topic_destination(
+            await set_topic_destination(
                 topic,
                 gid,
                 p["channel_id"],

@@ -24,12 +24,12 @@ from bot.bungie.manifest import manifest
 from bot.bungie.reset import FRIDAY, TUESDAY, last_reset, next_weekday_reset
 from bot.bungie.sales import first_cost_quantity, sorted_keys
 from bot.core.aio import gather_limited
-from bot.core.jsonio import load_json
 from bot.core.logger import log
+from bot.storage.static_data import vendor_whitelist
 
 from bot.features.vanguard.service import armor_set
 
-from .constants import VENDOR_WHITELIST_PATH, XUR_VENDORS
+from .constants import XUR_VENDORS
 from .models import XurItem, XurPerk, XurVendor
 
 # Garde-fou perks : on ne construit le bloc col 3/4 que pour une ARME (itemType
@@ -196,9 +196,9 @@ async def _resolve_vendor_large_icon(vendor_hash: int) -> str | None:
 
 
 def _load_whitelist() -> dict:
-    """Charge vendor_whitelist.json. {} si absent/illisible (→ tout garder)."""
-    data = load_json(VENDOR_WHITELIST_PATH, {})
-    return data if isinstance(data, dict) else {}
+    """Positions gardées par catégorie, éditées à la main en base
+    (compute_vendor_whitelist). Catégorie absente → tout garder."""
+    return vendor_whitelist()
 
 
 def _filtered_items(
@@ -300,7 +300,7 @@ async def _build_vendor_from_sales(
 
 async def get_xur() -> list[XurVendor]:
     """Inventaire de Xûr : un XurVendor par catégorie (ordre fixe de
-    XUR_VENDORS), filtré par la whitelist de positions (vendor_whitelist.json).
+    XUR_VENDORS), filtré par la whitelist de positions (compute_vendor_whitelist).
 
     Fetch mutualisé : les catégories partageant un même vendor_hash (le vendor
     Armes → exotiques / légendaires / armures légendaires) réutilisent le même
