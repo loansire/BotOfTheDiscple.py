@@ -120,7 +120,7 @@ class RepostTopic:
 
         if self.on_published:
             self.on_published(payload)
-        state.save()
+        await state.save()
 
     async def restore(self, bot) -> None:
         """Serveur déjà publié dont un message manque → tout le serveur est
@@ -145,7 +145,7 @@ class RepostTopic:
                 continue  # fetch impossible → laissé au hold mode
             await self._repost(guild, dest, payload, None, ping=False)
 
-        state.save()
+        await state.save()
 
     async def on_added(self, bot, guild_id, info: dict) -> None:
         """`info` = {channel_id, is_thread, role_id} (forme /botconfig)."""
@@ -157,7 +157,7 @@ class RepostTopic:
             return
         guild, dest = target
         await self._repost(guild, dest, payload, info.get("role_id"), ping=True)
-        self.state().save()
+        await self.state().save()
 
     async def on_removed(self, bot, guild_id, info: dict) -> None:
         state = self.state()
@@ -165,10 +165,10 @@ class RepostTopic:
         if target is not None:
             await delete_messages(target[1], state.get(guild_id)["message_ids"])
         state.purge(guild_id)
-        state.save()
+        await state.save()
 
     async def refresh(self, bot) -> None:
         """/refresh : force le repost (les IDs sont conservés pour supprimer les
         anciens messages), SANS ping."""
-        self.state().invalidate()
+        await self.state().invalidate()
         await self.publish(bot, ping=False)

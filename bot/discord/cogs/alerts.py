@@ -9,7 +9,9 @@ from discord.ext import commands, tasks
 from bot.core.logger import log
 from bot.features.news import get_latest_article
 from bot.features.news.state import NewsState
-from bot.features.news.view import build_news_alert
+from bot.compute import store
+from bot.features.news.presenter import EN, build_post
+from bot.publishing.content_source import event_builder, snapshot
 from bot.publishing.event import publish_to_subscribers
 
 # type d'alerte → (keyword Bungie, topic d'abonnement, libellé)
@@ -49,18 +51,22 @@ class NewsAlerts(commands.Cog):
         article, is_both = await get_latest_article(AUTO_LANG, cfg["keyword"])
         if not article:
             return
+        article_fr = (await get_latest_article("fr", cfg["keyword"]))[0] if is_both else None
+
+        # Calcul à chaque poll : la variante FR apparaît en base dès que Bungie
+        # la publie (les boutons des messages déjà postés en profitent).
+        await store(build_post(cfg["topic"], article, article_fr), "News")
 
         article_id = article.get("UniqueIdentifier", "")
         if not article_id or article_id == self.state.last_id(alert_type):
-            return  # rien de nouveau
+            return  # rien de nouveau à annoncer
 
-        await publish_to_subscribers(
-            self.bot,
-            cfg["topic"],
-            build=lambda a=article, k=cfg["keyword"]: build_news_alert(a, AUTO_LANG, is_both, k),
-        )
+        snap = await snapshot(cfg["topic"], EN)
+        if snap is None:
+            return
+        await publish_to_subscribers(self.bot, cfg["topic"], build=event_builder(snap))
         self.state.set_last_id(alert_type, article_id)
-        self.state.save()
+        await self.state.save()
         log.info(f"[NewsAlerts] Nouvel article {alert_type} publié : {article_id}")
 
 

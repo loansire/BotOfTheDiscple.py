@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Rendu Components V2 de la rotation prédictive (raids / donjons).
+"""Calcul de la rotation prédictive (raids / donjons), rangée en base.
 
-Vue ÉPHÉMÈRE, construite à la demande sur clic de bouton. Pure couche de rendu :
-elle reçoit les groupes déjà fetchés et délègue tout le calcul à
+Calculée au moment où les raids / donjons de la semaine le sont (topics
+`rotation_raid` / `rotation_dungeon`) ; le bouton se contente de relire la
+base et d'afficher le message en éphémère. Le calcul du cycle est délégué à
 features.weekly.rotation.
 
 Budget CV2 : 1 Container + quelques TextDisplay (le tableau tient dans un seul
-bloc multi-lignes). Aucun fichier joint, aucune image → réponse quasi instantanée.
+bloc multi-lignes). Aucun fichier joint, aucune image.
 
 Dates : rendues via <t:…:d>, donc localisées par le client Discord de chaque
 utilisateur (25/08/2026 en FR, 08/25/2026 en US) sans travail côté bot.
@@ -15,8 +16,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import discord
-from discord import ui
+
+
 
 from bot.core.logger import log
 from bot.features.weekly.models import WeeklyActivity
@@ -32,9 +33,9 @@ from bot.render.activity_emojis import (
     RD_EMOJI,
     activity_emoji_for,
 )
-from bot.render.layout import StaticView
+from bot.content.model import Message, separator, text
 
-_ACCENT = discord.Color.dark_red()
+_ACCENT = 0x992D22  # discord.Color.dark_red()
 
 # kind → (activity_type, séquence, emoji de titre, libellé)
 _SPECS = {
@@ -98,14 +99,12 @@ def build_rotation_view(
     kind: str,
     groups: list[WeeklyActivity],
     now: datetime | None = None,
-) -> StaticView:
-    """Vue éphémère du cycle complet pour `kind` ('raid' ou 'dungeon')."""
+) -> Message:
+    """Message du cycle complet pour `kind` ('raid' ou 'dungeon')."""
     activity_type, sequence, title_emoji, label = _SPECS[kind]
 
-    container = ui.Container(accent_color=_ACCENT)
-    container.add_item(
-        ui.TextDisplay(f"# {title_emoji} Rotation prédictive - {label}")
-    )
+    container = Message(accent_color=_ACCENT)
+    container.add(text(f"# {title_emoji} Rotation prédictive - {label}"))
 
     names = _featured_rotation_names(groups, activity_type)
     cycle = predict_rotation(names, sequence, now)
@@ -122,27 +121,27 @@ def build_rotation_view(
         )
 
     if cycle is None:
-        container.add_item(ui.TextDisplay(
+        container.add(text(
             "-# Impossible d'ancrer la prédiction sur la semaine en cours "
             "(activité inconnue de la séquence de rotation).\n"
             "-# La publication hebdomadaire ci-dessus reste, elle, fiable : "
             "elle vient directement de l'API Bungie."
         ))
-        return StaticView(container)
+        return container
 
-    container.add_item(ui.TextDisplay(
+    container.add(text(
         f"-# Cycle complet · {len(cycle.weeks)} semaines · "
         f"{cycle.slot_count} activités en rotation"
     ))
     note = _source_note(cycle)
     if note:
-        container.add_item(ui.TextDisplay(note))
-    container.add_item(ui.Separator())
-    container.add_item(ui.TextDisplay(_rotation_lines(cycle, activity_type)))
-    container.add_item(ui.Separator())
-    container.add_item(ui.TextDisplay(
+        container.add(text(note))
+    container.add(separator())
+    container.add(text(_rotation_lines(cycle, activity_type)))
+    container.add(separator())
+    container.add(text(
         "-# Prédiction déterministe : les données peuvent être inexactes en cas "
         "de bug ou de doublon d'une semaine à l'autre."
     ))
 
-    return StaticView(container)
+    return container

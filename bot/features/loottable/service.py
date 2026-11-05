@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Orchestration Table de butin : JSON maison → résolution des items → modèles.
+"""Orchestration Table de butin : tables maison → résolution des items → modèles.
 
 API publique de la feature. Ne touche ni à Discord ni au rendu.
 
-Aucune notion de cadence ni de vendor : la source est un fichier maintenu à la
-main, relu À CHAQUE APPEL (pas de cache) — éditer le JSON prend donc effet sans
-redémarrer le bot. Le seul I/O réseau est la résolution des définitions d'items
+Aucune notion de cadence ni de vendor : la source est maintenue à la main en
+base (compute_loot_table*), relue périodiquement — l'éditer prend donc effet
+sans redémarrer le bot. Le seul I/O réseau est la résolution des définitions d'items
 (get_item_definition, qui porte son propre cache mémoire), identique à Xûr et
 Eververse : endpoint public, pas d'OAuth.
 """
@@ -13,10 +13,10 @@ from __future__ import annotations
 
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
-from bot.core.jsonio import load_json_cached
 from bot.core.logger import log
+from bot.storage.static_data import loot_tables
 
-from .constants import LOOT_TABLES_PATH, TIER_EXOTIC, activity_type_order
+from .constants import TIER_EXOTIC, activity_type_order
 from .models import LootActivity, LootItem
 
 # Style de tooltip signalant une arme au schéma extractible (façonnable /
@@ -28,25 +28,9 @@ _DEEPSIGHT_TOOLTIP_STYLE = "ui_display_style_deepsight"
 
 
 def _load_tables() -> dict:
-    """Charge loot_tables.json. {} si absent/illisible (jamais d'exception).
-
-    Les clés commençant par « _ » (ex. « _README ») sont ignorées : elles
-    servent à documenter le fichier, JSON n'ayant pas de commentaires."""
-    if not LOOT_TABLES_PATH.exists():
-        log.warning(f"[LootTable] Fichier absent : {LOOT_TABLES_PATH}")
-        return {}
-    # Relu à chaque frappe d'autocomplétion : cache invalidé par mtime.
-    data = load_json_cached(LOOT_TABLES_PATH)
-    if data is None:
-        return {}
-    if not isinstance(data, dict):
-        log.warning("[LootTable] loot_tables.json : objet JSON attendu à la racine.")
-        return {}
-    return {
-        k: v
-        for k, v in data.items()
-        if not k.startswith("_") and isinstance(v, dict)
-    }
+    """Tables de butin éditées à la main en base (cache mémoire relu
+    périodiquement, cf. bot/storage/static_data.py)."""
+    return loot_tables()
 
 
 def _activity_type(entry: dict) -> str | None:

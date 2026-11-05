@@ -3,48 +3,45 @@
 
 Un seul scalaire global `last_reset_iso` — le reset Bungie est global (17:00
 UTC), pas par serveur Discord. Les états de messages PAR serveur restent dans
-WeeklyMessageState / XurMessageState.
+bot/storage/messages.py.
 
-Fichier :
-{
-  "last_reset": "<iso>"   # dernier reset quotidien déjà traité par la pipeline
-}
-"""
+Persisté dans compute_state (clés `pipeline.*`)."""
 from functools import cache
 
-from bot.core.config import ALERTS_DIR
-from bot.storage.json_store import JsonStore
+from bot.storage.compute_state import compute_state
 
-STATE_PATH = ALERTS_DIR / "pipeline_state.json"
+_LAST_RESET = "pipeline.last_reset"
+_PENDING = "pipeline.pending_weekdays"
 
 
-class PipelineState(JsonStore):
-    def __init__(self, path=STATE_PATH):
-        super().__init__(path)
-
+class PipelineState:
     @property
     def last_reset_iso(self) -> str:
-        return self._data.get("last_reset", "")
+        return compute_state.get(_LAST_RESET, "")
 
     @last_reset_iso.setter
     def last_reset_iso(self, value: str):
-        self._data["last_reset"] = value
+        compute_state.set(_LAST_RESET, value)
+
     @property
     def pending_weekdays(self) -> list[int]:
         """Jours de semaine des resets détectés mais pas encore traités avec
         succès (hold mode). Persisté : si une maintenance du mardi déborde sur
         le reset du mercredi, les étapes du mardi restent dues."""
-        return list(self._data.get("pending_weekdays", []))
+        return list(compute_state.get(_PENDING, []))
 
     @pending_weekdays.setter
     def pending_weekdays(self, value: list[int]):
         if value:
-            self._data["pending_weekdays"] = sorted(set(value))
+            compute_state.set(_PENDING, sorted(set(value)))
         else:
-            self._data.pop("pending_weekdays", None)
+            compute_state.delete(_PENDING)
+
+    async def save(self) -> None:
+        await compute_state.save()
 
 
 @cache
 def pipeline_state() -> PipelineState:
-    """Instance UNIQUE partagée (une seule copie mémoire écrit ce fichier)."""
+    """Instance UNIQUE partagée."""
     return PipelineState()

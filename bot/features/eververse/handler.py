@@ -5,39 +5,38 @@ Moteur multi-message partagé : cf. bot/publishing/repost.py. Un message par
 section (re-découpé si une section dépasse le plafond CV2), puis le ping rôle
 seul. Pas de fenêtre présent/absent ni de message statut, contrairement à Xûr.
 
-Cache d'icônes : purgé à chaque publication (banners/eververse/, cadence
-quotidienne) ; restore / on_added réutilisent le cache existant."""
+Calcul : get_eververse() → presenter.build_post() → base. Publication :
+lecture de la base (content_source). Cache d'icônes disque : purgé au premier
+calcul de chaque reset (banners/eververse/)."""
 from __future__ import annotations
 
-from bot.bungie.reset import last_reset
+from bot.compute import purge_icons_once_per_reset, store
 from bot.features.eververse import TOPIC, get_eververse
+from bot.features.eververse.presenter import FEATURE, build_post
 from bot.features.eververse.state import eververse_state
-from bot.features.eververse.view import build_eververse_views
-from bot.publishing.primitives import content_hash
-from bot.publishing.repost import Payload, RepostTopic
-from bot.render.item_icon import purge_icon_cache
+from bot.publishing.content_source import stored_payload, stored_views
+from bot.publishing.repost import RepostTopic
+
+TAG = "Eververse"
 
 
-async def _payload(strict: bool) -> Payload | None:
-    """Sections Eververse, ou None si l'API est indisponible.
-
-    Une section sans item est conservée (le rendu affiche un repli) : seul un
-    échec API total (get_eververse renvoie []) annule la publication. Le hash
-    inclut l'iso du reset → repost quotidien garanti."""
+async def produce(strict: bool = False) -> bool:
+    """Calcule l'Eververse et la range en base. False seulement si l'API est
+    indisponible (get_eververse renvoie []) : une section vide est conservée
+    (le message affiche un repli)."""
     sections = await get_eververse()
     if not sections:
-        return None
-    parts = [last_reset().isoformat()]
-    parts += [str(item.item_hash) for section in sections for item in section.items]
-    return Payload(sections, content_hash(parts))
+        return False
+    purge_icons_once_per_reset(FEATURE)
+    await store(await build_post(sections), TAG)
+    return True
 
 
 publication = RepostTopic(
     topic=TOPIC,
-    tag="Eververse",
+    tag=TAG,
     state=eververse_state,
-    payload=_payload,
-    build_views=build_eververse_views,
-    purge_cache=lambda: purge_icon_cache("eververse"),
+    payload=stored_payload(TOPIC, produce),
+    build_views=stored_views,
     empty_warning="Aucun item récupéré — publication annulée.",
 )

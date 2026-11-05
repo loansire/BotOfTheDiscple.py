@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Store d'abonnements centralisé (tous topics confondus).
+"""Abonnements centralisés (tous topics confondus), table bot_subscription.
 
-Un unique fichier `subscriptions.json`, organisé par serveur Discord :
+En mémoire, organisés par serveur Discord :
 
 {
   "<guild_id>": {
@@ -21,98 +21,89 @@ Un unique fichier `subscriptions.json`, organisé par serveur Discord :
 Les champs `name` ne servent qu'à la lecture humaine de la base (debug) ;
 toute la logique s'appuie uniquement sur les IDs.
 
-NB : cette couche isole le stockage. Migrer vers SQL ne touchera QUE ce module.
+Chargés une fois au démarrage (seul CE bot écrit ses lignes) : une
+modification faite à la main dans la base n'est vue qu'au redémarrage.
 
 Modèle /botconfig : un seul salon par topic + un seul rôle par topic. Le
 schéma autorise techniquement plusieurs salons (ancien /alerte), mais
 set_topic_destination réécrit toujours une entrée unique.
 """
-import copy
 from typing import Optional
 
-from bot.core.config import ALERTS_DIR
-from bot.core.jsonio import load_json_cached, save_json
+from bot.core.config import BOT_ID
+from bot.db.database import Database
+from bot.storage.base import Table, flush
 from bot.topics import TOPICS
 
-STORE_PATH = ALERTS_DIR / "subscriptions.json"
+
+class SubscriptionTable(Table):
+    def __init__(self):
+        super().__init__()
+        self.data: dict = {}
+
+    def touch(self, guild_id: str) -> None:
+        self._touch(guild_id)
+
+    def replace_all(self, data: dict) -> None:
+        """Remplace tout (import des anciens fichiers JSON)."""
+        for guild_id in set(self.data) | set(data):
+            self._touch(guild_id)
+        self.data = data
+
+    async def _load(self, db: Database) -> None:
+        self.data = {}
+        for row in await db.fetchall(
+            "SELECT guild_id, topic, channel_id, is_thread, role_id, guild_name, channel_name"
+            " FROM bot_subscription WHERE bot_id = %s ORDER BY guild_id, topic",
+            (BOT_ID,),
+        ):
+            guild = self.data.setdefault(str(row["guild_id"]), {"name": row["guild_name"], "topics": {}})
+            guild["topics"].setdefault(row["topic"], {})[str(row["channel_id"])] = {
+                "name": row["channel_name"],
+                "is_thread": bool(row["is_thread"]),
+                "role": str(row["role_id"]) if row["role_id"] else None,
+            }
+
+    async def _write(self, db: Database, keys: set) -> None:
+        async with db.transaction() as cur:
+            for guild_id in keys:
+                await cur.execute(
+                    "DELETE FROM bot_subscription WHERE bot_id = %s AND guild_id = %s",
+                    (BOT_ID, int(guild_id)),
+                )
+                guild = self.data.get(guild_id)
+                if not guild:
+                    continue
+                rows = [
+                    (
+                        BOT_ID, int(guild_id), topic, int(dest_id), int(bool(info.get("is_thread"))),
+                        int(info["role"]) if info.get("role") else None,
+                        guild.get("name"), info.get("name"),
+                    )
+                    for topic, dests in guild.get("topics", {}).items()
+                    for dest_id, info in dests.items()
+                ]
+                if rows:
+                    await cur.executemany(
+                        "INSERT INTO bot_subscription (bot_id, guild_id, topic, channel_id,"
+                        " is_thread, role_id, guild_name, channel_name)"
+                        " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                        rows,
+                    )
 
 
-def _load_all() -> dict:
-    """Copie de travail de subscriptions.json (relu seulement s'il a changé :
-    iter_subscribers est appelé plusieurs fois par minute par les boucles)."""
-    data = load_json_cached(STORE_PATH, {})
-    return copy.deepcopy(data) if isinstance(data, dict) else {}
-
-
-def _save_all(data: dict) -> None:
-    save_json(STORE_PATH, data)
+subscriptions = SubscriptionTable()
 
 
 # ──────────────────────────────────────────────────────────────────────
-# API d'origine (publisher + compat).
+# API publisher.
 # ──────────────────────────────────────────────────────────────────────
-def is_subscribed(topic: str, guild_id: str, dest_id: str) -> bool:
-    """True si ce salon/thread est déjà abonné à ce topic."""
-    guild = _load_all().get(guild_id, {})
-    return dest_id in guild.get("topics", {}).get(topic, {})
-
-
-def subscribe(
-    topic: str,
-    guild_id: str,
-    dest_id: str,
-    *,
-    is_thread: bool,
-    guild_name: Optional[str] = None,
-    channel_name: Optional[str] = None,
-    role_id: Optional[str] = None,
-) -> None:
-    """Abonne (ou met à jour) un salon/thread à un topic.
-    `guild_name` / `channel_name` ne servent qu'au debug et sont rafraîchis
-    à chaque appel."""
-    data = _load_all()
-
-    guild = data.setdefault(guild_id, {"name": guild_name, "topics": {}})
-    if guild_name:
-        guild["name"] = guild_name
-    guild.setdefault("topics", {})
-
-    topic_dests = guild["topics"].setdefault(topic, {})
-    topic_dests[dest_id] = {
-        "name": channel_name,
-        "is_thread": is_thread,
-        "role": role_id,
-    }
-    _save_all(data)
-
-
-def unsubscribe(topic: str, guild_id: str, dest_id: str) -> bool:
-    """Désabonne un salon/thread. True si un abonnement a été retiré.
-    Nettoie les dicts devenus vides (topic puis guild)."""
-    data = _load_all()
-    guild = data.get(guild_id)
-    if not guild:
-        return False
-
-    topics = guild.get("topics", {})
-    dests = topics.get(topic, {})
-    removed = dests.pop(dest_id, None) is not None
-
-    if not dests:
-        topics.pop(topic, None)
-    if not topics:
-        data.pop(guild_id, None)
-
-    _save_all(data)
-    return removed
-
-
 def iter_subscribers(topic: str):
     """Itère les abonnés d'un topic : (guild_id, dest_id, info).
     `info` = {name, is_thread, role}."""
-    for guild_id, guild in _load_all().items():
-        for dest_id, info in guild.get("topics", {}).get(topic, {}).items():
-            yield guild_id, dest_id, info
+    for guild_id, guild in list(subscriptions.data.items()):
+        for dest_id, info in list(guild.get("topics", {}).get(topic, {}).items()):
+            yield guild_id, dest_id, dict(info)
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -125,7 +116,7 @@ def get_topic_destination(topic: str, guild_id: str) -> Optional[dict]:
     on retourne le premier — la prochaine validation /botconfig collapse
     automatiquement vers un seul salon.
     """
-    guild = _load_all().get(guild_id, {})
+    guild = subscriptions.data.get(guild_id, {})
     dests = guild.get("topics", {}).get(topic, {})
     if not dests:
         return None
@@ -137,7 +128,7 @@ def get_topic_destination(topic: str, guild_id: str) -> Optional[dict]:
     }
 
 
-def set_topic_destination(
+async def set_topic_destination(
     topic: str,
     guild_id: str,
     channel_id: Optional[str],
@@ -150,9 +141,10 @@ def set_topic_destination(
     """Écrit l'unique destination d'un topic (remplace tout l'existant).
 
     channel_id=None → désactive le topic pour ce serveur (nettoyage des
-    dicts vides, comme unsubscribe).
+    dicts vides).
     """
-    data = _load_all()
+    data = subscriptions.data
+    subscriptions.touch(guild_id)
 
     if channel_id is None:
         guild = data.get(guild_id)
@@ -161,7 +153,7 @@ def set_topic_destination(
             topics.pop(topic, None)
             if not topics:
                 data.pop(guild_id, None)
-        _save_all(data)
+        await flush()
         return
 
     guild = data.setdefault(guild_id, {"name": guild_name, "topics": {}})
@@ -175,7 +167,7 @@ def set_topic_destination(
             "role": role_id,
         }
     }
-    _save_all(data)
+    await flush()
 
 
 def load_config_state(guild_id) -> dict:

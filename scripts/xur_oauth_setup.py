@@ -11,8 +11,9 @@ Déroulé :
 3. Bungie redirige vers https://localhost/callback?code=XXXX&state=...
    La page ne chargera pas (aucun serveur local) — c'est NORMAL.
    Copie la valeur du paramètre `code` depuis la barre d'adresse.
-4. Colle ce code ici. Le script l'échange contre les tokens et les écrit dans
-   le fichier de tokens (refresh_token persisté pour le runtime).
+4. Colle ce code ici. Le script l'échange contre les tokens et les écrit en
+   base (refresh_token persisté pour le runtime). Le .env doit donc contenir
+   les variables DB_* de la base du bot.
 
 Le refresh_token reste valide ~90 jours (glissants) : tant que le bot tourne
 et rafraîchit régulièrement, tu n'as pas à relancer ce script. S'il expire,
@@ -25,12 +26,9 @@ from pathlib import Path
 # Permet `python scripts/xur_oauth_setup.py` depuis la racine.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from bot.bungie.oauth import (  # noqa: E402
-    TOKENS_PATH,
-    authorize_url,
-    exchange_code,
-)
+from bot.bungie.oauth import authorize_url, exchange_code  # noqa: E402
 from bot.core.http import close_session  # noqa: E402
+from bot.storage import close_storage, open_storage  # noqa: E402
 
 
 def _extract_code(raw: str) -> str:
@@ -62,17 +60,17 @@ async def main() -> int:
 
     print("\n→ Échange du code contre les tokens…")
     try:
+        await open_storage()
         tokens = await exchange_code(code)
     except Exception as e:
         print(f"\n[ERREUR] Échange échoué : {e}")
         return 1
     finally:
         await close_session()
+        await close_storage()
 
-    print("\n✅ Tokens enregistrés avec succès.")
-    print(f"   Fichier : {TOKENS_PATH}")
+    print("\n✅ Tokens enregistrés en base avec succès.")
     print(f"   membership_id : {tokens.get('membership_id')}")
-    print("\n⚠️  Ajoute ce fichier à ton .gitignore (il contient un secret).")
     return 0
 
 

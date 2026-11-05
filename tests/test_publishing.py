@@ -1,32 +1,29 @@
 # -*- coding: utf-8 -*-
 """Moteurs de publication (repost multi-message, mono-message) sur faux Discord."""
-import tempfile
 import unittest
-from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
-from bot.features.weekly.state import TopicSlot, WeeklyMessageState
 from bot.publishing.edit_in_place import EditInPlaceTopic
 from bot.publishing.repost import Payload, RepostTopic
 from bot.publishing.single import SingleTopic
-from bot.storage.json_store import MultiMessageState, SingleMessageState
+from bot.render.components import Rendered
+from bot.storage.messages import MultiMessageState, SingleMessageState
 from tests.fake_discord import FakeBot, FakeChannel, FakeGuild, FakeView, subscriptions
+from tests.storage_helpers import reset_memory
 
 TOPIC = "demo"
 
 
 class _Base(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.dir = Path(self._tmp.name)
+        reset_memory()
         self.ch1, self.ch2 = FakeChannel(11), FakeChannel(22)
         self.bot = FakeBot([FakeGuild(1, {11: self.ch1}), FakeGuild(2, {22: self.ch2})])
         self.subs = {"1": ("11", "role1"), "2": ("22", None)}
         self.version = "v1"
         self.fetches = 0
         self.purges = 0
-
-    def tearDown(self):
-        self._tmp.cleanup()
 
     async def _payload(self, strict):
         self.fetches += 1
@@ -47,7 +44,7 @@ class RepostTopicTests(_Base):
         self.purges += 1
 
     async def test_publish_skip_and_change(self):
-        state = MultiMessageState(self.dir / "m.json")
+        state = MultiMessageState(TOPIC)
         pub = self.make(state)
         with subscriptions(TOPIC, self.subs):
             await pub.publish(self.bot)
@@ -67,7 +64,7 @@ class RepostTopicTests(_Base):
             self.assertEqual(self.purges, 3)
 
     async def test_restore_lazy_and_without_ping(self):
-        state = MultiMessageState(self.dir / "m.json")
+        state = MultiMessageState(TOPIC)
         pub = self.make(state)
         with subscriptions(TOPIC, self.subs):
             await pub.publish(self.bot)
@@ -83,7 +80,7 @@ class RepostTopicTests(_Base):
             self.assertEqual(self.purges, 1)  # restore ne purge pas
 
     async def test_refresh_reposts_without_ping(self):
-        state = MultiMessageState(self.dir / "m.json")
+        state = MultiMessageState(TOPIC)
         pub = self.make(state)
         with subscriptions(TOPIC, self.subs):
             await pub.publish(self.bot)
@@ -92,7 +89,7 @@ class RepostTopicTests(_Base):
             self.assertEqual(self.ch1.pings, [])
 
     async def test_added_and_removed(self):
-        state = MultiMessageState(self.dir / "m.json")
+        state = MultiMessageState(TOPIC)
         pub = self.make(state)
         info = {"channel_id": "11", "is_thread": False, "role_id": "r"}
         with subscriptions(TOPIC, {}):
@@ -103,7 +100,7 @@ class RepostTopicTests(_Base):
             self.assertFalse(state.get("1")["message_ids"])
 
     async def test_partial_send_clears_hash(self):
-        state = MultiMessageState(self.dir / "m.json")
+        state = MultiMessageState(TOPIC)
         pub = self.make(state)
         original = self.ch2.send
         calls = {"n": 0}
@@ -121,15 +118,15 @@ class RepostTopicTests(_Base):
         self.assertEqual(state.get("2")["hash"], "")
         self.assertEqual(state.get("1")["hash"], "h-v1")
 
-    async def test_weekly_topic_slot_keeps_file_format(self):
-        weekly = WeeklyMessageState(self.dir / "w.json")
-        weekly.set("1", TOPIC, message_id="999", content_hash="old")  # ancien format
-        pub = self.make(TopicSlot(weekly, TOPIC))
+    async def test_mono_to_multi_entry_is_replaced(self):
+        SingleMessageState(TOPIC).set("1", message_id="999", content_hash="old")  # ancien message seul
+        state = MultiMessageState(TOPIC)
+        self.assertEqual(state.get("1")["message_ids"], ["999"])
+        pub = self.make(state)
         with subscriptions(TOPIC, self.subs):
             await pub.publish(self.bot)
-        entry = weekly.get("1", TOPIC)
-        self.assertEqual(set(entry), {"message_ids", "hash"})
-        self.assertEqual(len(entry["message_ids"]), 3)
+        self.assertEqual(len(state.get("1")["message_ids"]), 3)
+        self.assertNotIn("999", state.get("1")["message_ids"])
 
 
 class SingleTopicTests(_Base):
@@ -140,44 +137,56 @@ class SingleTopicTests(_Base):
         return SingleTopic(topic=TOPIC, tag="Demo", state=lambda: state, payload=self._payload, build_view=self._view)
 
     async def test_publish_restore_refresh(self):
-        weekly = WeeklyMessageState(self.dir / "w.json")
-        pub = self.make(weekly)
+        state = SingleMessageState(TOPIC)
+        pub = self.make(state)
         with subscriptions(TOPIC, self.subs):
             await pub.publish(self.bot)
-            mid = weekly.get("1", TOPIC)["message_id"]
+            mid = state.get("1")["message_id"]
             self.assertEqual(len(self.ch1.messages), 1)
             self.assertEqual(len(self.ch1.messages[int(mid)].view.items), 1)  # ping injecté
 
             await pub.publish(self.bot)
-            self.assertEqual(weekly.get("1", TOPIC)["message_id"], mid)
+            self.assertEqual(state.get("1")["message_id"], mid)
 
             await self.ch1.messages[int(mid)].delete()
             await pub.restore(self.bot)
             self.assertEqual(len(self.ch1.messages), 1)
-            self.assertNotEqual(weekly.get("1", TOPIC)["message_id"], mid)
+            self.assertNotEqual(state.get("1")["message_id"], mid)
 
             await pub.refresh(self.bot)
             self.assertEqual(len(self.ch1.messages), 1)
 
 
+class _FakeSnapshot:
+    """Remplaçant de content_source.Snapshot (contenu lu en base)."""
+
+    def __init__(self, period: int):
+        self.hash = f"p{period}"
+        self.post = SimpleNamespace(version=period)
+        self._label = str(period)
+
+    def render(self, index: int = 0):
+        return Rendered(view=FakeView(self._label), files=[])
+
+
 class EditInPlaceTopicTests(_Base):
     def make(self, state):
         self.period = 0
-        self.contexts = 0
+        self.produced = []
 
-        async def context(now):
-            self.contexts += 1
-            return "ctx"
+        async def produce(force):
+            self.produced.append(force)
 
-        return EditInPlaceTopic(
-            topic=TOPIC, tag="Demo", state=lambda: state,
-            build=lambda now, ctx: (FakeView(f"{self.period}-{ctx}"), []),
-            chash=lambda now, ctx: f"p{self.period}",
-            context=context,
-        )
+        async def fake_snapshot(topic):
+            return _FakeSnapshot(self.period)
+
+        patcher = mock.patch("bot.publishing.edit_in_place.snapshot", fake_snapshot)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return EditInPlaceTopic(topic=TOPIC, tag="Demo", state=lambda: state, produce=produce)
 
     async def test_edit_in_place_lifecycle(self):
-        state = SingleMessageState(self.dir / "s.json")
+        state = SingleMessageState(TOPIC)
         pub = self.make(state)
         with subscriptions(TOPIC, self.subs):
             await pub.publish(self.bot)
@@ -185,15 +194,25 @@ class EditInPlaceTopicTests(_Base):
             self.assertEqual(self.ch1.pings, [])  # jamais de ping
 
             self.period = 1
-            await pub.publish(self.bot)  # nouvelle période → édition, même message
+            await pub.publish(self.bot)  # nouvelle version → édition, même message
             self.assertEqual(state.get("1")["message_id"], mid)
-            self.assertEqual(self.ch1.messages[int(mid)].view.label, "1-ctx")
+            self.assertEqual(self.ch1.messages[int(mid)].view.label, "1")
+            self.assertEqual(state.get("1")["hash"], "p1")
 
             await self.ch1.messages[int(mid)].delete()
             await pub.publish(self.bot, force=True)  # message disparu → renvoyé
             self.assertNotEqual(state.get("1")["message_id"], mid)
             self.assertEqual(len(self.ch1.messages), 1)
-            self.assertEqual(self.contexts, 3)
+            self.assertEqual(self.produced, [False, False, True])
+
+    async def test_post_only_bot_reads_without_producing(self):
+        state = SingleMessageState(TOPIC)
+        pub = self.make(state)
+        pub.produce = None
+        with subscriptions(TOPIC, self.subs):
+            await pub.publish(self.bot)
+        self.assertEqual(self.produced, [])
+        self.assertEqual(state.get("1")["hash"], "p0")
 
 
 if __name__ == "__main__":

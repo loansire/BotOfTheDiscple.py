@@ -9,7 +9,7 @@ from unittest import mock
 
 from PIL import Image
 
-from bot.features.vanguard import view
+from bot.features.vanguard import presenter as view
 from bot.render import banner, image_cache
 
 PLACEHOLDER = "/img/theme/destiny/bgs/pgcrs/placeholder.jpg"

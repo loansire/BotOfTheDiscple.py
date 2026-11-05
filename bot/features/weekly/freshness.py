@@ -13,7 +13,8 @@ Passé STALE_GRACE après le début de période, on publie quand même (avec un
 warning) : une vraie répétition d'une période à l'autre reste possible.
 
 La période d'un topic se déduit de son préfixe : `daily_*` → reset quotidien,
-sinon → reset hebdo du mardi. Les signatures vivent dans WeeklyMessageState."""
+sinon → reset hebdo du mardi. Les signatures vivent dans compute_state
+(cf. bot/features/weekly/state.py)."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
