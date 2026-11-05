@@ -12,6 +12,7 @@ migration interrompue puisse être rejouée sans erreur."""
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 
 from bot.core.logger import log
@@ -38,13 +39,10 @@ def pending_files(applied: set[int]) -> list[tuple[int, Path]]:
 
 
 async def migrate(db: Database) -> None:
-    await db.execute(
-        "CREATE TABLE IF NOT EXISTS schema_migrations ("
-        " version INT UNSIGNED NOT NULL PRIMARY KEY,"
-        " name VARCHAR(128) NOT NULL,"
-        " applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
-        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    )
+    # « Table already exists » : simple note MySQL, attendue à chaque démarrage.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        await _create_migrations_table(db)
     applied = {row["version"] for row in await db.fetchall("SELECT version FROM schema_migrations")}
     for version, path in pending_files(applied):
         for statement in _statements(path.read_text(encoding="utf-8")):
@@ -53,3 +51,13 @@ async def migrate(db: Database) -> None:
             "INSERT INTO schema_migrations (version, name) VALUES (%s, %s)", (version, path.name)
         )
         log.info(f"[DB] Migration appliquée : {path.name}")
+
+
+async def _create_migrations_table(db: Database) -> None:
+    await db.execute(
+        "CREATE TABLE IF NOT EXISTS schema_migrations ("
+        " version INT UNSIGNED NOT NULL PRIMARY KEY,"
+        " name VARCHAR(128) NOT NULL,"
+        " applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    )

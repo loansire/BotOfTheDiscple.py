@@ -15,10 +15,10 @@ from bot.core.logger import log
 from bot.db.database import close_db, get_db, init_db
 from bot.db.migrate import migrate
 from bot.storage import base
-from bot.storage.static_data import RELOAD_EVERY, static_data
+from bot.storage.static_data import RELOAD_EVERY
 
 # Import des stores : chacun s'enregistre dans base._TABLES à l'import.
-from bot.storage import compute_state, messages, subscriptions  # noqa: F401
+from bot.storage import compute_state, messages, static_data, subscriptions  # noqa: F401
 
 _reload_task: asyncio.Task | None = None
 
@@ -28,7 +28,7 @@ async def _reload_static_loop() -> None:
         await asyncio.sleep(RELOAD_EVERY)
         db = get_db()
         if db is not None:
-            await static_data.reload(db)
+            await static_data.static_data.reload(db)
 
 
 async def open_storage() -> None:
