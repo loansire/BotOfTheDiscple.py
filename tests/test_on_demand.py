@@ -73,5 +73,32 @@ class WishwallTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Premier vœu", embed.description)
 
 
+
+class RotationButtonTests(unittest.IsolatedAsyncioTestCase):
+    async def test_click_answers_ephemeral_from_database(self):
+        from bot.content.model import Message, Post, text
+
+        content = FakeContentStore()
+        with content.patch():
+            await content.save_post(Post("rotation_raid", "on_demand", {"default": [
+                Message().add(text("# Rotation prédictive - Raids"))]}))
+            interaction = _interaction("weekly:rota:raid")
+            interaction.response.defer = mock.AsyncMock()
+            interaction.followup = SimpleNamespace(send=mock.AsyncMock())
+            await ContentActions(None).on_interaction(interaction)
+        interaction.response.defer.assert_awaited_once_with(ephemeral=True, thinking=True)
+        kwargs = interaction.followup.send.call_args.kwargs
+        self.assertTrue(kwargs["ephemeral"])
+        self.assertIn("Rotation prédictive", kwargs["view"].children[0].children[0].content)
+
+    async def test_missing_rotation_says_so(self):
+        content = FakeContentStore()
+        with content.patch():
+            interaction = _interaction("weekly:rota:dungeon")
+            interaction.response.defer = mock.AsyncMock()
+            interaction.followup = SimpleNamespace(send=mock.AsyncMock())
+            await ContentActions(None).on_interaction(interaction)
+        self.assertIn("pas encore disponible", interaction.followup.send.call_args.args[0])
+
 if __name__ == "__main__":
     unittest.main()

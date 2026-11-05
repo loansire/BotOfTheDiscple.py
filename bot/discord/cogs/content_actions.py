@@ -8,10 +8,14 @@ après un redémarrage et sur un bot qui ne fait que publier :
 - `news:<topic>:en|fr|check` : bascule de langue d'une news (check = la
   version FR est-elle publiée ?) ;
 - `loot:<clé>:<page>` : pagination d'une table de butin ;
-- `wishwall:select` : vœu choisi dans le menu du Wishwall.
+- `wishwall:select` : vœu choisi dans le menu du Wishwall ;
+- `weekly:rota:raid|dungeon` : rotation prédictive (réponse éphémère).
 
-Les boutons gérés par une vue persistante (rotation prédictive, /botconfig)
-ne passent pas par ici."""
+Point d'entrée UNIQUE de ces custom_id : aucune vue persistante ne doit les
+déclarer. discord.py mémorise la vue de chaque message envoyé et la consulte
+AVANT les vues persistantes ; les boutons rendus depuis la base n'ayant pas
+d'action propre, une vue persistante du même custom_id ne serait jamais
+appelée (« n'a pas répondu à temps »)."""
 import discord
 from discord.ext import commands
 
@@ -48,6 +52,8 @@ class ContentActions(commands.Cog):
             elif custom_id == SELECT_ID:
                 choice = ((interaction.data or {}).get("values") or [""])[0]
                 await self._replace(interaction, WISHWALL_TOPIC, choice)
+            elif custom_id.startswith("weekly:rota:"):
+                await self._rotation(interaction, custom_id.rsplit(":", 1)[1])
         except Exception as e:
             log.error(f"[Boutons] {custom_id} : {e}")
 
@@ -76,6 +82,22 @@ class ContentActions(commands.Cog):
         # Pas de re-attache de fichiers : l'icône du pied de page du 1er envoi
         # (même nom de pièce jointe) reste en place.
         await interaction.response.edit_message(embed=out.embed, view=out.view)
+
+    @staticmethod
+    async def _rotation(interaction: discord.Interaction, kind: str) -> None:
+        """Rotation prédictive précalculée (bot/features/weekly/handler.py),
+        envoyée en éphémère. Le defer éphémère rend aussi l'erreur privée."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        snap = await snapshot(f"rotation_{kind}")
+        if snap is None:
+            await interaction.followup.send(
+                "⚠️ La rotation de la semaine n'est pas encore disponible. "
+                "Réessaie dans quelques minutes.",
+                ephemeral=True,
+            )
+            return
+        out = snap.render()
+        await interaction.followup.send(view=out.view, files=out.files, ephemeral=True)
 
     @staticmethod
     async def _replace(interaction: discord.Interaction, topic: str, variant: str) -> None:

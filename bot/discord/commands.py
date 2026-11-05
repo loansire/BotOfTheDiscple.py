@@ -15,7 +15,6 @@ COGS = (
     "bot.discord.cogs.pipeline",
     "bot.discord.cogs.rotations",
     "bot.discord.cogs.loottable",
-    "bot.discord.cogs.persistent_views",
     "bot.discord.cogs.content_actions",
 )
 
