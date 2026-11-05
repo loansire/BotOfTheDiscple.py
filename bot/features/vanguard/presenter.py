@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Rendu Components V2 de l'Avant-garde (activités du Portail en focus).
+"""Calcul de la publication Avant-garde (activités du Portail en focus).
 
 UN MESSAGE PAR CATÉGORIE (Escouade, Prestige, Arène, Solo) : build_vanguard_views
-renvoie une liste de (vue, fichiers). Chaque message :
-- en-tête : `ui.Section` avec le titre de la catégorie (+ ligne d'actualisation) et l'icône Portal_Ico en accessoire, rendue
+renvoie une liste de Message (rangés en base). Chaque message :
+- en-tête : section avec le titre de la catégorie (+ ligne d'actualisation) et l'icône Portal_Ico en accessoire, rendue
   CARRÉE (les icônes sources ne le sont pas, la vignette Discord rognerait) ;
-- un `ui.Separator` sous l'en-tête (comme raids/donjons) ;
+- un séparateur sous l'en-tête (comme raids/donjons) ;
 - par activité : un `TextDisplay` (nom, tags alerte, item focus, arme de défi)
   PUIS le bandeau pgcr avec les icônes (focus, arme de défi) INCRUSTÉES à droite. Pas de vignette à
   côté du texte : le bandeau suit directement, sans décalage.
@@ -24,8 +24,6 @@ from __future__ import annotations
 import asyncio
 from io import BytesIO
 
-import discord
-from discord import ui
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from bot.bungie.reset import next_reset
@@ -41,9 +39,9 @@ from bot.features.vanguard.constants import (
 from bot.features.vanguard.models import FocusItem, PortalActivity, PortalCategory
 from bot.render.banner import BANNER_BLUR, BANNER_RATIO, get_banner
 from bot.render.item_icon import get_item_icon
-from bot.render.layout import StaticView
+from bot.content.model import Component, Message, image, separator, text
 
-_ACCENT = discord.Color.dark_red()
+_ACCENT = 0x992D22  # discord.Color.dark_red()
 
 # Clé de feature pour le cache d'images (cf. banner.py / purge_banner_cache).
 FEATURE = "avant_garde"
@@ -253,71 +251,58 @@ def _focus_lines(act: PortalActivity) -> list[str]:
     return lines
 
 
-def _activity_text(act: PortalActivity, cat_key: str) -> ui.TextDisplay:
+def _activity_text(act: PortalActivity, cat_key: str) -> Component:
     title = f"### {act.base_name}"
     if len(act.difficulties) > 1:
         title += f" ({' / '.join(act.difficulties)})"
     lines = [title, _tags_line(act, cat_key), *_focus_lines(act)]
-    return ui.TextDisplay("\n".join(line for line in lines if line))
+    return text("\n".join(line for line in lines if line))
 
 
-# ── Containers ──────────────────────────────────────────────────────────
+# ── Messages ────────────────────────────────────────────────────────────
 
 
-async def _header(cat: PortalCategory, refresh_unix: int | None, files: list[discord.File]) -> ui.Item:
+async def _header(cat: PortalCategory, refresh_unix: int | None) -> Component:
     """En-tête : titre (+ actualisation) avec l'icône de catégorie si présente."""
-    text = f"# {cat.label}"
+    title = f"# {cat.label}"
     if refresh_unix is not None:
-        text += f"\nActualisation <t:{refresh_unix}:R>"
-    title = ui.TextDisplay(text)
+        title += f"\nActualisation <t:{refresh_unix}:R>"
 
     icon = PORTAL_ICON_DIR / cat.icon_file
     try:
         data = await asyncio.to_thread(_square_png, icon.read_bytes())
     except OSError as e:
         log.warning(f"[Avant-garde] Icône {icon.name} illisible : {e}")
-        return title
-    fname = f"portal_{cat.key}.png"
-    files.append(discord.File(BytesIO(data), filename=fname))
-    return ui.Section(title, accessory=ui.Thumbnail(f"attachment://{fname}"))
+        return text(title)
+    return image("section", data, f"portal_{cat.key}.png", mime="image/png", text=title)
 
 
-async def _build_category(
-    cat: PortalCategory, refresh_unix: int | None, ratio: float
-) -> tuple[StaticView, list[discord.File]]:
-    files: list[discord.File] = []
-    container = ui.Container(accent_color=_ACCENT)
-    container.add_item(await _header(cat, refresh_unix, files))
-    container.add_item(ui.Separator())
+async def _build_category(cat: PortalCategory, refresh_unix: int | None, ratio: float) -> Message:
+    message = Message(accent_color=_ACCENT)
+    message.add(await _header(cat, refresh_unix)).add(separator())
 
     if not cat.activities:
-        container.add_item(ui.TextDisplay("-# Aucune activité en focus détectée."))
+        message.add(text("-# Aucune activité en focus détectée."))
 
     banners = 0
     for act in cat.activities:
-        container.add_item(_activity_text(act, cat.key))
+        message.add(_activity_text(act, cat.key))
         if banners >= _MAX_BANNERS:
             continue
         banner = await _activity_banner(act, ratio)
         if banner:
-            fname = f"ag_{cat.key}_{banners}.webp"
-            files.append(discord.File(BytesIO(banner), filename=fname))
-            container.add_item(ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}")))
+            message.add(image("gallery", banner, f"ag_{cat.key}_{banners}.webp"))
             banners += 1
-
-    return StaticView(container), files
+    return message
 
 
 async def build_vanguard_views(
     categories: list[PortalCategory],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> list[tuple[StaticView, list[discord.File]]]:
-    """Une (vue, fichiers) par catégorie. La ligne « Actualisation » (prochain
-    reset quotidien par défaut) figure sur chaque message."""
+) -> list[Message]:
+    """Un message par catégorie. La ligne « Actualisation » (prochain reset
+    quotidien par défaut) figure sur chaque message."""
     if next_refresh_unix is None:
         next_refresh_unix = int(next_reset().timestamp())
-    views = []
-    for cat in categories:
-        views.append(await _build_category(cat, next_refresh_unix, ratio))
-    return views
+    return [await _build_category(cat, next_refresh_unix, ratio) for cat in categories]

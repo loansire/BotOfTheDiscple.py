@@ -5,29 +5,35 @@ Moteur multi-message partagé : cf. bot/publishing/repost.py. Un message par
 catégorie (Escouade, Prestige, Arène, Solo), puis le ping rôle seul. L'état
 vit en base sous le topic `daily_vanguard` (cf. bot/features/weekly/state.py).
 
-Le hash inclut le reset courant : repost quotidien, mais un serveur déjà à
-jour dans la même journée n'est pas reposté. En mode `strict` (pipeline au
-reset), le garde-fou « données pas prêtes » s'applique (cf.
-bot/features/weekly/freshness.py)."""
+Calcul (presenter.py) → base → publication depuis la base. Le contenu porte
+la ligne « Actualisation » : repost quotidien, mais un serveur déjà à jour
+dans la même journée n'est pas reposté. En mode `strict` (pipeline au reset),
+le garde-fou « données pas prêtes » s'applique (cf.
+bot/features/weekly/freshness.py) ; la signature validée est mémorisée dès le
+calcul."""
 from __future__ import annotations
 
 from bot.bungie.reset import TUESDAY, last_reset, last_weekday_reset
+from bot.compute import purge_icons_once_per_reset, store
+from bot.content.model import Post
 from bot.features.vanguard import TOPIC, get_portal
 from bot.features.vanguard.filters import challenges_of
-from bot.features.vanguard.view import FEATURE, build_vanguard_views
+from bot.features.vanguard.presenter import FEATURE, build_vanguard_views
 from bot.features.weekly.freshness import check_fresh, not_ready, remember
 from bot.features.weekly.state import weekly_slot, weekly_state
-from bot.publishing.primitives import content_hash
-from bot.publishing.repost import Payload, RepostTopic
-from bot.render.banner import purge_banner_cache
+from bot.publishing.content_source import stored_payload, stored_views
+from bot.publishing.repost import RepostTopic
+
+TAG = "Avant-garde"
 
 
-async def _payload(strict: bool) -> Payload | None:
-    """Catégories du Portail, ou None si rien n'est détecté.
+async def produce(strict: bool = False) -> bool:
+    """Calcule les catégories du Portail et les range en base. False si rien
+    n'est détecté.
 
-    Les défis (hebdomadaires) vus une fois dans la semaine sont mémorisés dans
-    l'état et réaffichés aux resets quotidiens suivants, même une fois
-    accomplis sur le personnage de référence (le profil ne les montre plus)."""
+    Les défis (hebdomadaires) vus une fois dans la semaine sont mémorisés et
+    réaffichés aux resets quotidiens suivants, même une fois accomplis sur le
+    personnage de référence (le profil ne les montre plus)."""
     state = weekly_state()
     week = last_weekday_reset(TUESDAY).isoformat()
     remembered = state.week_challenges(week)
@@ -41,18 +47,21 @@ async def _payload(strict: bool) -> Payload | None:
     if not sig:
         if strict:
             not_ready(TOPIC, "aucune activité en focus détectée")
-        return None
+        return False
     if strict:
         check_fresh(state, TOPIC, sig)
-    return Payload(categories, content_hash([last_reset().isoformat(), TOPIC, *sig]), sig)
+        remember(state, TOPIC, sig)
+
+    purge_icons_once_per_reset(FEATURE)
+    messages = await build_vanguard_views(categories)
+    await store(Post(TOPIC, "repost", {"default": messages}, period_start=last_reset()), TAG)
+    return True
 
 
 publication = RepostTopic(
     topic=TOPIC,
-    tag="Avant-garde",
+    tag=TAG,
     state=lambda: weekly_slot(TOPIC),
-    payload=_payload,
-    build_views=build_vanguard_views,
-    purge_cache=lambda: purge_banner_cache(FEATURE),
-    on_published=lambda p: remember(weekly_state(), TOPIC, p.sig),
+    payload=stored_payload(TOPIC, produce),
+    build_views=stored_views,
 )

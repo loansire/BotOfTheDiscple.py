@@ -65,5 +65,19 @@ class EverversePresenterTests(_Base):
         self.assertTrue(all("Actualisation" in m.components[0].text for m in post.messages))
 
 
+class VanguardPresenterTests(unittest.IsolatedAsyncioTestCase):
+    async def test_empty_category_has_header_icon_and_fallback(self):
+        from bot.features.vanguard.constants import CATEGORIES
+        from bot.features.vanguard.models import PortalCategory
+        from bot.features.vanguard.presenter import build_vanguard_views
+
+        key, _, label, icon_file = CATEGORIES[0]
+        messages = await build_vanguard_views([PortalCategory(key, label, icon_file)], next_refresh_unix=123)
+        kinds = [c.kind for c in messages[0].components]
+        self.assertEqual(kinds, ["section", "separator", "text"])
+        self.assertIn("Actualisation <t:123:R>", messages[0].components[0].text)
+        self.assertEqual(messages[0].components[0].image_name, f"portal_{key}.png")
+
+
 if __name__ == "__main__":
     unittest.main()

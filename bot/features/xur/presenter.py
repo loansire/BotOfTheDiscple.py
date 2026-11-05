@@ -14,7 +14,7 @@ from bot.bungie.reset import last_reset
 from bot.compute import item_section
 from bot.content.model import Message, Post, image, text
 from bot.features.vanguard.constants import ARMOR_SUBTYPE_LABELS
-from bot.features.vanguard.view import armor_lines, weapon_tags
+from bot.features.vanguard.presenter import armor_lines, weapon_tags
 from bot.features.xur import next_arrival_unix, next_departure_unix
 from bot.features.xur.models import XurVendor
 from bot.features.xur.state import TOPIC
