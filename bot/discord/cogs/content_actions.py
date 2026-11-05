@@ -6,16 +6,22 @@ des custom_id ; ce cog les traite en relisant la base, ce qui marche aussi
 après un redémarrage et sur un bot qui ne fait que publier :
 - `maintenance:copy:<jeu>` : texte prêt à copier de la maintenance en cours ;
 - `news:<topic>:en|fr|check` : bascule de langue d'une news (check = la
-  version FR est-elle publiée ?).
+  version FR est-elle publiée ?) ;
+- `loot:<clé>:<page>` : pagination d'une table de butin ;
+- `wishwall:select` : vœu choisi dans le menu du Wishwall.
 
-Les boutons gérés par une vue persistante (rotation prédictive, wishwall,
-/botconfig) ne passent pas par ici."""
+Les boutons gérés par une vue persistante (rotation prédictive, /botconfig)
+ne passent pas par ici."""
 import discord
 from discord.ext import commands
 
 from bot.core.logger import log
+from bot.features.loottable.presenter import page_variant
+from bot.features.loottable.presenter import topic_of as loot_topic
 from bot.features.maintenance.presenter import COPY, topic_of
 from bot.features.news.presenter import CHECK, EN, FR
+from bot.features.wishwall.presenter import SELECT_ID
+from bot.features.wishwall.presenter import TOPIC as WISHWALL_TOPIC
 from bot.publishing.content_source import snapshot
 
 _FR_UNAVAILABLE = "⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*"
@@ -36,6 +42,12 @@ class ContentActions(commands.Cog):
             elif custom_id.startswith("news:"):
                 _, topic, what = custom_id.split(":", 2)
                 await self._news(interaction, topic, what)
+            elif custom_id.startswith("loot:"):
+                _, key, page = custom_id.split(":", 2)
+                await self._replace(interaction, loot_topic(key), page_variant(int(page)))
+            elif custom_id == SELECT_ID:
+                choice = ((interaction.data or {}).get("values") or [""])[0]
+                await self._replace(interaction, WISHWALL_TOPIC, choice)
         except Exception as e:
             log.error(f"[Boutons] {custom_id} : {e}")
 
@@ -64,6 +76,20 @@ class ContentActions(commands.Cog):
         # Pas de re-attache de fichiers : l'icône du pied de page du 1er envoi
         # (même nom de pièce jointe) reste en place.
         await interaction.response.edit_message(embed=out.embed, view=out.view)
+
+    @staticmethod
+    async def _replace(interaction: discord.Interaction, topic: str, variant: str) -> None:
+        """Remplace le message par une autre variante (page, vœu), pièces
+        jointes comprises."""
+        snap = await snapshot(topic, variant)
+        if snap is None:
+            await interaction.response.send_message("Impossible d'afficher cette page.", ephemeral=True)
+            return
+        out = snap.render()
+        if out.embed is not None:
+            await interaction.response.edit_message(embed=out.embed, view=out.view, attachments=out.files)
+        else:
+            await interaction.response.edit_message(view=out.view, attachments=out.files)
 
 
 async def setup(bot: commands.Bot):
