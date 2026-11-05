@@ -209,8 +209,8 @@ async def _build_single_type_view(
             f"-# {fallback_label}"
         ))
 
-    # Bouton « Rotation prédictive » : custom_id traité par la vue persistante
-    # RotationPersistentView (bot/features/weekly/rotation_buttons.py).
+    # Bouton « Rotation prédictive » : custom_id traité par
+    # bot/discord/cogs/content_actions.py.
     kind = "dungeon" if activity_type == "Donjon" else "raid"
     container.add(separator())
     container.add(button("Rotation prédictive", f"weekly:rota:{kind}", emoji="🗓️", style="primary"))

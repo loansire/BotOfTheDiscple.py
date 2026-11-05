@@ -101,7 +101,8 @@ def _producer(topic: str, tag: str, activity_type: str, build_view):
         # Rotation prédictive (bouton du message), calculée avec les mêmes données.
         kind = "dungeon" if activity_type == "Donjon" else "raid"
         rotation = build_rotation_view(kind, groups)
-        await store(Post(f"rotation_{kind}", "on_demand", {"default": [rotation]}, period_start=last_reset()), tag)
+        await store(Post(f"rotation_{kind}", "on_demand", {"default": [rotation]}, period_start=last_reset()),
+                    f"{tag} (rotation prédictive)")
         return True
 
     return produce
