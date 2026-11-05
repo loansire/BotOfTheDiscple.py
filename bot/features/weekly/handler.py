@@ -9,33 +9,33 @@ Deux régimes de message coexistent :
 - Raids / Donjons  : MONO-message persistant (cf. bot/publishing/single.py),
   ping injecté dans la vue. Jamais près du plafond CV2.
 
-Le hash de contenu inclut l'identifiant du reset courant : un repost a lieu à
-chaque cadence (quotidienne pour les secteurs, hebdo pour raids/donjons) même
-si les noms d'activités sont identiques, ce qui garde à jour la ligne
-« Prochaine actualisation ». Dans une même période le hash est stable.
+Calcul (presenter.py) → base → publication depuis la base. Le contenu porte
+la ligne « Actualisation » : il change donc à chaque cadence (quotidienne
+pour les secteurs, hebdo pour raids/donjons) et déclenche le repost, même si
+les activités sont identiques.
 
-Cache d'images : les secteurs purgent leur cache à chaque publication. Raids
-et donjons PARTAGENT le dossier `raid_donjon` : publish_raid_dungeon le purge
-une seule fois AVANT de publier les deux types (une purge entre les deux
-effacerait un bandeau fraîchement généré).
+Cache disque des bandeaux : purgé au premier calcul de chaque reset (le
+dossier `raid_donjon` est partagé par raids et donjons).
 
 `strict=True` (pipeline au reset) active le garde-fou « données pas prêtes »
-(cf. bot/features/weekly/freshness.py)."""
+(cf. bot/features/weekly/freshness.py) ; la signature validée est mémorisée
+dès le calcul."""
 from __future__ import annotations
 
 from bot.bungie.reset import last_reset
+from bot.compute import purge_icons_once_per_reset, store
+from bot.content.model import Post
 from bot.features.weekly import get_lost_sectors, get_raid_dungeon
 from bot.features.weekly.freshness import check_fresh, not_ready, remember
-from bot.features.weekly.state import weekly_single, weekly_slot, weekly_state
-from bot.features.weekly.view import (
+from bot.features.weekly.presenter import (
     build_dungeon_view,
     build_lost_sectors_view,
     build_raid_view,
 )
-from bot.publishing.primitives import content_hash
-from bot.publishing.repost import Payload, RepostTopic
+from bot.features.weekly.state import weekly_single, weekly_slot, weekly_state
+from bot.publishing.content_source import stored_payload, stored_views
+from bot.publishing.repost import RepostTopic
 from bot.publishing.single import SingleTopic
-from bot.render.banner import purge_banner_cache
 
 LOST_SECTOR_TOPIC = "daily_lost_sector"
 RAID_TOPIC = "weekly_raid"
@@ -46,55 +46,65 @@ _FEATURE_LOST_SECTOR = "secteur_oublie"
 _FEATURE_RAID_DUNGEON = "raid_donjon"  # partagé raids + donjons
 
 
+def _validate(topic: str, sig: list[str], strict: bool) -> None:
+    """Garde-fou fraîcheur (strict) puis mémorisation de la signature."""
+    if strict:
+        check_fresh(weekly_state(), topic, sig)
+        remember(weekly_state(), topic, sig)
+
+
 # ── Secteurs oubliés (multi-message) ────────────────────────────────────
 
 
-async def _sectors_payload(strict: bool) -> Payload | None:
+async def _produce_sectors(strict: bool) -> bool:
     sectors = await get_lost_sectors()
     if not sectors:
         if strict:
             not_ready(LOST_SECTOR_TOPIC, "aucun secteur oublié détecté")
-        return None
-    sig = [str(v.activity_hash) for s in sectors for v in s.variants]
-    if strict:
-        check_fresh(weekly_state(), LOST_SECTOR_TOPIC, sig)
-    return Payload(sectors, content_hash([last_reset().isoformat(), *sig]), sig)
+        return False
+    _validate(LOST_SECTOR_TOPIC, [str(v.activity_hash) for s in sectors for v in s.variants], strict)
+    purge_icons_once_per_reset(_FEATURE_LOST_SECTOR)
+    messages = await build_lost_sectors_view(sectors)
+    await store(Post(LOST_SECTOR_TOPIC, "repost", {"default": messages}, period_start=last_reset()), "Secteurs")
+    return True
 
 
 lost_sectors = RepostTopic(
     topic=LOST_SECTOR_TOPIC,
     tag="Secteurs",
     state=lambda: weekly_slot(LOST_SECTOR_TOPIC),
-    payload=_sectors_payload,
-    build_views=build_lost_sectors_view,
-    purge_cache=lambda: purge_banner_cache(_FEATURE_LOST_SECTOR),
-    on_published=lambda p: remember(weekly_state(), LOST_SECTOR_TOPIC, p.sig),
+    payload=stored_payload(LOST_SECTOR_TOPIC, _produce_sectors),
+    build_views=stored_views,
 )
 
 
 # ── Raids / Donjons (mono-message) ──────────────────────────────────────
 
 
-def _activity_payload(topic: str, activity_type: str):
-    """Fabrique le payload d'un type d'activité ('Raid' / 'Donjon').
+def _producer(topic: str, tag: str, activity_type: str, build_view):
+    """Calcul d'un type d'activité ('Raid' / 'Donjon'). Seules les activités
+    featured du type portent la signature de fraîcheur (un changement côté
+    donjon ne doit pas bloquer le message raid)."""
 
-    Les données renvoyées sont la liste COMPLÈTE (raids + donjons) : le builder
-    filtre par type. Le hash ne porte QUE sur les activités featured du type
-    (un changement côté donjon ne doit pas forcer le repost du message raid)."""
-
-    async def payload(strict: bool) -> Payload | None:
+    async def produce(strict: bool) -> bool:
         groups = await get_raid_dungeon()
         featured = [g for g in groups or [] if g.featured and g.activity_type == activity_type]
         if not featured:
             if strict:
                 not_ready(topic, f"aucun {activity_type.lower()} featured détecté")
-            return None
-        sig = [g.base_name for g in featured]
-        if strict:
-            check_fresh(weekly_state(), topic, sig)
-        return Payload(groups, content_hash([last_reset().isoformat(), topic, *sig]), sig)
+            return False
+        _validate(topic, [g.base_name for g in featured], strict)
+        purge_icons_once_per_reset(_FEATURE_RAID_DUNGEON)
+        message = await build_view(groups)
+        await store(Post(topic, "repost", {"default": [message]}, period_start=last_reset()), tag)
+        return True
 
-    return payload
+    return produce
+
+
+async def _single_view(snap) -> tuple:
+    out = snap.render()
+    return out.view, out.files
 
 
 def _single(topic: str, tag: str, activity_type: str, build_view) -> SingleTopic:
@@ -102,10 +112,8 @@ def _single(topic: str, tag: str, activity_type: str, build_view) -> SingleTopic
         topic=topic,
         tag=tag,
         state=lambda: weekly_single(topic),
-        payload=_activity_payload(topic, activity_type),
-        build_view=build_view,
-        purge_cache=lambda: purge_banner_cache(_FEATURE_RAID_DUNGEON),
-        on_published=lambda p: remember(weekly_state(), topic, p.sig),
+        payload=stored_payload(topic, _producer(topic, tag, activity_type, build_view)),
+        build_view=_single_view,
     )
 
 
@@ -114,8 +122,6 @@ dungeons = _single(DUNGEON_TOPIC, "Donjons", "Donjon", build_dungeon_view)
 
 
 async def publish_raid_dungeon(bot, *, ping: bool = True, strict: bool = False) -> None:
-    """Reset hebdo (mardi) : purge le cache de bandeaux raids/donjons UNE seule
-    fois PUIS publie raids puis donjons."""
-    purge_banner_cache(_FEATURE_RAID_DUNGEON)
+    """Reset hebdo (mardi) : publie raids puis donjons."""
     await raids.publish(bot, ping=ping, strict=strict)
     await dungeons.publish(bot, ping=ping, strict=strict)

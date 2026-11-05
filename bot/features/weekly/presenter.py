@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Rendu Components V2 des activités weekly/daily.
+"""Calcul des publications weekly/daily (Components V2, rangées en base).
 
 - Raids & Donjons : chaque type a SON propre builder (et donc son propre message
   persistant), liste des noms + bandeau pgcr recadré par activité, séparateurs.
@@ -12,9 +12,8 @@
   PUIS le bandeau pgcr recadré. Ce découpage évite la limite Discord de 4000
   caractères de texte cumulé par message (CV2).
 
-Les builders raid/donjon renvoient (LayoutView, fichiers). Le builder secteurs
-renvoie une LISTE de (LayoutView, fichiers). La publication (post/édition) est
-gérée ailleurs.
+Les builders renvoient des Message (bot/content/model.py) ; la publication
+les relit en base (bot/publishing/content_source.py).
 
 Ligne « Prochaine actualisation » : par défaut calculée ici (prochain reset
 quotidien pour les secteurs, prochain reset du mardi pour raids/donjons), mais
@@ -26,22 +25,19 @@ mis en cache sous `banners/secteur_oublie/`, ceux des raids/donjons sous
 une seule fois en amont côté handler)."""
 from __future__ import annotations
 
-from io import BytesIO
 
-import discord
-from discord import ui
 
 from bot.bungie.reset import TUESDAY, next_reset, next_weekday_reset
+from bot.content.model import Message, button, image, separator, text
 from bot.features.weekly.models import ActivityVariant, LostSector, WeeklyActivity
 from bot.render.banner import BANNER_RATIO, get_banner
 
-from bot.features.weekly.rotation_buttons import RotationActionRow
 from bot.render.activity_emojis import DJ_EMOJI as _DJ_EMOJI
 from bot.render.activity_emojis import RD_EMOJI as _RD_EMOJI
 from bot.render.activity_emojis import activity_emoji_for
-from bot.render.layout import StaticView, refresh_line
+from bot.render.layout import refresh_line
 
-_ACCENT = discord.Color.dark_red()
+_ACCENT = 0x992D22  # discord.Color.dark_red()
 
 # Clés de feature pour le cache d'images (cf. banner.py / purge_banner_cache).
 # Raids et donjons PARTAGENT le même dossier de cache (purge unique en amont).
@@ -122,9 +118,8 @@ _MAX_DUNGEONS = 99
 
 
 async def _add_activities(
-    container: ui.Container,
+    container: Message,
     groups: list[WeeklyActivity],
-    files: list[discord.File],
     ratio: float,
     with_banner: bool = True,
 ) -> None:
@@ -134,17 +129,14 @@ async def _add_activities(
     jamais d'une semaine à l'autre, l'image n'apporte donc aucune information
     et coûte une pièce jointe + un composant CV2 par message."""
     for g in groups:
-        container.add_item(ui.TextDisplay(f"### {_activity_emoji(g)} {g.base_name}"))
+        container.add(text(f"### {_activity_emoji(g)} {g.base_name}"))
         if not with_banner:
             continue
         # pgcr absente ou placeholder → bandeau générique (cf. get_banner).
         banner = await get_banner(g.pgcr_image, _FEATURE_RAID_DUNGEON, ratio)
         if banner:
-            fname = f"rd_{len(files)}.webp"
-            files.append(discord.File(BytesIO(banner), filename=fname))
-            container.add_item(
-                ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
-            )
+            fname = f"rd_{sum(c.kind == 'gallery' for c in container.components)}.webp"
+            container.add(image("gallery", banner, fname))
 
 
 async def _build_activity_container(
@@ -152,24 +144,23 @@ async def _build_activity_container(
     rotation: list[WeeklyActivity],
     permanent: list[WeeklyActivity],
     permanent_label: str,
-    files: list[discord.File],
     ratio: float,
-) -> ui.Container:
+) -> Message:
     """Un container : titre, sous-section « En rotation » PUIS sous-section
     permanente (rotation au-dessus). Chaque sous-section : séparateur + en-tête
     + (par activité) nom puis bandeau pgcr."""
-    container = ui.Container(accent_color=_ACCENT)
-    container.add_item(ui.TextDisplay(title))
+    container = Message(accent_color=_ACCENT)
+    container.add(text(title))
 
     if rotation:
-        container.add_item(ui.Separator())
-        container.add_item(ui.TextDisplay("**En rotation**"))
-        await _add_activities(container, rotation, files, ratio)
+        container.add(separator())
+        container.add(text("**En rotation**"))
+        await _add_activities(container, rotation, ratio)
 
     if permanent:
-        container.add_item(ui.Separator())
-        container.add_item(ui.TextDisplay(f"**{permanent_label}**"))
-        await _add_activities(container, permanent, files, ratio, with_banner=False)
+        container.add(separator())
+        container.add(text(f"**{permanent_label}**"))
+        await _add_activities(container, permanent, ratio, with_banner=False)
 
     return container
 
@@ -185,7 +176,7 @@ async def _build_single_type_view(
     max_items: int | None,
     ratio: float,
     next_refresh_unix: int | None,
-) -> tuple[StaticView, list[discord.File]]:
+) -> Message:
     """Construit la vue (1 container) pour UN type d'activité (raid OU donjon).
 
     On n'affiche QUE les activités *featured* de la semaine (challenges actifs,
@@ -201,37 +192,36 @@ async def _build_single_type_view(
     if max_items is not None:
         featured = featured[:max_items]
 
-    files: list[discord.File] = []
-
     if featured:
         container = await _build_activity_container(
             f"# {title_emoji} {title_label}\n{refresh}",
             [g for g in featured if not g.permanent],
             [g for g in featured if g.permanent],
             permanent_label,
-            files, ratio,
+            ratio,
         )
     else:
         # Repli : aucune activité featured détectée → on évite une vue vide.
-        container = ui.Container(accent_color=_ACCENT)
-        container.add_item(ui.TextDisplay(
+        container = Message(accent_color=_ACCENT)
+        container.add(text(
             f"# {title_emoji} {title_label}\n"
             f"{refresh}\n"
             f"-# {fallback_label}"
         ))
 
+    # Bouton « Rotation prédictive » : custom_id traité par la vue persistante
+    # RotationPersistentView (bot/features/weekly/rotation_buttons.py).
     kind = "dungeon" if activity_type == "Donjon" else "raid"
-    container.add_item(ui.Separator())
-    container.add_item(RotationActionRow(kind))
-
-    return StaticView(container), files
+    container.add(separator())
+    container.add(button("Rotation prédictive", f"weekly:rota:{kind}", emoji="🗓️", style="primary"))
+    return container
 
 
 async def build_raid_view(
     groups: list[WeeklyActivity],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> tuple[StaticView, list[discord.File]]:
+) -> Message:
     """Vue (1 message) des raids featured de la semaine."""
     return await _build_single_type_view(
         groups,
@@ -250,7 +240,7 @@ async def build_dungeon_view(
     groups: list[WeeklyActivity],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> tuple[StaticView, list[discord.File]]:
+) -> Message:
     """Vue (1 message) des donjons featured de la semaine."""
     return await _build_single_type_view(
         groups,
@@ -320,7 +310,7 @@ async def build_lost_sectors_view(
     sectors: list[LostSector],
     ratio: float = BANNER_RATIO,
     next_refresh_unix: int | None = None,
-) -> list[tuple[StaticView, list[discord.File]]]:
+) -> list[Message]:
     """Renvoie une LISTE de (vue, fichiers) : UN message par secteur.
 
     Chaque message : destination en en-tête (###), nom du secteur en gras
@@ -334,10 +324,10 @@ async def build_lost_sectors_view(
     if next_refresh_unix is None:
         next_refresh_unix = int(next_reset().timestamp())
 
-    messages: list[tuple[StaticView, list[discord.File]]] = []
+    messages: list[Message] = []
 
     for i, sector in enumerate(sectors):
-        container = ui.Container(accent_color=_ACCENT)
+        container = Message(accent_color=_ACCENT)
 
         # Titre : destination en en-tête (#), nom du secteur (##). PAS de ligne
         # d'actualisation ici — elle est placée en bas, sous l'image.
@@ -368,21 +358,16 @@ async def build_lost_sectors_view(
             if diffs:
                 lines.append(diffs)
 
-        container.add_item(ui.TextDisplay("\n".join(lines)))
+        container.add(text("\n".join(lines)))
 
-        files: list[discord.File] = []
         # pgcr absente ou placeholder → bandeau générique (cf. get_banner).
         banner = await get_banner(sector.pgcr_image, _FEATURE_LOST_SECTOR, ratio)
         if banner:
-            fname = f"ls_{i}.webp"
-            files.append(discord.File(BytesIO(banner), filename=fname))
-            container.add_item(
-                ui.MediaGallery(discord.MediaGalleryItem(f"attachment://{fname}"))
-            )
+            container.add(image("gallery", banner, f"ls_{i}.webp"))
 
         # Ligne d'actualisation (courte), TOUT EN BAS — sous l'image.
-        container.add_item(ui.TextDisplay(_refresh_line_short(next_refresh_unix)))
+        container.add(text(_refresh_line_short(next_refresh_unix)))
 
-        messages.append((StaticView(container), files))
+        messages.append(container)
 
     return messages

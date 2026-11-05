@@ -219,8 +219,8 @@ class Pipeline(commands.Cog):
             await xur.publish_arrival(self.bot)
 
         # MARDI : Xûr part + raids/donjons + Ada-1 (resets hebdo).
-        # publish_raid_dungeon purge une seule fois le cache partagé puis
-        # publie les deux messages distincts (raids puis donjons).
+        # publish_raid_dungeon publie les deux messages distincts (raids puis
+        # donjons).
         if TUESDAY in weekdays:
             await xur.mark_departed(self.bot)
             await weekly.publish_raid_dungeon(self.bot, strict=True)
