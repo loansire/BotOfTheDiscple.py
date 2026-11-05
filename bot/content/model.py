@@ -91,6 +91,7 @@ class Post:
     period_start: datetime | None = None
     expires_at: datetime | None = None
     version: int | None = None  # renseigné à la lecture / après écriture
+    stored_hash: str | None = None  # hash enregistré (lecture seulement)
 
     @property
     def messages(self) -> list[Message]:

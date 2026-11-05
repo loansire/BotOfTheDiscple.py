@@ -51,12 +51,20 @@ class AscendantTests(unittest.TestCase):
 
 
 class ContentHashTests(unittest.TestCase):
-    def test_rotation_hashes(self):
-        from bot.features.ascendant.view import content_hash as asc_hash
-        from bot.features.distortion.view import content_hash as dis_hash
+    def test_rotation_posts_change_with_the_period(self):
+        from bot.features.ascendant.presenter import build_post as asc_post
+        from bot.features.distortion.presenter import build_post as dis_post
 
-        self.assertEqual(dis_hash(distortion.ANCHOR), "distortion:0")
-        self.assertEqual(asc_hash(ascendant.ANCHOR), f"ascendant:0:{DEFIS_ORDRE[0]}")
+        start = distortion.ANCHOR
+        self.assertEqual(dis_post(start).content_hash(), dis_post(start + timedelta(minutes=59)).content_hash())
+        self.assertNotEqual(dis_post(start).content_hash(), dis_post(start + timedelta(hours=1)).content_hash())
+        first = dis_post(start).messages[0]
+        self.assertIn(f"## {ORDER[0]}", first.components[0].text)
+        self.assertEqual(first.components[1].kind, "gallery")  # image du lieu stockée
+
+        post = asc_post(ascendant.ANCHOR)
+        self.assertIn("Défi ascendant de la semaine", post.messages[0].components[0].text)
+        self.assertNotEqual(post.content_hash(), asc_post(ascendant.ANCHOR + timedelta(weeks=1)).content_hash())
 
     def test_parts_hash_is_order_independent(self):
         from bot.publishing.primitives import content_hash

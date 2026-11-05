@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """Moteurs de publication (repost multi-message, mono-message) sur faux Discord."""
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 
 from bot.publishing.edit_in_place import EditInPlaceTopic
 from bot.publishing.repost import Payload, RepostTopic
 from bot.publishing.single import SingleTopic
+from bot.render.components import Rendered
 from bot.storage.messages import MultiMessageState, SingleMessageState
 from tests.fake_discord import FakeBot, FakeChannel, FakeGuild, FakeView, subscriptions
 from tests.storage_helpers import reset_memory
@@ -154,21 +157,33 @@ class SingleTopicTests(_Base):
             self.assertEqual(len(self.ch1.messages), 1)
 
 
+class _FakeSnapshot:
+    """Remplaçant de content_source.Snapshot (contenu lu en base)."""
+
+    def __init__(self, period: int):
+        self.hash = f"p{period}"
+        self.post = SimpleNamespace(version=period)
+        self._label = str(period)
+
+    def render(self, index: int = 0):
+        return Rendered(view=FakeView(self._label), files=[])
+
+
 class EditInPlaceTopicTests(_Base):
     def make(self, state):
         self.period = 0
-        self.contexts = 0
+        self.produced = []
 
-        async def context(now):
-            self.contexts += 1
-            return "ctx"
+        async def produce(force):
+            self.produced.append(force)
 
-        return EditInPlaceTopic(
-            topic=TOPIC, tag="Demo", state=lambda: state,
-            build=lambda now, ctx: (FakeView(f"{self.period}-{ctx}"), []),
-            chash=lambda now, ctx: f"p{self.period}",
-            context=context,
-        )
+        async def fake_snapshot(topic):
+            return _FakeSnapshot(self.period)
+
+        patcher = mock.patch("bot.publishing.edit_in_place.snapshot", fake_snapshot)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return EditInPlaceTopic(topic=TOPIC, tag="Demo", state=lambda: state, produce=produce)
 
     async def test_edit_in_place_lifecycle(self):
         state = SingleMessageState(TOPIC)
@@ -179,15 +194,25 @@ class EditInPlaceTopicTests(_Base):
             self.assertEqual(self.ch1.pings, [])  # jamais de ping
 
             self.period = 1
-            await pub.publish(self.bot)  # nouvelle période → édition, même message
+            await pub.publish(self.bot)  # nouvelle version → édition, même message
             self.assertEqual(state.get("1")["message_id"], mid)
-            self.assertEqual(self.ch1.messages[int(mid)].view.label, "1-ctx")
+            self.assertEqual(self.ch1.messages[int(mid)].view.label, "1")
+            self.assertEqual(state.get("1")["hash"], "p1")
 
             await self.ch1.messages[int(mid)].delete()
             await pub.publish(self.bot, force=True)  # message disparu → renvoyé
             self.assertNotEqual(state.get("1")["message_id"], mid)
             self.assertEqual(len(self.ch1.messages), 1)
-            self.assertEqual(self.contexts, 3)
+            self.assertEqual(self.produced, [False, False, True])
+
+    async def test_post_only_bot_reads_without_producing(self):
+        state = SingleMessageState(TOPIC)
+        pub = self.make(state)
+        pub.produce = None
+        with subscriptions(TOPIC, self.subs):
+            await pub.publish(self.bot)
+        self.assertEqual(self.produced, [])
+        self.assertEqual(state.get("1")["hash"], "p0")
 
 
 if __name__ == "__main__":

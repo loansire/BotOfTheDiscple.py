@@ -83,6 +83,7 @@ async def save_post(post: Post) -> tuple[int, bool]:
     latest = await latest_header(post.topic)
     if latest is not None and latest.content_hash == content_hash:
         post.version = latest.version
+        post.stored_hash = content_hash
         return latest.version, False
 
     rows = await db.fetchall(
@@ -129,6 +130,7 @@ async def save_post(post: Post) -> tuple[int, bool]:
                 component_rows,
             )
     post.version = version
+    post.stored_hash = content_hash
     return version, True
 
 
@@ -195,13 +197,14 @@ async def load_post(topic: str, version: int | None = None) -> Post | None:
 
     db = _db()
     rows = await db.fetchall(
-        "SELECT mode, period_start, expires_at FROM content_post WHERE topic = %s AND version = %s",
+        "SELECT mode, content_hash, period_start, expires_at FROM content_post"
+        " WHERE topic = %s AND version = %s",
         (topic, version),
     )
     if not rows:
         return None
     post = Post(topic=topic, mode=rows[0]["mode"], period_start=rows[0]["period_start"],
-                expires_at=rows[0]["expires_at"], version=version)
+                expires_at=rows[0]["expires_at"], version=version, stored_hash=rows[0]["content_hash"])
     for row in await db.fetchall(
         "SELECT variant, layout, accent_color FROM content_message"
         " WHERE topic = %s AND version = %s ORDER BY variant, position",
