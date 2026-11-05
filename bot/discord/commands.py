@@ -16,6 +16,7 @@ COGS = (
     "bot.discord.cogs.rotations",
     "bot.discord.cogs.loottable",
     "bot.discord.cogs.persistent_views",
+    "bot.discord.cogs.content_actions",
 )
 
 # Commandes réservées au SEUL serveur de contrôle (CONTROL_GUILD_ID) :

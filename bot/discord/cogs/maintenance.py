@@ -23,7 +23,9 @@ from bot.features.maintenance import (
 from bot.features.maintenance.formatter import GAME_LABELS
 from bot.features.maintenance.manual import ManualInputError, build_manual_window
 from bot.features.maintenance.state import MaintenanceState
-from bot.features.maintenance.view import build_maintenance_embed, build_maintenance_end_embed
+from bot.compute import store
+from bot.features.maintenance.presenter import build_announcement_post, build_end_post
+from bot.publishing.content_source import event_builder, snapshot
 from bot.publishing.event import publish_to_subscribers
 
 GAMES = ("destiny", "marathon")
@@ -205,13 +207,18 @@ class Maintenance(commands.Cog):
             return False
 
     # ---------- Publication ----------
+    async def _publish_post(self, post, subscribers_topic: str, *, ping: bool) -> None:
+        """Range le Post calculé en base puis le publie depuis la base."""
+        await store(post, "Maintenance")
+        snap = await snapshot(post.topic)
+        if snap is None:
+            log.error(f"[Maintenance] {post.topic} introuvable en base : rien de publié.")
+            return
+        await publish_to_subscribers(self.bot, subscribers_topic, build=event_builder(snap), ping=ping)
+
     async def _announce(self, game: str, record: dict, *, ping: bool = True):
-        await publish_to_subscribers(
-            self.bot,
-            f"maintenance_{game}",
-            build=lambda: build_maintenance_embed(record, record.get("copy_text")),
-            ping=ping,
-        )
+        post = build_announcement_post(record, record.get("copy_text"))
+        await self._publish_post(post, f"maintenance_{game}", ping=ping)
 
     async def declare(self, game: str, window: dict):
         """Mise à jour manuelle : écrase l'enregistrement actif et republie."""
@@ -237,9 +244,7 @@ class Maintenance(commands.Cog):
             st = self.state.get(game)
             if not st.get("active"):
                 return False
-            await publish_to_subscribers(
-                self.bot, f"maintenance_{game}", build=lambda: build_maintenance_end_embed(game)
-            )
+            await self._publish_post(build_end_post(game), f"maintenance_{game}", ping=True)
             self.state.set(game, {k: v for k, v in st.items() if k not in ("active", "expiry_notified")})
             await self.state.save()
         log.info(f"[Maintenance] Maintenance {game} terminée et clearée")

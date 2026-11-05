@@ -67,3 +67,14 @@ def stored_payload(topic: str, produce: Optional[Callable[[bool], Awaitable[bool
 async def stored_views(snap: Snapshot) -> list:
     """`build_views` d'un RepostTopic : rendu mécanique de chaque message."""
     return [(out.view, out.files) for out in snap.render_all()]
+
+
+def event_builder(snap: Snapshot):
+    """`build` du moteur événementiel (bot/publishing/event.py) : rendu
+    mécanique du premier message de la variante → (embed, fichiers, vue)."""
+
+    def build():
+        out = snap.render()
+        return out.embed, out.files, out.view
+
+    return build
