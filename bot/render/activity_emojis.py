@@ -3,7 +3,7 @@
 
 Extraites de features/weekly/view.py pour être partagées entre la publication
 hebdomadaire (features/weekly/view.py) et la rotation prédictive
-(features/weekly/rotation_view.py) sans import circulaire.
+(features/weekly/rotation_presenter.py) sans import circulaire.
 
 Le matching se fait sur la forme NORMALISÉE (cf. features.weekly.rotation.
 norm_name) pour absorber les écarts avec le manifest Bungie : article initial

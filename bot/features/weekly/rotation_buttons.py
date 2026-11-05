@@ -23,8 +23,7 @@ import discord
 from discord import ui
 
 from bot.core.logger import log
-from bot.features.weekly import get_raid_dungeon
-from bot.features.weekly.rotation_view import build_rotation_view
+from bot.publishing.content_source import snapshot
 
 _LABELS = {
     "raid": "Rotation prédictive",
@@ -49,22 +48,24 @@ class RotationButton(ui.Button):
         # followups le seront, y compris le message d'erreur.
         await interaction.response.defer(ephemeral=True, thinking=True)
 
+        # Rotation précalculée au reset (bot/features/weekly/handler.py) :
+        # simple lecture en base, aucun appel Bungie.
         try:
-            groups = await get_raid_dungeon()
+            snap = await snapshot(f"rotation_{self.kind}")
         except Exception as e:
-            log.error(f"[Rotation] Fetch échoué ({self.kind}) : {e}")
-            groups = None
+            log.error(f"[Rotation] Lecture en base échouée ({self.kind}) : {e}")
+            snap = None
 
-        if not groups:
+        if snap is None:
             await interaction.followup.send(
-                "⚠️ Impossible de récupérer les activités de la semaine "
-                "(API Bungie indisponible). Réessaie dans quelques minutes.",
+                "⚠️ La rotation de la semaine n'est pas encore disponible. "
+                "Réessaie dans quelques minutes.",
                 ephemeral=True,
             )
             return
 
-        view = build_rotation_view(self.kind, groups)
-        await interaction.followup.send(view=view, ephemeral=True)
+        out = snap.render()
+        await interaction.followup.send(view=out.view, files=out.files, ephemeral=True)
 
 
 class RotationActionRow(ui.ActionRow):

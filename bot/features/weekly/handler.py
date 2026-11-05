@@ -27,6 +27,7 @@ from bot.compute import purge_icons_once_per_reset, store
 from bot.content.model import Post
 from bot.features.weekly import get_lost_sectors, get_raid_dungeon
 from bot.features.weekly.freshness import check_fresh, not_ready, remember
+from bot.features.weekly.rotation_presenter import build_rotation_view
 from bot.features.weekly.presenter import (
     build_dungeon_view,
     build_lost_sectors_view,
@@ -97,6 +98,10 @@ def _producer(topic: str, tag: str, activity_type: str, build_view):
         purge_icons_once_per_reset(_FEATURE_RAID_DUNGEON)
         message = await build_view(groups)
         await store(Post(topic, "repost", {"default": [message]}, period_start=last_reset()), tag)
+        # Rotation prédictive (bouton du message), calculée avec les mêmes données.
+        kind = "dungeon" if activity_type == "Donjon" else "raid"
+        rotation = build_rotation_view(kind, groups)
+        await store(Post(f"rotation_{kind}", "on_demand", {"default": [rotation]}, period_start=last_reset()), tag)
         return True
 
     return produce

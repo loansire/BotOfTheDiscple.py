@@ -75,6 +75,9 @@ class WeeklyFlowTests(unittest.IsolatedAsyncioTestCase):
         row = container.children[-1]
         self.assertEqual(row.children[0].custom_id, "weekly:rota:raid")
         self.assertEqual(msg.view.children[-1].content, "<@&r>")  # ping injecté
+        # Rotation prédictive précalculée avec les mêmes données (lue au clic).
+        rotation = self.content.posts["rotation_raid"].messages[0]
+        self.assertIn("Rotation prédictive - Raids", rotation.components[0].text)
 
 
 if __name__ == "__main__":
