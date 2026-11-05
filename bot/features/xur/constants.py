@@ -14,13 +14,14 @@ le même hash, chacune filtrée par sa propre plage de positions (cf.
 table compute_vendor_whitelist). Le fetch réseau est mutualisé par hash dans service.py
 (get_vendor_sales n'a pas de cache).
 """
+from bot.render.emotes import e
 # clé interne → (vendor_hash, libellé affiché, emoji custom de catégorie)
 XUR_VENDORS: dict[str, tuple[int, str, str]] = {
-    "armor": (2190858386, "ARMURES<:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258>", "<:Xur:1527021351368659205>"),
-    "exotics-weapons": (3751514131, "ARMES EXOTIQUES<:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258>", "<:Xur:1527021351368659205>"),
-    "legendaries-weapons": (3751514131, "ARMES LÉGENDAIRES<:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258>", "<:Xur:1527021351368659205>"),
-    "legendaries-armors": (3751514131, "ARMURES LÉGENDAIRES<:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258>", "<:Xur:1527021351368659205>"),
-    "materials": (537912098, "OFFRE MATERIAUX<:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258><:Blank:1516201087944757258>", "<:Xur:1527021351368659205>"),
+    "armor": (2190858386, "ARMURES" + e("misc.blank") * 11, e("topic.xur")),
+    "exotics-weapons": (3751514131, "ARMES EXOTIQUES" + e("misc.blank") * 8, e("topic.xur")),
+    "legendaries-weapons": (3751514131, "ARMES LÉGENDAIRES" + e("misc.blank") * 7, e("topic.xur")),
+    "legendaries-armors": (3751514131, "ARMURES LÉGENDAIRES" + e("misc.blank") * 6, e("topic.xur")),
+    "materials": (537912098, "OFFRE MATERIAUX" + e("misc.blank") * 8, e("topic.xur")),
 }
 
 # Composant Vendors à demander (sales = items en vente).

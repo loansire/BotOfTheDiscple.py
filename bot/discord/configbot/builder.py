@@ -31,6 +31,7 @@ from bot.discord.configbot.components import (
     ValidateButton,
 )
 from bot.topics import TOPICS
+from bot.render.emotes import e, resolve
 
 _ACCENT = discord.Color.dark_red()       # carte au repos
 _ACCENT_DIRTY = 0xF0A30A                  # orange — topic modifié non validé
@@ -54,7 +55,7 @@ NAV_TREE: dict[str, dict] = {
     },
     "game_destiny": {
         "label": "Destiny 2",
-        "emoji": "<:D2:1270042220627497020>",
+        "emoji": e("game.destiny"),
         "children": ["sec_activites", "sec_vendeurs", "sec_articles"],
     },
     "sec_activites": {
@@ -74,7 +75,7 @@ NAV_TREE: dict[str, dict] = {
     },
     "game_marathon": {
         "label": "Marathon",
-        "emoji": "<:Marathon:1513347065881559273>",
+        "emoji": e("game.marathon"),
         "topics": ["maintenance_marathon"],
     },
 }
@@ -100,9 +101,9 @@ def _display(node_id: str) -> tuple[str, str]:
     """(emoji, label) d'un nœud ou d'un topic ("topic:<t>")."""
     if node_id.startswith("topic:"):
         meta = TOPICS[node_id.split(":", 1)[1]]
-        return meta.emoji, meta.label
+        return resolve(meta.emoji), meta.label
     node = NAV_TREE[node_id]
-    return node.get("emoji", ""), node.get("label", node.get("title", ""))
+    return resolve(node.get("emoji", "")), node.get("label", node.get("title", ""))
 
 
 def _page_title(node_id: str) -> str:

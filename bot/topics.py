@@ -12,6 +12,7 @@ là-bas : /botconfig, /refresh et le routeur de changement de salon suivent."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from bot.render.emotes import e
 
 
 @dataclass(frozen=True)
@@ -27,25 +28,25 @@ class Topic:
 TOPICS: dict[str, Topic] = {
     t.key: t
     for t in (
-        Topic("maintenance_destiny", "Maintenance", "Maintenance", "<:D2:1270042220627497020>"),
-        Topic("maintenance_marathon", "Maintenance", "Maintenance", "<:Marathon:1513347065881559273>"),
+        Topic("maintenance_destiny", "Maintenance", "Maintenance", e("game.destiny")),
+        Topic("maintenance_marathon", "Maintenance", "Maintenance", e("game.marathon")),
         Topic("news_twid", "This Week in Destiny", "TWID", "📰"),
         Topic("news_patch_note", "Patch Note", "Patch note", "📝"),
         Topic("daily_lost_sector", "Secteurs Oubliés du jour", "Secteur oublié",
-              "<:Secteur:1270042203577778246>", refresh="Secteurs Oubliés"),
+              e("topic.lost_sector"), refresh="Secteurs Oubliés"),
         Topic("weekly_raid", "Raids de la semaine", "Raids",
-              "<:Raid:1338595321319788595>", refresh="Raids"),
+              e("topic.raid"), refresh="Raids"),
         Topic("weekly_dungeon", "Donjons de la semaine", "Donjons",
-              "<:Donjon:1338595206706233458>", refresh="Donjons"),
-        Topic("daily_vanguard", "Avant-garde - Focus du jour", "Avant-garde", "🛡️",
+              e("topic.dungeon"), refresh="Donjons"),
+        Topic("daily_vanguard", "Avant-garde - Focus du jour", "Avant-garde", e("topic.avant_garde"),
               refresh="Avant-garde"),
-        Topic("xur", "Xûr - Agent des Neuf", "Xûr", "<:Xur:1527021351368659205>", refresh="Xûr"),
+        Topic("xur", "Xûr - Agent des Neuf", "Xûr", e("topic.xur"), refresh="Xûr"),
         Topic("eververse", "Eververse - Tess Everis", "Eververse",
-              "<:Tess:1527021352245268675>", refresh="Eververse"),
-        Topic("ada", "Ada-1 - Revêtements", "Ada-1", "<:Ada:1527021353591374024>", refresh="Ada-1"),
-        Topic("distortion", "Distorsion", "Distorsion", "<:Distortion:1533753753772097596>",
+              e("topic.eververse"), refresh="Eververse"),
+        Topic("ada", "Ada-1 - Revêtements", "Ada-1", e("topic.ada"), refresh="Ada-1"),
+        Topic("distortion", "Distorsion", "Distorsion", e("topic.distortion"),
               no_role=True, refresh="Distorsion"),
         Topic("ascendant", "Défi ascendant de la semaine", "Défi ascendant",
-              "<:Challenge_Ascendant:1534163534970093618>", no_role=True, refresh="Défi ascendant"),
+              e("topic.ascendant"), no_role=True, refresh="Défi ascendant"),
     )
 }

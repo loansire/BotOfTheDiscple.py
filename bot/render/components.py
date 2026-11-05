@@ -14,7 +14,7 @@ assuré par un gestionnaire global (pas par la vue), pour rester utilisable
 après un redémarrage."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from io import BytesIO
 
 import discord
@@ -22,6 +22,7 @@ from discord import ui
 
 from bot.content.model import CV2, Component, Message
 from bot.core.logger import log
+from bot.render.emotes import resolve
 from bot.render.layout import StaticView
 
 _STYLES = {
@@ -44,9 +45,26 @@ def image_ids(message: Message) -> set[str]:
     return {c.image_id for c in message.components if c.image_id}
 
 
+def _resolve_emotes(message: Message) -> Message:
+    """Remplace les marqueurs `{e:clé}` par les emotes du bot courant
+    (cf. bot/render/emotes.py). Le message stocké n'est pas modifié."""
+    components = [
+        replace(
+            c,
+            text=resolve(c.text),
+            title=resolve(c.title),
+            btn_label=resolve(c.btn_label),
+            btn_emoji=resolve(c.btn_emoji) or None,
+        )
+        for c in message.components
+    ]
+    return replace(message, components=components)
+
+
 def render(message: Message, images: dict[str, bytes]) -> Rendered:
     """`images` : id → octets (cf. bot/content/store.load_images). Renvoie des
     fichiers NEUFS à chaque appel (un discord.File est consommé à l'envoi)."""
+    message = _resolve_emotes(message)
     files = _files(message, images)
     available = {c.image_name for c in message.components if c.image_id in images}
     if message.layout == CV2:

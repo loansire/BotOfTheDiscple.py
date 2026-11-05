@@ -33,7 +33,7 @@ class AdaPresenterTests(_Base):
         kinds = [c.kind for c in message.components]
         self.assertEqual(kinds, ["text", "separator", "section"])  # l'item sans icône est ignoré
         self.assertIn("Actualisation:", message.components[0].text)
-        self.assertEqual(message.components[2].text, "**Ornement A**\n<:Glimer:1526889023963136030> x25000")
+        self.assertEqual(message.components[2].text, "**Ornement A**\n{e:currency.glimmer} x25000")
         out = render(message, {image_id_of(ICON): ICON})
         self.assertEqual([f.filename for f in out.files], ["ada_1.webp"])
 
@@ -60,7 +60,7 @@ class EverversePresenterTests(_Base):
         post = await ev_post(sections)
         self.assertEqual(len(post.messages), 2)
         self.assertEqual(post.messages[0].components[2].text,
-                         "**Orn**\nOrnement Titan\n<:Dust:1526717375833964626> x500")
+                         "**Orn**\nOrnement Titan\n{e:currency.dust} x500")
         self.assertEqual(post.messages[1].components[-1].text, "-# Aucun item pour cette rotation.")
         self.assertTrue(all("Actualisation" in m.components[0].text for m in post.messages))
 

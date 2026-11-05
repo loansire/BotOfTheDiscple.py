@@ -36,6 +36,7 @@ from bot.render.activity_emojis import DJ_EMOJI as _DJ_EMOJI
 from bot.render.activity_emojis import RD_EMOJI as _RD_EMOJI
 from bot.render.activity_emojis import activity_emoji_for
 from bot.render.layout import refresh_line
+from bot.render.emotes import e
 
 _ACCENT = 0x992D22  # discord.Color.dark_red()
 
@@ -45,21 +46,21 @@ _FEATURE_RAID_DUNGEON = "raid_donjon"
 _FEATURE_LOST_SECTOR = "secteur_oublie"
 
 # Emojis de titre — ajuste librement (emojis custom serveur acceptés).
-_LS_EMOJI = "<:Secteur:1270042203577778246>"
+_LS_EMOJI = e("topic.lost_sector")
 
 # Emotes des boucliers / champions, par clé telle qu'écrite dans
 # lost_sector_extra.json (greffée dans variant.extra).
 _EXTRA_EMOJIS = {
     # Boucliers
-    "Solaires": "<:So:1270714993553178624>",
-    "Abyssaux": "<:Ab:1270715025660711023>",
-    "Cryo-électriques": "<:Cr:1270715011781627904>",
-    "Stasiques": "<:St:1293381064869285938>",
-    "Filobscures": "<:Fi:1293381094774931456>",
+    "Solaires": e("element.solar"),
+    "Abyssaux": e("element.void"),
+    "Cryo-électriques": e("element.arc"),
+    "Stasiques": e("element.stasis"),
+    "Filobscures": e("element.strand"),
     # Champions
-    "Brise-bouclier": "<:Bl:1270042102033678388>",
-    "Perturbation": "<:Su:1270042140944236619>",
-    "Chancellement": "<:Im:1270042120857849877>",
+    "Brise-bouclier": e("champion.barrier"),
+    "Perturbation": e("champion.overload"),
+    "Chancellement": e("champion.unstoppable"),
 }
 
 # ── Emojis par modificateur d'activité (secteurs oubliés) ──────────────
@@ -70,29 +71,29 @@ _EXTRA_EMOJIS = {
 # de 4000 caractères par message.
 _LS_MODIFIER_EMOJIS: dict[int, str] = {
     # Surcharges d'arme.
-    95459596: "<:s_LR:1527291256999383060>",
-    1282934989: "<:s_FDP:1527291249705357343>",
-    2178457119: "<:s_FAR:1527291248094875711>",
-    2626834038: "<:s_FAF:1527291245632815105>",
-    2743796883: "<:s_G:1527291252477923469>",
-    3132780533: "<:s_FAP:1527291246987706489>",
-    3320777106: "<:s_FAFL:1527291250917507163>",
-    3758645512: "<:s_LG:1527291257980846271>",
-    795009574: "<:s_M:1527291259130220695>",
-    1326581064: "<:s_E:1527291244525654076>",
+    95459596: e("mod.surge_hand_cannon"),
+    1282934989: e("mod.surge_sniper"),
+    2178457119: e("mod.surge_trace"),
+    2626834038: e("mod.surge_fusion"),
+    2743796883: e("mod.surge_glaive"),
+    3132780533: e("mod.surge_pulse"),
+    3320777106: e("mod.surge_linear"),
+    3758645512: e("mod.surge_gl"),
+    795009574: e("mod.surge_machine_gun"),
+    1326581064: e("mod.surge_sword"),
     # Surcharges élémentaires.
-    426976067: "<:s_S:1527290822595444856>",
-    2691200658: "<:s_C:1527290821307662456>",
-    3196075844: "<:s_A:1527290819831140413>",
-    2983647439: "<:s_St:1527290823912194128>",
-    3809788899: "<:s_St:1527290823912194128>",
-    3810297122: "<:s_F:1527291156256526558>",
+    426976067: e("mod.surge_solar"),
+    2691200658: e("mod.surge_arc"),
+    3196075844: e("mod.surge_void"),
+    2983647439: e("mod.surge_stasis"),
+    3809788899: e("mod.surge_stasis"),
+    3810297122: e("mod.surge_strand"),
     # Menaces.
-    3517267764: "<:M_S:1293381139687276584>",
-    186409259: "<:M_C:1293381109173977088>",
-    3652821947: "<:M_A:1293381121400115220>",
-    512042454: "<:M_St:1293381159274811505>",
-    1598472557: "<:M_F:1293381169391468604>",
+    3517267764: e("mod.threat_solar"),
+    186409259: e("mod.threat_arc"),
+    3652821947: e("mod.threat_void"),
+    512042454: e("mod.threat_stasis"),
+    1598472557: e("mod.threat_strand"),
 }
 
 

@@ -20,15 +20,16 @@ from bot.features.xur.models import XurVendor
 from bot.features.xur.state import TOPIC
 from bot.render.item_icon import get_vendor_icon
 from bot.render.layout import chunked
+from bot.render.emotes import e
 
 STATUS_TOPIC = "xur_status"
 PRESENT, ABSENT = "present", "absent"
 FEATURE = "xur"  # sous-dossier de cache d'icônes (banners/xur/)
 
 ACCENT = 0xF1C40F  # discord.Color.gold()
-_TITLE = "<:Xur:1527021351368659205>"  # emoji custom Xûr
-_PIECES_EMOJI = "<:PiecesEtranges:1516155586755166338>"
-SOUVENANCE_EMOJI = "<:Souvenance:1528569980226895892>"
+_TITLE = e("topic.xur")  # emoji custom Xûr
+_PIECES_EMOJI = e("currency.strange_coins")
+SOUVENANCE_EMOJI = e("misc.craftable")
 _D2GLOSSARY_PERK = "https://d2glossary.fr/perk.html?id="
 
 # Plafond CV2 : 40 composants top-level par message ; un item coûte ~2

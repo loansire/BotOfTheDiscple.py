@@ -7,9 +7,10 @@ calcule à partir d'une unique ancre temporelle (cf. __init__.py).
 Principe de centralisation minimale : seules des constantes SPÉCIFIQUES à cette
 feature vivent ici (rien n'est partagé avec d'autres scripts)."""
 import unicodedata
+from bot.render.emotes import e
 
 # Emoji d'en-tête de la publication (topic « distortion »).
-DISTORTION_EMOJI = "<:Distortion:1533753753772097596>"
+DISTORTION_EMOJI = e("topic.distortion")
 
 # Ordre FIXE du cycle (index 0 = destination active à l'ANCRE).
 ORDER: tuple[str, ...] = (

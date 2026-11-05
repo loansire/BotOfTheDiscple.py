@@ -10,6 +10,7 @@ définit l'ordre des messages ET l'ordre des vendors à l'intérieur de chaque
 message. `currency` pilote l'affichage du coût :
   - "dust"   → coût affiché (Poussière brillante + quantité)
 """
+from bot.render.emotes import e
 
 # Hashes des monnaies de coût (confirmés par le dump). SILVER_HASH conservé
 # pour référence : la section Argentum a été retirée de l'affichage.
@@ -17,10 +18,10 @@ BRIGHT_DUST_HASH = 2817410917
 SILVER_HASH = 3147280338
 
 # Emoji custom Discord de la Poussière brillante (coût affiché pour "dust").
-DUST_EMOJI = "<:Dust:1526717375833964626>"
+DUST_EMOJI = e("currency.dust")
 
 # Emoji custom Discord de Tess Everis (affiché dans le titre de chaque message).
-TESS_EMOJI = "<:Tess:1527021352245268675>"
+TESS_EMOJI = e("topic.eververse")
 
 # Topic d'abonnement unique (un salon, messages persistants).
 TOPIC = "eververse"

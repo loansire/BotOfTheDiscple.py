@@ -10,6 +10,7 @@ présent/absent. Son inventaire tourne une fois par semaine, au reset du MARDI.
 Module volontairement SANS import (aucun `bot.core.config`) : la logique de filtrage
 (filtering.py) peut ainsi être testée sans .env.
 """
+from bot.render.emotes import e
 
 # Hash public du vendor Ada-1.
 ADA_VENDOR_HASH = 350061650
@@ -22,10 +23,10 @@ TOPIC = "ada"
 ADA_LABEL = "Ada-1"
 
 # Emoji de titre du message (emoji custom Ada-1).
-ADA_EMOJI = "<:Ada:1527021353591374024>"
+ADA_EMOJI = e("topic.ada")
 
 # Emoji custom Discord du Glimmer (coût affiché sur chaque item).
-GLIMMER_EMOJI = "<:Glimer:1526889023963136030>"
+GLIMMER_EMOJI = e("currency.glimmer")
 
 # ── Filtre positionnel ─────────────────────────────────────────────────
 # Règle STRUCTURELLE (pas « par item ») maintenue en code : on IGNORE les N

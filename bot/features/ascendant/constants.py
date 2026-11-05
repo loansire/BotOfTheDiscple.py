@@ -8,9 +8,10 @@ de Petra (composant 402 VendorSales), de valider ou forcer la résolution.
 
 Principe de centralisation minimale : ces constantes sont SPÉCIFIQUES à cette
 feature (rien n'est partagé avec d'autres scripts)."""
+from bot.render.emotes import e
 
 # Emoji d'en-tête de la publication (topic « ascendant »).
-ASCENDANT_EMOJI = "<:Challenge_Ascendant:1534163534970093618>"
+ASCENDANT_EMOJI = e("topic.ascendant")
 
 # Ordre FIXE du cycle (index 0 = défi actif à l'ANCRE = agonarch_abyss).
 DEFIS_ORDRE: tuple[str, ...] = (
