@@ -57,3 +57,39 @@ class RecordingDatabase:
         pending: list = []
         yield RecordingCursor(pending)
         self.writes.extend(pending)
+
+
+class FakeContentStore:
+    """Remplaçant en mémoire de bot.content.store (save / load / images)."""
+
+    def __init__(self):
+        self.posts: dict = {}
+        self.images: dict[str, bytes] = {}
+
+    async def save_post(self, post):
+        latest = self.posts.get(post.topic)
+        content_hash = post.content_hash()
+        if latest is not None and latest.stored_hash == content_hash:
+            post.version, post.stored_hash = latest.version, content_hash
+            return latest.version, False
+        post.version = (latest.version if latest else 0) + 1
+        post.stored_hash = content_hash
+        self.images.update({i: data for i, (data, _) in post.images().items()})
+        self.posts[post.topic] = post
+        return post.version, True
+
+    async def load_post(self, topic, version=None):
+        return self.posts.get(topic)
+
+    async def load_images(self, image_ids):
+        return {i: self.images[i] for i in image_ids if i in self.images}
+
+    def patch(self):
+        from unittest import mock
+
+        return mock.patch.multiple(
+            "bot.content.store",
+            save_post=self.save_post,
+            load_post=self.load_post,
+            load_images=self.load_images,
+        )
