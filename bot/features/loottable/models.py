@@ -40,8 +40,8 @@ class LootItem:
 
 @dataclass
 class LootActivity:
-    """Une activité et sa table de butin (une entrée de loot_tables.json)."""
-    key: str                      # identifiant interne (clé JSON)
+    """Une activité et sa table de butin (une ligne de compute_loot_table)."""
+    key: str                      # identifiant interne (clé en base)
     label: str                    # nom affiché
     banner: str | None = None     # nom de fichier dans Ressources/ActivityBanner/
     type: str | None = None       # type d'activité normalisé (prestige, destination…)

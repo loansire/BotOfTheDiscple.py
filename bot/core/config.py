@@ -26,7 +26,7 @@ BUNGIE_HUNTER_ID = os.getenv("BUNGIE_HUNTER_ID")
 # endpoints authentifiés (GetVendor → Xûr). Volontairement OPTIONNELS : le bot
 # démarre sans eux ; seule la feature Xûr loggue une erreur si elle tourne sans
 # tokens. Le refresh_token n'est PAS ici (il change à chaque refresh) : il vit
-# dans bungie_tokens.json, géré par bot/bungie/oauth.py.
+# en base (compute_state, clé bungie.oauth), géré par bot/bungie/oauth.py.
 BUNGIE_CLIENT_ID = os.getenv("BUNGIE_CLIENT_ID")
 BUNGIE_CLIENT_SECRET = os.getenv("BUNGIE_CLIENT_SECRET")
 
@@ -93,9 +93,6 @@ BUNGIE_CHARACTER = {
 # --- Chemins transverses (utilisés par les features) ---
 BASE_DIR = Path(__file__).resolve().parents[2]
 RESOURCES_DIR = BASE_DIR / "Ressources"
-# Anciens états JSON : lus UNE fois par l'import automatique vers la base
-# (cf. bot/storage/legacy_import.py), plus jamais écrits.
-ALERTS_DIR = RESOURCES_DIR / "AlertDatabase"
 OUTPUT_DIR = BASE_DIR / "Output"
 
 # Cache local des données Bungie (manifest + activités personnage).

@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Stores SQL : sémantique en mémoire, requêtes écrites, chargement, import
-des anciens fichiers JSON."""
+"""Stores SQL : sémantique en mémoire, requêtes écrites, chargement."""
 import json
-import tempfile
 import unittest
-from pathlib import Path
-from unittest import mock
 
 from bot.db import database
 from bot.db.migrate import _statements, pending_files
 from bot.features.xur.state import XurMessageState
-from bot.storage import base, legacy_import
+from bot.storage import base
 from bot.storage.compute_state import compute_state
 from bot.storage.messages import MultiMessageState, SingleMessageState, messages
 from bot.storage.pipeline_state import PipelineState
@@ -152,63 +148,6 @@ class LoadTests(_Base):
     def test_parse_positions(self):
         self.assertEqual(parse_positions(""), [])
         self.assertEqual(parse_positions("2,3; 4"), [2, 3, 4])
-
-
-class LegacyImportTests(_Base):
-    def setUp(self):
-        super().setUp()
-        self._tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self._tmp.cleanup)
-        self.dir = Path(self._tmp.name)
-        for name in ("ALERTS_DIR", "TOKENS"):
-            target = self.dir if name == "ALERTS_DIR" else self.dir / "bungie_tokens.json"
-            patcher = mock.patch.object(legacy_import, name, target)
-            patcher.start()
-            self.addCleanup(patcher.stop)
-
-    def write(self, name, data):
-        (self.dir / name).write_text(json.dumps(data), encoding="utf-8")
-
-    def test_states_are_converted(self):
-        self.write("ada_messages.json", {"guilds": {"1": {"message_ids": ["10"], "hash": "h"}}})
-        self.write("distortion_state.json", {"1": {"message_id": "5", "hash": None}})
-        self.write("weekly_messages.json", {
-            "guilds": {"1": {
-                "weekly_raid": {"message_id": "20", "hash": "r"},
-                "daily_vanguard": {"message_ids": ["30", "31"], "hash": "v"},
-            }},
-            "signatures": {"weekly_raid": {"period": "p", "sig": ["a"]}},
-            "vanguard_challenges": {"week": "w", "items": {"1": 2}},
-        })
-        self.write("xur_messages.json", {"guilds": {"1": {"message_ids": ["7", "8"], "hash": ""}}})
-        self.write("pipeline_state.json", {"last_reset": "2026-10-28T17:00:00+00:00"})
-        self.write("news_state.json", {"twid": "blt1"})
-        self.write("subscriptions.json", {"1": {"name": "G", "topics": {"ada": {"11": {"is_thread": False, "role": None}}}}})
-
-        done = legacy_import._import_states()
-
-        self.assertIn("weekly_messages.json", done)
-        self.assertEqual(MultiMessageState("ada").get("1"), {"message_ids": ["10"], "hash": "h"})
-        self.assertEqual(SingleMessageState("distortion").get("1"), {"message_id": "5", "hash": None})
-        self.assertEqual(SingleMessageState("weekly_raid").get("1"), {"message_id": "20", "hash": "r"})
-        self.assertEqual(MultiMessageState("daily_vanguard").get("1")["message_ids"], ["30", "31"])
-        self.assertEqual(XurMessageState().get("1"), {"status_id": "7", "category_ids": ["8"], "hash": ""})
-        self.assertEqual(compute_state.get("weekly.signature.weekly_raid"), {"period": "p", "sig": ["a"]})
-        self.assertEqual(compute_state.get("weekly.vanguard_challenges"), {"week": "w", "items": {"1": 2}})
-        self.assertEqual(PipelineState().last_reset_iso, "2026-10-28T17:00:00+00:00")
-        self.assertEqual(compute_state.get("news.last_id.twid"), "blt1")
-        self.assertEqual(len(list(iter_subscribers("ada"))), 1)
-
-    async def test_import_runs_once(self):
-        db = self.use_db(RecordingDatabase())
-        self.write("news_state.json", {"twid": "blt1"})
-        with mock.patch.object(legacy_import, "_import_static", mock.AsyncMock(return_value=[])):
-            await legacy_import.import_legacy_json()
-            self.assertTrue(compute_state.get(legacy_import.DONE_KEY))
-            compute_state.delete("news.last_id.twid")
-            await legacy_import.import_legacy_json()
-        self.assertIsNone(compute_state.get("news.last_id.twid"))
-        self.assertTrue(db.writes)
 
 
 class MigrationFileTests(unittest.TestCase):

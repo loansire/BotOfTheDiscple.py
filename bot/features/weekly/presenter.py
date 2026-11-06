@@ -49,7 +49,7 @@ _FEATURE_LOST_SECTOR = "secteur_oublie"
 _LS_EMOJI = e("topic.lost_sector")
 
 # Emotes des boucliers / champions, par clé telle qu'écrite dans
-# lost_sector_extra.json (greffée dans variant.extra).
+# compute_lost_sector_extra (greffée dans variant.extra).
 _EXTRA_EMOJIS = {
     # Boucliers
     "Solaires": e("element.solar"),

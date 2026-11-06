@@ -82,14 +82,14 @@ async def _fetch_vendors():
     if not vendors or all(not v.items for v in vendors):
         return None
     purge_icons_once_per_reset(FEATURE)
-    await store(await build_post(vendors), "Xûr")
+    await store(await build_post(vendors), "Xûr catégories")
     return await snapshot(TOPIC)
 
 
 async def _status_view(present: bool):
     """Vue du message statut, lue en base (variante « présent » ou
     « absent » du topic `xur_status`, recalculé au passage)."""
-    await store(build_status_post(), "Xûr")
+    await store(build_status_post(), "Xûr statut")
     snap = await snapshot(STATUS_TOPIC, PRESENT if present else ABSENT)
     return snap.render().view
 

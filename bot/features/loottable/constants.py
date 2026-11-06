@@ -43,7 +43,7 @@ EXOTIC_NOTE = (
 )
 
 
-# ── Type d'activité (champ "type" de loot_tables.json) ──────────────────
+# ── Type d'activité (colonne type de compute_loot_table) ──────────────────
 ACTIVITY_TYPE_EMOJIS: dict[str, str] = {
     "prestige": e("loot.prestige"),
     "destination": e("loot.destination"),
