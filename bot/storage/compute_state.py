@@ -7,7 +7,6 @@ Clés utilisées :
 - news.last_id.<mot-clé> (bot/features/news/state.py)
 - maintenance.<jeu> (bot/features/maintenance/state.py)
 - bungie.oauth (bot/bungie/oauth.py)
-- legacy_import.done (bot/storage/legacy_import.py)
 
 Les valeurs renvoyées par get() sont PARTAGÉES avec le cache : l'appelant qui
 veut les modifier doit passer par set()."""

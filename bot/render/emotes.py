@@ -161,3 +161,10 @@ def resolve(text: str | None, bot_id: str = BOT_ID) -> str | None:
     if not text or "{e:" not in text:
         return text
     return _TOKEN.sub(lambda m: _emote(m.group(1), bot_id), text)
+
+
+def plain(text: str | None) -> str | None:
+    """Texte sans ses marqueurs d'emote (pour les logs)."""
+    if not text or "{e:" not in text:
+        return text
+    return _TOKEN.sub("", text).strip()

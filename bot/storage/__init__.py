@@ -3,8 +3,8 @@
 éditées à la main.
 
 Cycle de vie (cf. Main.py) :
-    await open_storage()   connexion, migrations, import des anciens JSON,
-                           chargement des caches, relecture périodique
+    await open_storage()   connexion, migrations, chargement des caches,
+                           relecture périodique
     ...                    le bot tourne (les stores lisent en mémoire)
     await close_storage()  dernière écriture en attente, fermeture"""
 from __future__ import annotations
@@ -33,12 +33,9 @@ async def _reload_static_loop() -> None:
 
 async def open_storage() -> None:
     global _reload_task
-    from bot.storage.legacy_import import import_legacy_json
-
     db = await init_db()
     await migrate(db)
     await base.load_all()
-    await import_legacy_json()
     if _reload_task is None:
         _reload_task = asyncio.create_task(_reload_static_loop())
 

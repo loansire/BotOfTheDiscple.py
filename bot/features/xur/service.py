@@ -25,6 +25,7 @@ from bot.bungie.reset import FRIDAY, TUESDAY, last_reset, next_weekday_reset
 from bot.bungie.sales import first_cost_quantity, sorted_keys
 from bot.core.aio import gather_limited
 from bot.core.logger import log
+from bot.render.emotes import plain
 from bot.storage.static_data import vendor_whitelist
 
 from bot.features.vanguard.service import armor_set
@@ -337,6 +338,6 @@ async def get_xur() -> list[XurVendor]:
             whitelist,
         )
         vendors.append(vendor)
-        log.info(f"[Xûr] {label} : {len(vendor.items)} item(s) retenu(s).")
+        log.info(f"[Xûr] {plain(label)} : {len(vendor.items)} item(s) retenu(s).")
 
     return vendors
