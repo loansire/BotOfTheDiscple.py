@@ -5,9 +5,10 @@ Usage :
     python -m scripts.db_check
     (ou : python scripts/db_check.py depuis la racine du projet)
 
-Se connecte avec les variables DB_* du .env, applique les migrations, lance
-l'import des anciens JSON s'il n'a jamais été fait, puis affiche le nombre de
-lignes de chaque table. N'envoie RIEN sur Discord."""
+Se connecte avec les variables DB_* du .env, applique les migrations en
+attente, puis affiche le nombre de lignes de chaque table. N'envoie RIEN sur
+Discord. Utile pour valider l'accès à la base partagée (installation d'un
+nouveau bot, changement d'hébergeur) sans démarrer le bot."""
 import asyncio
 import sys
 from pathlib import Path
