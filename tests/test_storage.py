@@ -152,8 +152,12 @@ class LoadTests(_Base):
 
 class MigrationFileTests(unittest.TestCase):
     def test_files_split_into_statements(self):
-        files = pending_files(set())
-        self.assertEqual(files[0][0], 1)
+        for kind in ("state", "content"):
+            files = pending_files(set(), kind)
+            self.assertEqual(files[0][0], 1, kind)
+            self._check_files(files)
+
+    def _check_files(self, files):
         for _, path in files:
             statements = _statements(path.read_text(encoding="utf-8"))
             self.assertTrue(statements)

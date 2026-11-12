@@ -24,7 +24,7 @@ from dataclasses import dataclass, fields
 from datetime import datetime, timedelta, timezone
 
 from bot.content.model import Component, Message, Post
-from bot.db.database import Database, get_db
+from bot.db.database import Database, get_content_db
 
 KEEP_DAYS = 7
 _POST_CACHE_SIZE = 64
@@ -46,9 +46,9 @@ class PostHeader:
 
 
 def _db() -> Database:
-    db = get_db()
+    db = get_content_db()
     if db is None:
-        raise RuntimeError("Base non connectée.")
+        raise RuntimeError("Base de contenu non connectée.")
     return db
 
 
