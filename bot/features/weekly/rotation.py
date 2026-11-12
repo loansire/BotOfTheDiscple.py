@@ -29,7 +29,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
-from bot.bungie.reset import TUESDAY, last_weekday_reset
+from bot.core.reset import TUESDAY, last_weekday_reset
 
 # ── Séquences canoniques ───────────────────────────────────────────────
 # Les DEUX slots (A / B) parcourent la MÊME séquence avec un décalage

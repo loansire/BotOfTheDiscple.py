@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from bot.bungie.client import bungie
 from bot.bungie.manifest import manifest
-from bot.bungie.reset import last_reset
+from bot.core.reset import last_reset
 from bot.core.logger import log
 from bot.storage.static_data import lost_sector_extra, permanent_activities
 

@@ -5,7 +5,7 @@ import unittest
 
 from bot.db import database
 from bot.db.migrate import _statements, pending_files
-from bot.features.xur.state import XurMessageState
+from bot.publishing.states import XurMessageState
 from bot.storage import base
 from bot.storage.compute_state import compute_state
 from bot.storage.messages import MultiMessageState, SingleMessageState, messages

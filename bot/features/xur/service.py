@@ -21,7 +21,7 @@ from datetime import datetime
 from bot.bungie.client import bungie
 from bot.bungie.items import item_display, log_vendor_positions
 from bot.bungie.manifest import manifest
-from bot.bungie.reset import FRIDAY, TUESDAY, last_reset, next_weekday_reset
+from bot.core.reset import FRIDAY, TUESDAY, is_xur_active, next_weekday_reset  # noqa: F401 (is_xur_active : ré-export)
 from bot.bungie.sales import first_cost_quantity, sorted_keys
 from bot.core.aio import gather_limited
 from bot.core.logger import log
@@ -52,19 +52,6 @@ _DEEPSIGHT_TOOLTIP_STYLE = "ui_display_style_deepsight"
 
 
 # ── Fenêtre temporelle ─────────────────────────────────────────────────
-
-def _reset_weekday(now: datetime | None = None) -> int:
-    """Jour de la semaine (lundi=0) du dernier reset survenu."""
-    return last_reset(now).weekday()
-
-
-def is_xur_active(now: datetime | None = None) -> bool:
-    """True si Xûr est présent (entre le reset du vendredi et celui du mardi).
-
-    Jours actifs (jour du dernier reset) : vendredi, samedi, dimanche, lundi.
-    Le mardi au reset, Xûr est parti → inactif."""
-    return _reset_weekday(now) in {FRIDAY, 5, 6, 0}
-
 
 def _next_weekday_reset_unix(target_weekday: int, now: datetime | None = None) -> int:
     """Timestamp unix du prochain reset tombant un jour donné (>= maintenant).

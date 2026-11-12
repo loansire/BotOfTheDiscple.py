@@ -21,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 
 from bot.bungie.client import bungie
 from bot.bungie.errors import BungieNotReadyError
-from bot.bungie.reset import TUESDAY, last_reset, last_weekday_reset
+from bot.core.reset import TUESDAY, last_reset, last_weekday_reset
 from bot.core.logger import log
 
 # Délai après le début de période au-delà duquel un contenu « suspect » est

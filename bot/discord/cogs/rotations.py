@@ -10,8 +10,7 @@ Chaque publication est isolée : l'échec de l'une n'empêche pas l'autre."""
 from discord.ext import commands, tasks
 
 from bot.core.logger import log
-from bot.features.ascendant.handler import publication as ascendant
-from bot.features.distortion.handler import publication as distortion
+from bot.publishing.registry import ascendant, distortion
 
 PUBLICATIONS = (distortion, ascendant)
 

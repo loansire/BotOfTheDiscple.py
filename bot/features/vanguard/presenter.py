@@ -26,7 +26,7 @@ from io import BytesIO
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from bot.bungie.reset import next_reset
+from bot.core.reset import next_reset
 from bot.core.logger import log
 from bot.features.loottable.constants import ammo_type_tag, damage_type_tag, weapon_type_tag
 from bot.features.vanguard.constants import (

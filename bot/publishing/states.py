@@ -1,22 +1,45 @@
 # -*- coding: utf-8 -*-
-"""État des messages persistants Xûr (bot/storage/messages.py, topic `xur`).
+"""États des messages publiés, par topic (vues sur bot/storage/messages.py).
 
-Deux rôles de message distincts par guild :
-- `status_id`   (slot 'status')  : le message « Xûr est là / n'est pas là » —
-  PERSISTANT entre arrivée et départ. Supprimé+reposté à l'arrivée (vendredi) ;
-  édité in-place au départ (mardi).
-- `category_ids` (slot 'content') : les messages catégories (+ ping) —
-  JETABLES. Supprimés puis republiés chaque vendredi, supprimés le mardi.
+Une instance UNIQUE par topic, partagée par la publication, la pipeline et le
+routeur /botconfig. Ce module ne contient que l'état de PUBLICATION (ids des
+messages + hash du contenu publié) : la mémoire du calcul (signatures de
+fraîcheur, défis de la semaine…) vit côté features.
 
-Le dernier reset traité ne vit PAS ici : la pipeline en détient l'unique
-source de vérité (PipelineState).
-"""
+Le `hash` évite de reposter un contenu inchangé. Le refresh manuel passe par
+`invalidate()` ; le retrait d'un salon via /botconfig passe par `purge()`.
+
+- Ada-1, Eververse, secteurs oubliés, Avant-garde : MULTI-message (messages
+  jetables, supprimés puis republiés à chaque nouveau contenu) ;
+- raids, donjons, Distorsion, Défis ascendants : MONO-message ;
+- Xûr : statut persistant + catégories jetables (XurMessageState)."""
+from __future__ import annotations
+
 from functools import cache
 
+from bot.content.keys import XUR_TOPIC
 from bot.storage.base import flush
-from bot.storage.messages import CONTENT, Entry, messages
+from bot.storage.messages import CONTENT, Entry, MultiMessageState, SingleMessageState, messages
 
-TOPIC = "xur"
+
+@cache
+def multi_state(topic: str) -> MultiMessageState:
+    """État d'un topic multi-message."""
+    return MultiMessageState(topic)
+
+
+@cache
+def single_state(topic: str) -> SingleMessageState:
+    """État d'un topic mono-message."""
+    return SingleMessageState(topic)
+
+
+# ── Xûr ─────────────────────────────────────────────────────────────────
+# Deux rôles de message distincts par guild :
+# - `status_id`   (slot 'status')  : « Xûr est là / n'est pas là », PERSISTANT
+#   entre arrivée et départ (supprimé+reposté le vendredi, édité le mardi) ;
+# - `category_ids` (slot 'content') : catégories (+ ping), JETABLES.
+
 _STATUS = "status"
 
 
@@ -25,7 +48,7 @@ class XurMessageState:
     def get(self, guild_id) -> dict:
         """Entrée normalisée d'un guild :
         {status_id: str|None, category_ids: [...], hash: str}."""
-        entry = messages.get(guild_id, TOPIC)
+        entry = messages.get(guild_id, XUR_TOPIC)
         if entry is None:
             return {"status_id": None, "category_ids": [], "hash": ""}
         status = entry.slots.get(_STATUS, [])
@@ -46,7 +69,7 @@ class XurMessageState:
 
     def iter_guilds(self):
         """Itère (guild_id, entry_normalisée) pour tous les guilds connus."""
-        for guild_id in messages.guilds(TOPIC):
+        for guild_id in messages.guilds(XUR_TOPIC):
             yield guild_id, self.get(guild_id)
 
     # -- Écriture ------------------------------------------------------
@@ -67,7 +90,7 @@ class XurMessageState:
         slots = {CONTENT: [str(i) for i in new_cats]}
         if new_status:
             slots[_STATUS] = [str(new_status)]
-        messages.put(guild_id, TOPIC, Entry(slots=slots, hash=new_hash))
+        messages.put(guild_id, XUR_TOPIC, Entry(slots=slots, hash=new_hash))
 
     def clear_categories(self, guild_id):
         """Vide la liste des messages catégories (après suppression Discord)."""
@@ -75,15 +98,15 @@ class XurMessageState:
 
     def purge(self, guild_id):
         """Oublie tout l'état Xûr d'un serveur (retrait du salon)."""
-        messages.drop(guild_id, TOPIC)
+        messages.drop(guild_id, XUR_TOPIC)
 
     async def invalidate(self):
         """Efface les hashes pour forcer un repost au prochain publish.
 
-        Les IDs (status + catégories) sont CONSERVÉS : le handler en a besoin
-        pour éditer/supprimer les anciens messages avant repost. Utilisé par
-        /refresh."""
-        for guild_id in messages.guilds(TOPIC):
+        Les IDs (status + catégories) sont CONSERVÉS : la publication en a
+        besoin pour éditer/supprimer les anciens messages avant repost.
+        Utilisé par /refresh."""
+        for guild_id in messages.guilds(XUR_TOPIC):
             self.set(guild_id, content_hash="")
         await self.save()
 

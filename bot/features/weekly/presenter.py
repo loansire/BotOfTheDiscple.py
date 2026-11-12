@@ -27,7 +27,7 @@ from __future__ import annotations
 
 
 
-from bot.bungie.reset import TUESDAY, next_reset, next_weekday_reset
+from bot.core.reset import TUESDAY, next_reset, next_weekday_reset
 from bot.content.model import Message, button, image, separator, text
 from bot.features.weekly.models import ActivityVariant, LostSector, WeeklyActivity
 from bot.render.banner import BANNER_RATIO, get_banner

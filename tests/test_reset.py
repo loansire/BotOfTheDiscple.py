@@ -3,7 +3,7 @@
 import unittest
 from datetime import datetime, timezone
 
-from bot.bungie.reset import (
+from bot.core.reset import (
     FRIDAY,
     TUESDAY,
     last_reset,

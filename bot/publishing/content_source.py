@@ -11,6 +11,7 @@ from typing import Awaitable, Callable, Optional
 
 from bot.content import store
 from bot.content.model import DEFAULT_VARIANT, Message, Post
+from bot.publishing import producers
 from bot.publishing.repost import Payload
 from bot.render.components import Rendered, image_ids, render
 
@@ -53,10 +54,13 @@ def stored_payload(topic: str, produce: Optional[Callable[[bool], Awaitable[bool
 
     `produce(strict)` (calcul, bot live seulement) range le contenu en base et
     renvoie False s'il n'y a rien à publier (API vide) : on ne publie alors
-    rien, comme avant. Sans `produce`, on publie la dernière version en base."""
+    rien, comme avant. Sans `produce`, on prend le calcul enregistré pour le
+    topic (bot/publishing/producers.py) ; à défaut (bot qui ne fait que
+    publier), on publie la dernière version en base."""
 
     async def payload(strict: bool) -> Payload | None:
-        if produce is not None and not await produce(strict):
+        step = produce or producers.get(topic)
+        if step is not None and not await step(strict):
             return None
         snap = await snapshot(topic)
         return Payload(snap, snap.hash) if snap is not None else None

@@ -17,8 +17,9 @@ transitoire (rate-limit, 5xx, permissions), l'id est conservé mais le hash est
 vidé, pour que le prochain tick retente au lieu de croire le salon à jour.
 
 `produce` (optionnel) : étape de CALCUL du bot qui produit le contenu
-(`force=True` → oublie ses données live mémoïsées). Absente sur un bot qui ne
-fait que publier."""
+(`force=True` → oublie ses données live mémoïsées). À défaut, celle
+enregistrée pour le topic (bot/publishing/producers.py). Absente sur un bot
+qui ne fait que publier."""
 from __future__ import annotations
 
 import asyncio
@@ -28,6 +29,7 @@ from typing import Any, Awaitable, Callable, Optional
 import discord
 
 from bot.core.logger import log
+from bot.publishing import producers
 from bot.publishing.content_source import Snapshot, snapshot
 from bot.publishing.primitives import config_destination, delete_message, iter_destinations
 
@@ -71,8 +73,9 @@ class EditInPlaceTopic:
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock, init=False, repr=False)
 
     async def _snapshot(self, *, force: bool = False) -> Snapshot | None:
-        if self.produce:
-            await self.produce(force)
+        produce = self.produce or producers.get(self.topic)
+        if produce:
+            await produce(force)
         snap = await snapshot(self.topic)
         if snap is None:
             log.warning(f"[{self.tag}] Aucun contenu en base : rien à publier.")

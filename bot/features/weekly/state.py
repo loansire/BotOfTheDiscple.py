@@ -1,26 +1,16 @@
 # -*- coding: utf-8 -*-
-"""État des messages persistants weekly/daily + mémoire de la période.
-
-Messages (bot/storage/messages.py), un état par topic :
-- multi-message (secteurs oubliés, Avant-garde) : weekly_slot(topic) ;
-- mono-message (raids, donjons) : weekly_single(topic).
-
-Mémoire du calcul (compute_state), via weekly_state() :
+"""Mémoire du calcul weekly/daily (compute_state), via weekly_state() :
 - signatures de contenu par topic (garde-fou données périmées, cf.
   freshness.py) : clés `weekly.signature.<topic>` ;
 - défis Avant-garde vus pendant la semaine : clé `weekly.vanguard_challenges`.
 
 Le dernier reset traité ne vit PAS ici : la pipeline en détient l'unique
-source de vérité (PipelineState).
-
-Le `hash` évite de reposter un message dont le contenu n'a pas changé. Le
-refresh manuel passe par `invalidate()`. Le retrait d'un salon via /botconfig
-passe par `purge()`.
+source de vérité (PipelineState). L'état des messages publiés est dans
+bot/publishing/states.py.
 """
 from functools import cache
 
 from bot.storage.compute_state import compute_state
-from bot.storage.messages import MultiMessageState, SingleMessageState
 
 _SIGNATURE = "weekly.signature."
 _CHALLENGES = "weekly.vanguard_challenges"
@@ -58,15 +48,3 @@ class WeeklyMemory:
 def weekly_state() -> WeeklyMemory:
     """Instance UNIQUE partagée."""
     return WeeklyMemory()
-
-
-@cache
-def weekly_slot(topic: str) -> MultiMessageState:
-    """État d'un topic multi-message (secteurs, Avant-garde)."""
-    return MultiMessageState(topic)
-
-
-@cache
-def weekly_single(topic: str) -> SingleMessageState:
-    """État d'un topic mono-message (raids, donjons)."""
-    return SingleMessageState(topic)
