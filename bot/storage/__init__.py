@@ -3,8 +3,8 @@
 éditées à la main.
 
 Cycle de vie (cf. Main.py) :
-    await open_storage()   connexion, migrations, chargement des caches,
-                           relecture périodique
+    await open_storage()   connexions (état + contenu), migrations,
+                           chargement des caches, relecture périodique
     ...                    le bot tourne (les stores lisent en mémoire)
     await close_storage()  dernière écriture en attente, fermeture"""
 from __future__ import annotations
@@ -12,8 +12,8 @@ from __future__ import annotations
 import asyncio
 
 from bot.core.logger import log
-from bot.db.database import close_db, get_db, init_db
-from bot.db.migrate import migrate
+from bot.db.database import close_db, get_db, init_content_db, init_db
+from bot.db.migrate import CONTENT, STATE, migrate
 from bot.storage import base
 from bot.storage.static_data import RELOAD_EVERY
 
@@ -34,7 +34,9 @@ async def _reload_static_loop() -> None:
 async def open_storage() -> None:
     global _reload_task
     db = await init_db()
-    await migrate(db)
+    await migrate(db, STATE)
+    # Ce bot écrit le contenu : il en possède aussi le schéma.
+    await migrate(await init_content_db(), CONTENT)
     await base.load_all()
     if _reload_task is None:
         _reload_task = asyncio.create_task(_reload_static_loop())

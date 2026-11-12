@@ -3,9 +3,10 @@
 import unittest
 from unittest import mock
 
-from bot.features.xur import handler
+from bot.features.xur import handler  # noqa: F401 (enregistre le calcul)
 from bot.features.xur.models import XurItem, XurVendor
-from bot.features.xur.state import xur_state
+from bot.publishing import xur
+from bot.publishing.states import xur_state
 from tests.fake_discord import FakeBot, FakeChannel, FakeGuild, subscriptions
 from tests.storage_helpers import FakeContentStore, reset_memory
 
@@ -48,7 +49,7 @@ class XurFlowTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_arrival_then_departure(self):
         with subscriptions("xur", {"1": ("11", "role1")}):
-            await handler.publish_arrival(self.bot)
+            await xur.publish_arrival(self.bot)
             entry = xur_state().get("1")
             # statut + 1 catégorie (vendor vide ignoré) + ping
             self.assertEqual(len(self.ch.messages), 3)
@@ -57,19 +58,19 @@ class XurFlowTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("XÛR EST LÀ", status.view.children[0].children[0].content)
             self.assertEqual(entry["hash"], self.content.posts["xur"].stored_hash)
 
-            await handler.publish_arrival(self.bot)  # même contenu → rien ne bouge
+            await xur.publish_arrival(self.bot)  # même contenu → rien ne bouge
             self.assertEqual(xur_state().get("1"), entry)
 
-            await handler.mark_departed(self.bot)
+            await xur.mark_departed(self.bot)
             self.assertEqual(len(self.ch.messages), 1)  # catégories + ping supprimés
             self.assertIn("N'EST PAS LÀ", status.view.children[0].children[0].content)
 
     async def test_cost_change_reposts(self):
         with subscriptions("xur", {"1": ("11", None)}):
-            await handler.publish_arrival(self.bot)
+            await xur.publish_arrival(self.bot)
             first = xur_state().get("1")["category_ids"]
             self.vendors = _vendors(cost=30)
-            await handler.publish_arrival(self.bot)
+            await xur.publish_arrival(self.bot)
             self.assertNotEqual(xur_state().get("1")["category_ids"], first)
 
 

@@ -62,6 +62,17 @@ DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 
+# --- Base de contenu (content_*) ---
+# Publications prêtes à afficher, écrites par le bot live et lues par chaque
+# bot qui publie (live, lite). Base séparée de l'état du bot : ses identifiants
+# peuvent être partagés avec le lite sans exposer le reste. Si CONTENT_DB_HOST
+# est absent, le contenu reste dans la base d'état (une seule base).
+CONTENT_DB_HOST = os.getenv("CONTENT_DB_HOST")
+CONTENT_DB_PORT = _int_env("CONTENT_DB_PORT", 3306)
+CONTENT_DB_NAME = os.getenv("CONTENT_DB_NAME")
+CONTENT_DB_USER = os.getenv("CONTENT_DB_USER")
+CONTENT_DB_PASSWORD = os.getenv("CONTENT_DB_PASSWORD", "")
+
 # Identifiant de CE bot dans les tables bot_* : deux bots (live / lite) peuvent
 # partager une même base sans mélanger leurs abonnements ni leurs messages.
 BOT_ID = os.getenv("BOT_ID", "live")

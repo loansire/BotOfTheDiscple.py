@@ -59,3 +59,11 @@ def last_weekday_reset(target_weekday: int, now: datetime | None = None) -> date
     """Dernier reset (<= now) tombant un jour de semaine donné (ex. le dernier
     reset du mardi = début de la semaine Destiny en cours)."""
     return next_weekday_reset(target_weekday, now) - timedelta(days=7)
+
+
+def is_xur_active(now: datetime | None = None) -> bool:
+    """True si Xûr est présent (entre le reset du vendredi et celui du mardi).
+
+    Jours actifs (jour du dernier reset) : vendredi, samedi, dimanche, lundi.
+    Le mardi au reset, Xûr est parti → inactif."""
+    return last_reset(now).weekday() in {FRIDAY, SATURDAY, SUNDAY, MONDAY}

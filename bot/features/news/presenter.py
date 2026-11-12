@@ -9,16 +9,12 @@ from __future__ import annotations
 
 from bot.bungie.client import BUNGIE_BASE
 from bot.compute import read_resource
+from bot.content.keys import CHECK, EN, FR
+from bot.content.keys import news_action as action
 from bot.content.model import EMBED, Component, Message, Post, button, image
 from bot.core.config import RESOURCES_DIR
 
 FOOTER_ICON_PATH = RESOURCES_DIR / "footer_icon.png"
-EN, FR, CHECK = "en", "fr", "check"
-
-
-def action(topic: str, what: str) -> str:
-    return f"news:{topic}:{what}"
-
 
 def _buttons(topic: str, language: str, both: bool) -> list[Component]:
     if language == FR and both:

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Publication Avant-garde (activités du Portail en focus du jour).
+"""Calcul Avant-garde (activités du Portail en focus du jour).
 
-Moteur multi-message partagé : cf. bot/publishing/repost.py. Un message par
+Publication multi-message (cf. bot/publishing/registry.py) : un message par
 catégorie (Escouade, Prestige, Arène, Solo), puis le ping rôle seul. L'état
-vit en base sous le topic `daily_vanguard` (cf. bot/features/weekly/state.py).
+vit en base sous le topic `daily_vanguard` (cf. bot/publishing/states.py).
 
 Calcul (presenter.py) → base → publication depuis la base. Le contenu porte
 la ligne « Actualisation » : repost quotidien, mais un serveur déjà à jour
@@ -13,16 +13,15 @@ bot/features/weekly/freshness.py) ; la signature validée est mémorisée dès l
 calcul."""
 from __future__ import annotations
 
-from bot.bungie.reset import TUESDAY, last_reset, last_weekday_reset
+from bot.core.reset import TUESDAY, last_reset, last_weekday_reset
 from bot.compute import purge_icons_once_per_reset, store
 from bot.content.model import Post
 from bot.features.vanguard import TOPIC, get_portal
 from bot.features.vanguard.filters import challenges_of
 from bot.features.vanguard.presenter import FEATURE, build_vanguard_views
 from bot.features.weekly.freshness import check_fresh, not_ready, remember
-from bot.features.weekly.state import weekly_slot, weekly_state
-from bot.publishing.content_source import stored_payload, stored_views
-from bot.publishing.repost import RepostTopic
+from bot.features.weekly.state import weekly_state
+from bot.publishing import producers
 
 TAG = "Avant-garde"
 
@@ -58,10 +57,4 @@ async def produce(strict: bool = False) -> bool:
     return True
 
 
-publication = RepostTopic(
-    topic=TOPIC,
-    tag=TAG,
-    state=lambda: weekly_slot(TOPIC),
-    payload=stored_payload(TOPIC, produce),
-    build_views=stored_views,
-)
+producers.register(TOPIC, produce)

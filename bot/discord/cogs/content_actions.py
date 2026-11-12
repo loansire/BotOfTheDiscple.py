@@ -20,12 +20,18 @@ import discord
 from discord.ext import commands
 
 from bot.core.logger import log
-from bot.features.loottable.presenter import page_variant
-from bot.features.loottable.presenter import topic_of as loot_topic
-from bot.features.maintenance.presenter import COPY, topic_of
-from bot.features.news.presenter import CHECK, EN, FR
-from bot.features.wishwall.presenter import SELECT_ID
-from bot.features.wishwall.presenter import TOPIC as WISHWALL_TOPIC
+from bot.content.keys import (
+    CHECK,
+    COPY,
+    EN,
+    FR,
+    WISHWALL_SELECT_ID,
+    WISHWALL_TOPIC,
+    loot_page_variant,
+    loot_topic,
+    maintenance_topic,
+    rotation_topic,
+)
 from bot.publishing.content_source import snapshot
 
 _FR_UNAVAILABLE = "⚠️ *La version Française de cet article n'a pas encore été publiée par Bungie.*"
@@ -48,8 +54,8 @@ class ContentActions(commands.Cog):
                 await self._news(interaction, topic, what)
             elif custom_id.startswith("loot:"):
                 _, key, page = custom_id.split(":", 2)
-                await self._replace(interaction, loot_topic(key), page_variant(int(page)))
-            elif custom_id == SELECT_ID:
+                await self._replace(interaction, loot_topic(key), loot_page_variant(int(page)))
+            elif custom_id == WISHWALL_SELECT_ID:
                 choice = ((interaction.data or {}).get("values") or [""])[0]
                 await self._replace(interaction, WISHWALL_TOPIC, choice)
             elif custom_id.startswith("weekly:rota:"):
@@ -58,7 +64,7 @@ class ContentActions(commands.Cog):
             log.error(f"[Boutons] {custom_id} : {e}")
 
     async def _maintenance_copy(self, interaction: discord.Interaction, game: str) -> None:
-        snap = await snapshot(topic_of(game), COPY)
+        snap = await snapshot(maintenance_topic(game), COPY)
         if snap is None:
             await interaction.response.send_message(":x: Aucune maintenance enregistrée.", ephemeral=True)
             return
@@ -88,7 +94,7 @@ class ContentActions(commands.Cog):
         """Rotation prédictive précalculée (bot/features/weekly/handler.py),
         envoyée en éphémère. Le defer éphémère rend aussi l'erreur privée."""
         await interaction.response.defer(ephemeral=True, thinking=True)
-        snap = await snapshot(f"rotation_{kind}")
+        snap = await snapshot(rotation_topic(kind))
         if snap is None:
             await interaction.followup.send(
                 "⚠️ La rotation de la semaine n'est pas encore disponible. "

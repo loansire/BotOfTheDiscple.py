@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Publication Ada-1 (vendor PERMANENT, inventaire renouvelé au reset du mardi).
+"""Calcul Ada-1 (vendor PERMANENT, inventaire renouvelé au reset du mardi).
 
-Moteur multi-message partagé : cf. bot/publishing/repost.py. Ada-1 n'a ni
-fenêtre présent/absent, ni message statut, ni largeIcon : juste le(s)
+Publication (multi-message, cf. bot/publishing/registry.py) : le(s)
 message(s) de contenu (normalement 1), suivi(s) du ping rôle seul.
 
 Calcul : get_ada() → presenter.build_post() → base. Publication : lecture
@@ -13,9 +12,7 @@ from __future__ import annotations
 from bot.compute import purge_icons_once_per_reset, store
 from bot.features.ada import TOPIC, get_ada
 from bot.features.ada.presenter import FEATURE, build_post
-from bot.features.ada.state import ada_state
-from bot.publishing.content_source import stored_payload, stored_views
-from bot.publishing.repost import RepostTopic
+from bot.publishing import producers
 
 TAG = "Ada-1"
 
@@ -33,11 +30,4 @@ async def produce(strict: bool = False) -> bool:
     return True
 
 
-publication = RepostTopic(
-    topic=TOPIC,
-    tag=TAG,
-    state=ada_state,
-    payload=stored_payload(TOPIC, produce),
-    build_views=stored_views,
-    empty_warning="Aucun item récupéré — publication annulée.",
-)
+producers.register(TOPIC, produce)

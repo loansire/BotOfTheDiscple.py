@@ -8,7 +8,7 @@ ornements d'armure, coût en Poussière brillante ; icône composée à droite).
 Une section qui dépasse le plafond CV2 est re-découpée (« (n/total) »)."""
 from __future__ import annotations
 
-from bot.bungie.reset import last_reset, next_reset
+from bot.core.reset import last_reset, next_reset
 from bot.compute import item_section
 from bot.content.model import Message, Post, separator, text
 from bot.features.eververse import TOPIC

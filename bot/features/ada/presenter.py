@@ -10,7 +10,7 @@ ligne d'actualisation n'apparaît que sur le premier message.
 Ada-1 étant un vendor PERMANENT : pas de message statut ni d'image d'en-tête."""
 from __future__ import annotations
 
-from bot.bungie.reset import TUESDAY, last_reset, next_weekday_reset
+from bot.core.reset import TUESDAY, last_reset, next_weekday_reset
 from bot.compute import item_section
 from bot.content.model import Message, Post, separator, text
 from bot.features.ada import TOPIC

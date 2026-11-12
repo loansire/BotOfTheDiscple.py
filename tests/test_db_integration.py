@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 
 from bot.content import store
 from bot.content.model import EMBED, Component, Message, Post, button, image, image_id_of, separator, text
-from bot.db.database import close_db, get_db, init_db
+from bot.db.database import close_db, get_content_db, init_content_db, init_db
 from bot.db.migrate import migrate
 from bot.render.components import render
 
@@ -34,8 +34,8 @@ def _post(cost: str) -> Post:
 @unittest.skipUnless(os.getenv("BOTD_DB_TESTS") == "1", "base de test non demandée")
 class ContentStoreIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        db = await init_db()
-        await migrate(db)
+        await init_db()
+        await migrate(await init_content_db(), "content")
         await self._cleanup()
 
     async def asyncTearDown(self):
@@ -43,7 +43,7 @@ class ContentStoreIntegrationTests(unittest.IsolatedAsyncioTestCase):
         await close_db()
 
     async def _cleanup(self):
-        db = get_db()
+        db = get_content_db()
         for table in ("content_component", "content_message", "content_post"):
             await db.execute(f"DELETE FROM {table} WHERE topic LIKE 'test:%%'")
         await db.execute("DELETE FROM content_image WHERE image_id = %s", (image_id_of(PNG),))

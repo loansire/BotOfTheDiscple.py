@@ -11,7 +11,7 @@ cette table unique :
   (Ada-1, Eververse, secteurs oubliés, Avant-garde) ;
 - SingleMessageState : 1 message par serveur + hash
   (raids, donjons, défis ascendants, distorsion).
-L'état Xûr (statut + catégories) est dans bot/features/xur/state.py."""
+L'état Xûr (statut + catégories) est dans bot/publishing/states.py."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

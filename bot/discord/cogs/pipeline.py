@@ -40,16 +40,11 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from bot.bungie.errors import BungieMaintenanceError, BungieUnavailableError
-from bot.bungie.reset import FRIDAY, TUESDAY, last_reset
+from bot.core.reset import FRIDAY, TUESDAY, is_xur_active, last_reset
 from bot.core.config import OWNER_ID
 from bot.core.logger import log
-from bot.features.ada.handler import publication as ada
-from bot.features.eververse.handler import publication as eververse
-from bot.features.vanguard.handler import publication as vanguard
-from bot.features.weekly import handler as weekly
-from bot.features.xur import handler as xur
-from bot.features.xur import is_xur_active
-from bot.publishing.registry import publications
+from bot.publishing import xur
+from bot.publishing.registry import ada, dungeons, eververse, lost_sectors, publications, raids, vanguard
 from bot.storage.pipeline_state import pipeline_state
 from bot.topics import TOPICS
 
@@ -209,7 +204,7 @@ class Pipeline(commands.Cog):
         # TOUJOURS : secteurs oubliés + Avant-garde + Eververse (tout reset est
         # quotidien). strict=True : refuse des données pas encore à jour (cf.
         # features/weekly/freshness.py).
-        await weekly.lost_sectors.publish(self.bot, strict=True)
+        await lost_sectors.publish(self.bot, strict=True)
         await vanguard.publish(self.bot, strict=True)
         await eververse.publish(self.bot)
 
@@ -219,11 +214,10 @@ class Pipeline(commands.Cog):
             await xur.publish_arrival(self.bot)
 
         # MARDI : Xûr part + raids/donjons + Ada-1 (resets hebdo).
-        # publish_raid_dungeon publie les deux messages distincts (raids puis
-        # donjons).
         if TUESDAY in weekdays:
             await xur.mark_departed(self.bot)
-            await weekly.publish_raid_dungeon(self.bot, strict=True)
+            await raids.publish(self.bot, strict=True)
+            await dungeons.publish(self.bot, strict=True)
             await ada.publish(self.bot)
 
         # FIN DE RESET : réparation des messages disparus (sans ping).

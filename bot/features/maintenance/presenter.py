@@ -13,6 +13,9 @@ import random
 from datetime import datetime
 
 from bot.compute import read_resource
+from bot.content.keys import COPY
+from bot.content.keys import maintenance_end_topic as end_topic_of
+from bot.content.keys import maintenance_topic as topic_of
 from bot.content.model import EMBED, Component, Message, Post, button, image, text
 from bot.core.config import RESOURCES_DIR
 from bot.features.maintenance.fetcher import ARTICLES
@@ -21,7 +24,6 @@ from bot.features.maintenance.models import resolve_game
 
 MAINTENANCE_DIR = RESOURCES_DIR / "Maintenance"
 FOOTER_ICON_PATH = RESOURCES_DIR / "footer_icon.png"
-COPY = "copy"
 
 # Métadonnées d'affichage par jeu
 GAME_META = {
@@ -43,13 +45,6 @@ GAME_META = {
     },
 }
 
-
-def topic_of(game: str) -> str:
-    return f"maintenance_{game}"
-
-
-def end_topic_of(game: str) -> str:
-    return f"maintenance_{game}_end"
 
 
 def copy_action(game: str) -> str:

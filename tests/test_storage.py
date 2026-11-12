@@ -5,7 +5,7 @@ import unittest
 
 from bot.db import database
 from bot.db.migrate import _statements, pending_files
-from bot.features.xur.state import XurMessageState
+from bot.publishing.states import XurMessageState
 from bot.storage import base
 from bot.storage.compute_state import compute_state
 from bot.storage.messages import MultiMessageState, SingleMessageState, messages
@@ -152,8 +152,12 @@ class LoadTests(_Base):
 
 class MigrationFileTests(unittest.TestCase):
     def test_files_split_into_statements(self):
-        files = pending_files(set())
-        self.assertEqual(files[0][0], 1)
+        for kind in ("state", "content"):
+            files = pending_files(set(), kind)
+            self.assertEqual(files[0][0], 1, kind)
+            self._check_files(files)
+
+    def _check_files(self, files):
         for _, path in files:
             statements = _statements(path.read_text(encoding="utf-8"))
             self.assertTrue(statements)

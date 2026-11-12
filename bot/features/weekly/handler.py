@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Publication weekly/daily : secteurs oubliés, raids, donjons.
+"""Calcul weekly/daily : secteurs oubliés, raids, donjons.
 
 Deux régimes de message coexistent :
 - Secteurs oubliés : MULTI-message (1 message par secteur, cf.
-  bot/publishing/repost.py) — le texte cumulé d'un message unique dépassait la
+  bot/publishing/registry.py) — le texte cumulé d'un message unique dépassait la
   limite Discord de 4000 caractères une fois les icônes de modificateurs
   ajoutées. Le ping rôle est un message séparé, posté en dernier.
-- Raids / Donjons  : MONO-message persistant (cf. bot/publishing/single.py),
+- Raids / Donjons  : MONO-message persistant (cf. bot/publishing/registry.py),
   ping injecté dans la vue. Jamais près du plafond CV2.
 
 Calcul (presenter.py) → base → publication depuis la base. Le contenu porte
@@ -22,8 +22,9 @@ dossier `raid_donjon` est partagé par raids et donjons).
 dès le calcul."""
 from __future__ import annotations
 
-from bot.bungie.reset import last_reset
+from bot.core.reset import last_reset
 from bot.compute import purge_icons_once_per_reset, store
+from bot.content.keys import rotation_topic
 from bot.content.model import Post
 from bot.features.weekly import get_lost_sectors, get_raid_dungeon
 from bot.features.weekly.freshness import check_fresh, not_ready, remember
@@ -33,10 +34,8 @@ from bot.features.weekly.presenter import (
     build_lost_sectors_view,
     build_raid_view,
 )
-from bot.features.weekly.state import weekly_single, weekly_slot, weekly_state
-from bot.publishing.content_source import stored_payload, stored_views
-from bot.publishing.repost import RepostTopic
-from bot.publishing.single import SingleTopic
+from bot.features.weekly.state import weekly_state
+from bot.publishing import producers
 
 LOST_SECTOR_TOPIC = "daily_lost_sector"
 RAID_TOPIC = "weekly_raid"
@@ -70,13 +69,7 @@ async def _produce_sectors(strict: bool) -> bool:
     return True
 
 
-lost_sectors = RepostTopic(
-    topic=LOST_SECTOR_TOPIC,
-    tag="Secteurs",
-    state=lambda: weekly_slot(LOST_SECTOR_TOPIC),
-    payload=stored_payload(LOST_SECTOR_TOPIC, _produce_sectors),
-    build_views=stored_views,
-)
+producers.register(LOST_SECTOR_TOPIC, _produce_sectors)
 
 
 # ── Raids / Donjons (mono-message) ──────────────────────────────────────
@@ -101,33 +94,12 @@ def _producer(topic: str, tag: str, activity_type: str, build_view):
         # Rotation prédictive (bouton du message), calculée avec les mêmes données.
         kind = "dungeon" if activity_type == "Donjon" else "raid"
         rotation = build_rotation_view(kind, groups)
-        await store(Post(f"rotation_{kind}", "on_demand", {"default": [rotation]}, period_start=last_reset()),
+        await store(Post(rotation_topic(kind), "on_demand", {"default": [rotation]}, period_start=last_reset()),
                     f"{tag} (rotation prédictive)")
         return True
 
     return produce
 
 
-async def _single_view(snap) -> tuple:
-    out = snap.render()
-    return out.view, out.files
-
-
-def _single(topic: str, tag: str, activity_type: str, build_view) -> SingleTopic:
-    return SingleTopic(
-        topic=topic,
-        tag=tag,
-        state=lambda: weekly_single(topic),
-        payload=stored_payload(topic, _producer(topic, tag, activity_type, build_view)),
-        build_view=_single_view,
-    )
-
-
-raids = _single(RAID_TOPIC, "Raids", "Raid", build_raid_view)
-dungeons = _single(DUNGEON_TOPIC, "Donjons", "Donjon", build_dungeon_view)
-
-
-async def publish_raid_dungeon(bot, *, ping: bool = True, strict: bool = False) -> None:
-    """Reset hebdo (mardi) : publie raids puis donjons."""
-    await raids.publish(bot, ping=ping, strict=strict)
-    await dungeons.publish(bot, ping=ping, strict=strict)
+producers.register(RAID_TOPIC, _producer(RAID_TOPIC, "Raids", "Raid", build_raid_view))
+producers.register(DUNGEON_TOPIC, _producer(DUNGEON_TOPIC, "Donjons", "Donjon", build_dungeon_view))

@@ -11,7 +11,7 @@ from bot.bungie.errors import (
     is_maintenance,
     is_transient,
 )
-from bot.bungie.reset import last_reset
+from bot.core.reset import last_reset
 from bot.core.config import BUNGIE_API_KEY, BUNGIE_CHARACTER, MANIFEST_DIR
 from bot.core.http import NETWORK_ERRORS, get_session
 from bot.core.jsonio import load_json, save_json

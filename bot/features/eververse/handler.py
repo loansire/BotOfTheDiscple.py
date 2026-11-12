@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Publication Eververse (items en rotation quotidienne de Tess Everis).
+"""Calcul Eververse (items en rotation quotidienne de Tess Everis).
 
-Moteur multi-message partagé : cf. bot/publishing/repost.py. Un message par
+Publication multi-message (cf. bot/publishing/registry.py) : un message par
 section (re-découpé si une section dépasse le plafond CV2), puis le ping rôle
 seul. Pas de fenêtre présent/absent ni de message statut, contrairement à Xûr.
 
@@ -13,9 +13,7 @@ from __future__ import annotations
 from bot.compute import purge_icons_once_per_reset, store
 from bot.features.eververse import TOPIC, get_eververse
 from bot.features.eververse.presenter import FEATURE, build_post
-from bot.features.eververse.state import eververse_state
-from bot.publishing.content_source import stored_payload, stored_views
-from bot.publishing.repost import RepostTopic
+from bot.publishing import producers
 
 TAG = "Eververse"
 
@@ -32,11 +30,4 @@ async def produce(strict: bool = False) -> bool:
     return True
 
 
-publication = RepostTopic(
-    topic=TOPIC,
-    tag=TAG,
-    state=eververse_state,
-    payload=stored_payload(TOPIC, produce),
-    build_views=stored_views,
-    empty_warning="Aucun item récupéré — publication annulée.",
-)
+producers.register(TOPIC, produce)

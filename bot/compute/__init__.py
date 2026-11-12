@@ -11,7 +11,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from bot.bungie.reset import last_reset
+from bot.core.reset import last_reset
 from bot.content import store as content_store
 from bot.content.model import Component, Post, image
 from bot.core.logger import log

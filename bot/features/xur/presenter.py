@@ -10,20 +10,21 @@
   col 3-4 avec liens d2glossary, coût en Pièces étranges ; icône composée)."""
 from __future__ import annotations
 
-from bot.bungie.reset import last_reset
+from bot.core.reset import last_reset
 from bot.compute import item_section
+from bot.content.keys import XUR_ABSENT as ABSENT
+from bot.content.keys import XUR_PRESENT as PRESENT
+from bot.content.keys import XUR_STATUS_TOPIC as STATUS_TOPIC
+from bot.content.keys import XUR_TOPIC as TOPIC
 from bot.content.model import Message, Post, image, text
 from bot.features.vanguard.constants import ARMOR_SUBTYPE_LABELS
 from bot.features.vanguard.presenter import armor_lines, weapon_tags
 from bot.features.xur import next_arrival_unix, next_departure_unix
 from bot.features.xur.models import XurVendor
-from bot.features.xur.state import TOPIC
 from bot.render.item_icon import get_vendor_icon
 from bot.render.layout import chunked
 from bot.render.emotes import e
 
-STATUS_TOPIC = "xur_status"
-PRESENT, ABSENT = "present", "absent"
 FEATURE = "xur"  # sous-dossier de cache d'icônes (banners/xur/)
 
 ACCENT = 0xF1C40F  # discord.Color.gold()

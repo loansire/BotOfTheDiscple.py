@@ -3,6 +3,7 @@ import asyncio
 
 from bot.core.config import DISCORD_TOKEN
 from bot.discord.client import bot
+from bot.features import producers
 from bot.core.http import close_session
 from bot.core.logger import log
 from bot.storage import close_storage, open_storage
@@ -13,6 +14,8 @@ async def main():
         # La base doit être prête AVANT le chargement des cogs : leurs états
         # sont lus en mémoire dès l'initialisation.
         await open_storage()
+        # Ce bot calcule : branche ses étapes de calcul sur les publications.
+        producers.load()
         async with bot:
             await bot.load_extension("bot.discord.commands")
             log.info("Démarrage du bot...")

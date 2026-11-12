@@ -14,6 +14,9 @@ La commande et les boutons ne font que relire ces pages en base."""
 from __future__ import annotations
 
 from bot.compute import item_section, mime_of, read_resource
+from bot.content.keys import loot_page_action as page_action
+from bot.content.keys import loot_page_variant as page_variant
+from bot.content.keys import loot_topic as topic_of
 from bot.content.model import Component, Message, Post, button, image, text
 from bot.features.loottable.constants import (
     ACTIVITY_BANNER_DIR,
@@ -34,18 +37,6 @@ ACCENT = 0x2E86AB
 INDEX_TOPIC = "loottable_index"
 _GROUP_WIDTH = 32
 
-
-def topic_of(key: str) -> str:
-    return f"loot:{key}"
-
-
-def page_variant(page: int) -> str:
-    """Variante d'une page (1 = première)."""
-    return f"p{page}"
-
-
-def page_action(key: str, page: int) -> str:
-    return f"loot:{key}:{page}"
 
 
 def group_header(activity_type: str | None) -> str:

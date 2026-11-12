@@ -8,6 +8,8 @@ variante choisie en base."""
 from __future__ import annotations
 
 from bot.compute import mime_of, read_resource
+from bot.content.keys import WISHWALL_SELECT_ID as SELECT_ID
+from bot.content.keys import WISHWALL_TOPIC as TOPIC
 from bot.content.model import EMBED, Component, Message, Post, image
 from bot.features.wishwall.service import (
     DEFAULT_IMAGE,
@@ -17,9 +19,7 @@ from bot.features.wishwall.service import (
     load_wishes,
 )
 
-TOPIC = "wishwall"
 INTRO = "intro"
-SELECT_ID = "wishwall:select"
 _COLOR = 0x6E00F5
 
 
