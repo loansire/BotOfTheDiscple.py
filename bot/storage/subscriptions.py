@@ -25,8 +25,8 @@ Chargés une fois au démarrage (seul CE bot écrit ses lignes) : une
 modification faite à la main dans la base n'est vue qu'au redémarrage.
 
 Modèle /botconfig : un seul salon par topic + un seul rôle par topic. Le
-schéma autorise techniquement plusieurs salons (ancien /alerte), mais
-set_topic_destination réécrit toujours une entrée unique.
+schéma autorise techniquement plusieurs salons, mais set_topic_destination
+réécrit toujours une entrée unique.
 """
 from typing import Optional
 
@@ -43,12 +43,6 @@ class SubscriptionTable(Table):
 
     def touch(self, guild_id: str) -> None:
         self._touch(guild_id)
-
-    def replace_all(self, data: dict) -> None:
-        """Remplace tout (import des anciens fichiers JSON)."""
-        for guild_id in set(self.data) | set(data):
-            self._touch(guild_id)
-        self.data = data
 
     async def _load(self, db: Database) -> None:
         self.data = {}
@@ -112,9 +106,8 @@ def iter_subscribers(topic: str):
 def get_topic_destination(topic: str, guild_id: str) -> Optional[dict]:
     """Renvoie l'unique destination d'un topic pour ce serveur, ou None.
 
-    Si d'anciennes données contiennent plusieurs salons (ancien /alerte),
-    on retourne le premier — la prochaine validation /botconfig collapse
-    automatiquement vers un seul salon.
+    Si la base contient plusieurs salons pour ce topic, on retourne le
+    premier — la prochaine validation /botconfig n'en garde qu'un.
     """
     guild = subscriptions.data.get(guild_id, {})
     dests = guild.get("topics", {}).get(topic, {})

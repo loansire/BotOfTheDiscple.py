@@ -9,9 +9,8 @@
 
 Le bot ne fait que les LIRE : chargées au démarrage puis relues toutes les
 RELOAD_EVERY secondes (cf. bot/storage/__init__.py), une modification prend
-donc effet sans redémarrage. Les getters renvoient les mêmes formes que les
-anciens fichiers JSON ; les valeurs sont PARTAGÉES avec le cache (ne pas les
-modifier)."""
+donc effet sans redémarrage. Les valeurs renvoyées sont PARTAGÉES avec le
+cache (ne pas les modifier)."""
 from __future__ import annotations
 
 from bot.core.logger import log

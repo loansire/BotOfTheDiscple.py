@@ -50,7 +50,7 @@ def iter_destinations(
 ) -> Iterator[tuple[str, discord.Guild, discord.abc.Messageable, dict]]:
     """Abonnés joignables d'un topic : (guild_id, guild, dest, info).
 
-    `info` = {name, is_thread, role} (forme subscriptions.json). Les serveurs
+    `info` = {name, is_thread, role} (cf. bot/storage/subscriptions.py). Les serveurs
     quittés et les salons supprimés/incompatibles sont ignorés."""
     for guild_id, dest_id, info in iter_subscribers(topic):
         guild = bot.get_guild(int(guild_id))

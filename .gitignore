@@ -9,11 +9,5 @@ __pycache__/
 .env.example
 
 # CacheData
-/Ressources/AlertDatabase
 /Ressources/Manifest
-dump_weekly.json
-dump_weekly.py
-Smoke lot1.py
-Ressources/Manifest/bungie_tokens.json
-dumpvendors.json
 .venv/

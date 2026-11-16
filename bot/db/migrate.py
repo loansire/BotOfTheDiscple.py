@@ -6,8 +6,7 @@ Deux jeux de migrations, un par base (cf. bot/db/database.py) :
 - `migrations/content/` : base de contenu, suivi dans
   `content_schema_migrations`. Seul le bot qui ÉCRIT le contenu (live) les
   applique ; un bot qui ne fait que lire (lite) ne touche pas à ce schéma.
-Deux tables de suivi distinctes : les deux jeux peuvent cohabiter dans une
-même base (pas de base de contenu dédiée) sans que leurs numéros se mélangent.
+Deux tables de suivi distinctes, une par jeu de migrations.
 
 Chaque fichier `NNNN_nom.sql` est appliqué UNE fois, dans l'ordre de son
 numéro, puis noté dans la table de suivi. Pour faire évoluer le schéma, on

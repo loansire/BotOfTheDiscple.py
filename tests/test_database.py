@@ -11,24 +11,17 @@ class ContentDbTests(unittest.TestCase):
         database.set_db(None)
         database.set_content_db(None)
 
-    def test_falls_back_to_state_db(self):
-        state = object()
-        database.set_db(state)
-        self.assertIs(database.get_content_db(), state)
-        self.assertFalse(database.has_content_db())
-
-    def test_dedicated_content_db(self):
+    def test_content_db_is_separate_from_state(self):
         state, content = object(), object()
         database.set_db(state)
+        self.assertIsNone(database.get_content_db())
         database.set_content_db(content)
         self.assertIs(database.get_content_db(), content)
-        self.assertTrue(database.has_content_db())
 
-    def test_content_config_optional(self):
-        with mock.patch.object(database.config, "CONTENT_DB_HOST", None):
-            self.assertIsNone(database.content_config())
+    def test_content_config_reads_content_variables(self):
         with mock.patch.object(database.config, "CONTENT_DB_HOST", "db.example"):
-            self.assertEqual(database.content_config().label, "CONTENT_DB")
+            cfg = database.content_config()
+        self.assertEqual((cfg.label, cfg.host), ("CONTENT_DB", "db.example"))
 
 
 if __name__ == "__main__":

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """Cog /botconfig : interface admin unifiée d'abonnement aux alertes.
 
-Remplace l'ancienne commande /alerte (cog subscriptions). Toute la
-configuration (salons + rôles, par topic) se fait via une vue éphémère
+Toute la configuration (salons + rôles, par topic) se fait via une vue éphémère
 Components V2 avec validation différée.
 """
 import discord
