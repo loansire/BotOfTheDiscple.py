@@ -76,14 +76,14 @@ class FlushTests(_Base):
         self.assertEqual(
             sqls,
             [
-                "DELETE FROM bot_message WHERE bot_id = %s AND guild_id = %s AND topic = %s",
+                "DELETE FROM bot_message WHERE guild_id = %s AND topic = %s",
                 "INSERT INTO bot_publication",
                 "INSERT INTO bot_message",
                 "INSERT INTO bot_message",
             ],
         )
-        self.assertEqual(db.writes[2][1], ("live", 1, "ada", "content", 0, 10))
-        self.assertEqual(db.writes[3][1], ("live", 1, "ada", "content", 1, 11))
+        self.assertEqual(db.writes[2][1], (1, "ada", "content", 0, 10))
+        self.assertEqual(db.writes[3][1], (1, "ada", "content", 1, 11))
 
         db.writes.clear()
         st.purge("1")
@@ -108,7 +108,7 @@ class FlushTests(_Base):
     async def test_subscription_rows(self):
         db = self.use_db(RecordingDatabase())
         await set_topic_destination("xur", "1", "11", is_thread=True, role_id="5", guild_name="G")
-        self.assertEqual(db.writes[1][1], ("live", 1, "xur", 11, 1, 5, "G", None))
+        self.assertEqual(db.writes[1][1], (1, "xur", 11, 1, 5, "G", None))
         self.assertEqual(
             load_config_state("1")["xur"], {"channel_id": "11", "is_thread": True, "role_id": "5"}
         )
@@ -150,6 +150,9 @@ class LoadTests(_Base):
         self.assertEqual(parse_positions("2,3; 4"), [2, 3, 4])
 
 
+_STATEMENT_KINDS = ("CREATE TABLE IF NOT EXISTS", "ALTER TABLE ", "DELETE FROM ")
+
+
 class MigrationFileTests(unittest.TestCase):
     def test_files_split_into_statements(self):
         for kind in ("state", "content"):
@@ -162,7 +165,7 @@ class MigrationFileTests(unittest.TestCase):
             statements = _statements(path.read_text(encoding="utf-8"))
             self.assertTrue(statements)
             for sql in statements:
-                self.assertTrue(sql.startswith("CREATE TABLE IF NOT EXISTS"), sql[:60])
+                self.assertTrue(sql.startswith(_STATEMENT_KINDS), sql[:60])
                 self.assertNotIn("--", sql)
 
 

@@ -30,7 +30,6 @@ réécrit toujours une entrée unique.
 """
 from typing import Optional
 
-from bot.core.config import BOT_ID
 from bot.db.database import Database
 from bot.storage.base import Table, flush
 from bot.topics import TOPICS
@@ -48,8 +47,7 @@ class SubscriptionTable(Table):
         self.data = {}
         for row in await db.fetchall(
             "SELECT guild_id, topic, channel_id, is_thread, role_id, guild_name, channel_name"
-            " FROM bot_subscription WHERE bot_id = %s ORDER BY guild_id, topic",
-            (BOT_ID,),
+            " FROM bot_subscription ORDER BY guild_id, topic"
         ):
             guild = self.data.setdefault(str(row["guild_id"]), {"name": row["guild_name"], "topics": {}})
             guild["topics"].setdefault(row["topic"], {})[str(row["channel_id"])] = {
@@ -62,15 +60,14 @@ class SubscriptionTable(Table):
         async with db.transaction() as cur:
             for guild_id in keys:
                 await cur.execute(
-                    "DELETE FROM bot_subscription WHERE bot_id = %s AND guild_id = %s",
-                    (BOT_ID, int(guild_id)),
+                    "DELETE FROM bot_subscription WHERE guild_id = %s", (int(guild_id),)
                 )
                 guild = self.data.get(guild_id)
                 if not guild:
                     continue
                 rows = [
                     (
-                        BOT_ID, int(guild_id), topic, int(dest_id), int(bool(info.get("is_thread"))),
+                        int(guild_id), topic, int(dest_id), int(bool(info.get("is_thread"))),
                         int(info["role"]) if info.get("role") else None,
                         guild.get("name"), info.get("name"),
                     )
@@ -79,9 +76,9 @@ class SubscriptionTable(Table):
                 ]
                 if rows:
                     await cur.executemany(
-                        "INSERT INTO bot_subscription (bot_id, guild_id, topic, channel_id,"
+                        "INSERT INTO bot_subscription (guild_id, topic, channel_id,"
                         " is_thread, role_id, guild_name, channel_name)"
-                        " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                        " VALUES (%s, %s, %s, %s, %s, %s, %s)",
                         rows,
                     )
 
