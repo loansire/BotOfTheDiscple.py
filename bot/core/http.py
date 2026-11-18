@@ -3,7 +3,7 @@
 
 Une seule ClientSession (pool de connexions + cache DNS/TLS) au lieu d'une
 session par requête. Créée paresseusement au premier appel (il faut une boucle
-asyncio active) et fermée à l'arrêt du bot (cf. Main.py).
+asyncio active) et fermée à l'arrêt du bot (cf. main.py).
 
 Timeout par défaut : 30 s au total. Sans timeout explicite, aiohttp attend
 jusqu'à 300 s, ce qui figerait la pipeline sur une requête pendante. Les gros

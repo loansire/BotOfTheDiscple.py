@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Maintenances Destiny / Marathon : détection Zendesk + déclaration manuelle.
 
-Un seul enregistrement « actif » par jeu (state.json), ÉCRASÉ à chaque
+Un seul enregistrement « actif » par jeu (compute_state), ÉCRASÉ à chaque
 déclencheur Zendesk ou mise à jour manuelle. Chaque écrasement republie un
 NOUVEAU message (jamais d'édition). À l'expiration de la fin, seul un DM de
 rappel part vers l'auteur du bot : l'enregistrement reste en base et le
@@ -146,7 +146,6 @@ class Maintenance(commands.Cog):
         async with self._lock:
             st = self.state.get(game)
             new_state = {**st, "article_updated_at": data.get("article_updated_at")}
-            new_state.pop("announced_offline_iso", None)  # ancien format
 
             if window is None:
                 self.state.set(game, new_state)
@@ -155,10 +154,7 @@ class Maintenance(commands.Cog):
 
             record = {**window, "source": "zendesk", "copy_text": format_discord_message(data)}
             previous = st.get("active")
-            if previous:
-                same = _signature(previous) == _signature(record)
-            else:  # état d'avant /maintenance-update : même mise hors ligne = déjà annoncée
-                same = window["offline_iso"] == st.get("announced_offline_iso")
+            same = bool(previous) and _signature(previous) == _signature(record)
 
             # Écrasement systématique de l'enregistrement actif.
             new_state["active"] = record

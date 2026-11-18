@@ -5,7 +5,7 @@ Usage :
     python -m scripts.db_check
     (ou : python scripts/db_check.py depuis la racine du projet)
 
-Se connecte avec les variables DB_* (et CONTENT_DB_* si présentes) du .env,
+Se connecte avec les variables DB_* et CONTENT_DB_* du .env,
 applique les migrations en attente, puis affiche le nombre de lignes de
 chaque table, base par base. N'envoie RIEN sur
 Discord. Utile pour valider l'accès à la base partagée (installation d'un
@@ -17,7 +17,7 @@ from pathlib import Path
 # Permet `python scripts/db_check.py` depuis la racine.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from bot.db.database import get_content_db, get_db, has_content_db  # noqa: E402
+from bot.db.database import get_content_db, get_db  # noqa: E402
 from bot.storage import close_storage, open_storage  # noqa: E402
 
 
@@ -28,9 +28,7 @@ async def main() -> int:
         print(f"[ERREUR] Connexion / migration impossible : {e!r}")
         return 1
     try:
-        bases = [("État (DB_*)", get_db())]
-        if has_content_db():
-            bases.append(("Contenu (CONTENT_DB_*)", get_content_db()))
+        bases = [("État (DB_*)", get_db()), ("Contenu (CONTENT_DB_*)", get_content_db())]
         for label, db in bases:
             version = (await db.fetchall("SELECT VERSION() AS v"))[0]["v"]
             print(f"{label} : serveur {version}")

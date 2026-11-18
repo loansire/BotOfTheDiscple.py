@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from bot.core.config import BOT_ID
 from bot.db.database import Database
 from bot.storage.base import Table, flush
 
@@ -56,13 +55,12 @@ class MessageTable(Table):
     async def _load(self, db: Database) -> None:
         self._entries = {}
         for row in await db.fetchall(
-            "SELECT guild_id, topic, content_hash FROM bot_publication WHERE bot_id = %s", (BOT_ID,)
+            "SELECT guild_id, topic, content_hash FROM bot_publication"
         ):
             self._entries[(str(row["guild_id"]), row["topic"])] = Entry(hash=row["content_hash"])
         for row in await db.fetchall(
             "SELECT guild_id, topic, slot, message_id FROM bot_message"
-            " WHERE bot_id = %s ORDER BY guild_id, topic, slot, position",
-            (BOT_ID,),
+            " ORDER BY guild_id, topic, slot, position"
         ):
             entry = self._entries.setdefault((str(row["guild_id"]), row["topic"]), Entry())
             entry.slots.setdefault(row["slot"], []).append(str(row["message_id"]))
@@ -70,20 +68,20 @@ class MessageTable(Table):
     async def _write(self, db: Database, keys: set) -> None:
         async with db.transaction() as cur:
             for guild_id, topic in keys:
-                where = (BOT_ID, int(guild_id), topic)
+                where = (int(guild_id), topic)
                 await cur.execute(
-                    "DELETE FROM bot_message WHERE bot_id = %s AND guild_id = %s AND topic = %s", where
+                    "DELETE FROM bot_message WHERE guild_id = %s AND topic = %s", where
                 )
                 entry = self._entries.get((guild_id, topic))
                 if entry is None:
                     await cur.execute(
-                        "DELETE FROM bot_publication WHERE bot_id = %s AND guild_id = %s AND topic = %s",
+                        "DELETE FROM bot_publication WHERE guild_id = %s AND topic = %s",
                         where,
                     )
                     continue
                 await cur.execute(
-                    "INSERT INTO bot_publication (bot_id, guild_id, topic, content_hash)"
-                    " VALUES (%s, %s, %s, %s)"
+                    "INSERT INTO bot_publication (guild_id, topic, content_hash)"
+                    " VALUES (%s, %s, %s)"
                     " ON DUPLICATE KEY UPDATE content_hash = VALUES(content_hash)",
                     (*where, entry.hash),
                 )
@@ -94,8 +92,8 @@ class MessageTable(Table):
                 ]
                 if rows:
                     await cur.executemany(
-                        "INSERT INTO bot_message (bot_id, guild_id, topic, slot, position, message_id)"
-                        " VALUES (%s, %s, %s, %s, %s, %s)",
+                        "INSERT INTO bot_message (guild_id, topic, slot, position, message_id)"
+                        " VALUES (%s, %s, %s, %s, %s)",
                         rows,
                     )
 

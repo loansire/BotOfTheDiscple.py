@@ -7,7 +7,6 @@ fermées à l'arrêt :
   calcul. Propre à chaque bot, jamais partagée ;
 - la base de CONTENU (CONTENT_DB_*) : publications prêtes à afficher
   (content_*), écrites par le live et lues par chaque bot qui publie.
-  Optionnelle : sans CONTENT_DB_HOST, le contenu vit dans la base d'état.
 
 Toutes les requêtes passent par les trois helpers de Database :
 - fetchall()    : SELECT → liste de dicts ;
@@ -45,10 +44,7 @@ def state_config() -> DbConfig:
                     config.DB_PASSWORD)
 
 
-def content_config() -> DbConfig | None:
-    """None : pas de base de contenu dédiée (le contenu vit dans la base d'état)."""
-    if not config.CONTENT_DB_HOST:
-        return None
+def content_config() -> DbConfig:
     return DbConfig("CONTENT_DB", config.CONTENT_DB_HOST, config.CONTENT_DB_PORT,
                     config.CONTENT_DB_NAME, config.CONTENT_DB_USER, config.CONTENT_DB_PASSWORD)
 
@@ -125,18 +121,13 @@ def set_db(db: Database | None) -> None:
 
 
 def get_content_db() -> Database | None:
-    """Base de contenu ; à défaut de base dédiée, la base d'état."""
-    return _content_db if _content_db is not None else _db
+    """Base de contenu, ou None tant qu'aucune connexion n'est ouverte."""
+    return _content_db
 
 
 def set_content_db(db: Database | None) -> None:
     global _content_db
     _content_db = db
-
-
-def has_content_db() -> bool:
-    """True si le contenu vit dans une base dédiée (pool séparé)."""
-    return _content_db is not None
 
 
 async def init_db() -> Database:
@@ -146,16 +137,8 @@ async def init_db() -> Database:
 
 
 async def init_content_db() -> Database:
-    """Ouvre la base de contenu dédiée si elle est configurée ; renvoie la
-    base qui porte le contenu (dédiée, ou celle d'état)."""
-    cfg = content_config()
-    if cfg is not None:
-        set_content_db(await Database.connect(cfg))
-    else:
-        log.info("[DB] Pas de CONTENT_DB_HOST : le contenu reste dans la base d'état.")
-    db = get_content_db()
-    if db is None:
-        raise RuntimeError("Base d'état non connectée.")
+    db = await Database.connect(content_config())
+    set_content_db(db)
     return db
 
 

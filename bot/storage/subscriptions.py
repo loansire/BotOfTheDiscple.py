@@ -25,12 +25,11 @@ Chargés une fois au démarrage (seul CE bot écrit ses lignes) : une
 modification faite à la main dans la base n'est vue qu'au redémarrage.
 
 Modèle /botconfig : un seul salon par topic + un seul rôle par topic. Le
-schéma autorise techniquement plusieurs salons (ancien /alerte), mais
-set_topic_destination réécrit toujours une entrée unique.
+schéma autorise techniquement plusieurs salons, mais set_topic_destination
+réécrit toujours une entrée unique.
 """
 from typing import Optional
 
-from bot.core.config import BOT_ID
 from bot.db.database import Database
 from bot.storage.base import Table, flush
 from bot.topics import TOPICS
@@ -44,18 +43,11 @@ class SubscriptionTable(Table):
     def touch(self, guild_id: str) -> None:
         self._touch(guild_id)
 
-    def replace_all(self, data: dict) -> None:
-        """Remplace tout (import des anciens fichiers JSON)."""
-        for guild_id in set(self.data) | set(data):
-            self._touch(guild_id)
-        self.data = data
-
     async def _load(self, db: Database) -> None:
         self.data = {}
         for row in await db.fetchall(
             "SELECT guild_id, topic, channel_id, is_thread, role_id, guild_name, channel_name"
-            " FROM bot_subscription WHERE bot_id = %s ORDER BY guild_id, topic",
-            (BOT_ID,),
+            " FROM bot_subscription ORDER BY guild_id, topic"
         ):
             guild = self.data.setdefault(str(row["guild_id"]), {"name": row["guild_name"], "topics": {}})
             guild["topics"].setdefault(row["topic"], {})[str(row["channel_id"])] = {
@@ -68,15 +60,14 @@ class SubscriptionTable(Table):
         async with db.transaction() as cur:
             for guild_id in keys:
                 await cur.execute(
-                    "DELETE FROM bot_subscription WHERE bot_id = %s AND guild_id = %s",
-                    (BOT_ID, int(guild_id)),
+                    "DELETE FROM bot_subscription WHERE guild_id = %s", (int(guild_id),)
                 )
                 guild = self.data.get(guild_id)
                 if not guild:
                     continue
                 rows = [
                     (
-                        BOT_ID, int(guild_id), topic, int(dest_id), int(bool(info.get("is_thread"))),
+                        int(guild_id), topic, int(dest_id), int(bool(info.get("is_thread"))),
                         int(info["role"]) if info.get("role") else None,
                         guild.get("name"), info.get("name"),
                     )
@@ -85,9 +76,9 @@ class SubscriptionTable(Table):
                 ]
                 if rows:
                     await cur.executemany(
-                        "INSERT INTO bot_subscription (bot_id, guild_id, topic, channel_id,"
+                        "INSERT INTO bot_subscription (guild_id, topic, channel_id,"
                         " is_thread, role_id, guild_name, channel_name)"
-                        " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                        " VALUES (%s, %s, %s, %s, %s, %s, %s)",
                         rows,
                     )
 
@@ -112,9 +103,8 @@ def iter_subscribers(topic: str):
 def get_topic_destination(topic: str, guild_id: str) -> Optional[dict]:
     """Renvoie l'unique destination d'un topic pour ce serveur, ou None.
 
-    Si d'anciennes données contiennent plusieurs salons (ancien /alerte),
-    on retourne le premier — la prochaine validation /botconfig collapse
-    automatiquement vers un seul salon.
+    Si la base contient plusieurs salons pour ce topic, on retourne le
+    premier — la prochaine validation /botconfig n'en garde qu'un.
     """
     guild = subscriptions.data.get(guild_id, {})
     dests = guild.get("topics", {}).get(topic, {})
