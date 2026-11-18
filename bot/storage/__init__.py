@@ -2,7 +2,7 @@
 """Persistance SQL : abonnements, messages publiés, état du calcul et données
 éditées à la main.
 
-Cycle de vie (cf. Main.py) :
+Cycle de vie (cf. main.py) :
     await open_storage()   connexions (état + contenu), migrations,
                            chargement des caches, relecture périodique
     ...                    le bot tourne (les stores lisent en mémoire)
